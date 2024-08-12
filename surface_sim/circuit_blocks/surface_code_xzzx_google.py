@@ -11,7 +11,7 @@ from qec_util import Layout
 
 from stim import Circuit, target_rec
 
-from ...models import Model
+from ..models import Model
 
 
 def qec_round_with_log_meas(

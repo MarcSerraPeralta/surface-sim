@@ -4,7 +4,7 @@ from stim import Circuit, target_rec
 
 from qec_util import Layout
 
-from ...models import Model
+from ..models import Model
 
 
 def log_meas(

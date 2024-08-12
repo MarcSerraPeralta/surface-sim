@@ -3,7 +3,7 @@ from stim import Circuit
 
 from qec_util import Layout
 
-from ..circuit_blocks.surface_code_xzzx import init_qubits, log_meas, qec_round
+from ..circuit_blocks.surface_code_css import init_qubits, log_meas, qec_round
 from ..models import Model
 
 

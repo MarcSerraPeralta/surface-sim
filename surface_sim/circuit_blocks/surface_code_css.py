@@ -5,7 +5,7 @@ from stim import Circuit, target_rec
 
 from qec_util import Layout
 
-from ...models import Model
+from ..models import Model
 
 
 def log_meas(
@@ -23,30 +23,18 @@ def log_meas(
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 
-    qubits = set(data_qubits + anc_qubits)
-
     # With reset defect[n] = m[n] XOR m[n-1]
     # Wihtout reset defect[n] = m[n] XOR m[n-2]
     comp_rounds = 1 if meas_reset else 2
 
     circuit = Circuit()
 
-    stab_type = "x_type" if rot_basis else "z_type"
-    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-    rot_qubits = set()
-    for direction in ("north_west", "south_east"):
-        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-        rot_qubits.update(neighbors)
-
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
-
-    idle_qubits = qubits - rot_qubits
-
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    if rot_basis:
+        for instruction in model.hadamard(data_qubits):
+            circuit.append(instruction)
+        for instruction in model.idle(anc_qubits):
+            circuit.append(instruction)
+        circuit.append("TICK")
 
     for instruction in model.measure(data_qubits):
         circuit.append(instruction)
@@ -57,6 +45,9 @@ def log_meas(
     circuit.append("TICK")
 
     num_data, num_anc = len(data_qubits), len(anc_qubits)
+    stab_type = "x_type" if rot_basis else "z_type"
+    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
     for anc_qubit in stab_qubits:
         neighbors = layout.get_neighbors(anc_qubit)
         neighbor_inds = layout.get_inds(neighbors)
@@ -84,72 +75,139 @@ def qec_round(
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
 
+    This implementation follows:
+
+    https://doi.org/10.1103/PhysRevApplied.8.034021
+
     Params
     -------
     meas_comparison
         If True, the detector is set to the measurement of the ancilla
         instead of to the comparison of consecutive syndromes.
-    stab_type_det
-        If specified, only adds detectors to the ancillas for the
-        specific stabilizator type.
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
-
     qubits = set(data_qubits + anc_qubits)
+
+    int_order = layout.interaction_order
+    stab_types = list(int_order.keys())
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
 
     # With reset defect[n] = m[n] XOR m[n-1]
     # Wihtout reset defect[n] = m[n] XOR m[n-2]
     comp_round = 1 if meas_reset else 2
 
     circuit = Circuit()
-    int_order = layout.interaction_order
-    stab_types = list(int_order.keys())
 
-    for ind, stab_type in enumerate(stab_types):
+    # a
+    direction = int_order["x_type"][0]
+    rot_qubits = set(anc_qubits)
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=direction))
+    for instruction in model.hadamard(rot_qubits):
+        circuit.append(instruction)
+    idle_qubits = qubits - rot_qubits
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # b
+    int_qubits = set()
+    for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-        rot_qubits = set(stab_qubits)
-        for direction in ("north_west", "south_east"):
-            neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-            rot_qubits.update(neighbors)
-
-        if not ind:
-            for instruction in model.hadamard(rot_qubits):
-                circuit.append(instruction)
-
-            idle_qubits = qubits - rot_qubits
-            for instruction in model.idle(idle_qubits):
-                circuit.append(instruction)
-            circuit.append("TICK")
-
-        for ord_dir in int_order[stab_type]:
+        for ord_dir in int_order[stab_type][0]:
             int_pairs = layout.get_neighbors(
                 stab_qubits, direction=ord_dir, as_pairs=True
             )
-            int_qubits = list(chain.from_iterable(int_pairs))
+            int_qubits.update(list(chain.from_iterable(int_pairs)))
 
             for instruction in model.cphase(int_qubits):
                 circuit.append(instruction)
 
-            idle_qubits = qubits - set(int_qubits)
-            for instruction in model.idle(idle_qubits):
-                circuit.append(instruction)
-            circuit.append("TICK")
+    idle_qubits = qubits - set(int_qubits)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
 
-        if not ind:
-            for instruction in model.hadamard(qubits):
-                circuit.append(instruction)
-        else:
-            for instruction in model.hadamard(rot_qubits):
+    # c
+    for instruction in model.hadamard(data_qubits):
+        circuit.append(instruction)
+    for instruction in model.idle(anc_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # d
+    int_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        for ord_dir in int_order[stab_type][1]:
+            int_pairs = layout.get_neighbors(
+                stab_qubits, direction=ord_dir, as_pairs=True
+            )
+            int_qubits.update(list(chain.from_iterable(int_pairs)))
+
+            for instruction in model.cphase(int_qubits):
                 circuit.append(instruction)
 
-            idle_qubits = qubits - rot_qubits
-            for instruction in model.idle(idle_qubits):
+    idle_qubits = qubits - set(int_qubits)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # e
+    int_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        for ord_dir in int_order[stab_type][2]:
+            int_pairs = layout.get_neighbors(
+                stab_qubits, direction=ord_dir, as_pairs=True
+            )
+            int_qubits.update(list(chain.from_iterable(int_pairs)))
+
+            for instruction in model.cphase(int_qubits):
                 circuit.append(instruction)
 
-        circuit.append("TICK")
+    idle_qubits = qubits - set(int_qubits)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
 
+    # f
+    for instruction in model.hadamard(data_qubits):
+        circuit.append(instruction)
+    for instruction in model.idle(anc_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # g
+    int_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        for ord_dir in int_order[stab_type][3]:
+            int_pairs = layout.get_neighbors(
+                stab_qubits, direction=ord_dir, as_pairs=True
+            )
+            int_qubits.update(list(chain.from_iterable(int_pairs)))
+
+            for instruction in model.cphase(int_qubits):
+                circuit.append(instruction)
+
+    idle_qubits = qubits - set(int_qubits)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # h
+    direction = int_order["x_type"][0]
+    rot_qubits = set(anc_qubits)
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=direction))
+    for instruction in model.hadamard(rot_qubits):
+        circuit.append(instruction)
+    idle_qubits = qubits - rot_qubits
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # i
     for instruction in model.measure(anc_qubits):
         circuit.append(instruction)
 
@@ -215,21 +273,11 @@ def init_qubits(
         circuit.append(instruction)
     circuit.append("TICK")
 
-    stab_type = "x_type" if rot_basis else "z_type"
-    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-    rot_qubits = set()
-    for direction in ("north_west", "south_east"):
-        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-        rot_qubits.update(neighbors)
-
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
-
-    idle_qubits = qubits - rot_qubits
-
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    if rot_basis:
+        for instruction in model.hadamard(data_qubits):
+            circuit.append(instruction)
+        for instruction in model.idle(anc_qubits):
+            circuit.append(instruction)
+        circuit.append("TICK")
 
     return circuit
