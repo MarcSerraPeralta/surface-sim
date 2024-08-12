@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.8.1"
+name = "surface-sim"
+description = "Suface code simulations package" 
+version = "0.1.0"
+authors = [
+    { name = "Boris Varbanov", email = "b.m.varbanov@gmail.com"}
+]
+maintainers = [
+    { name = "Marc Serra Peralta", email = "marcserraperalta@gmail.com" },
+    { name = "Boris Varbanov", email = "b.m.varbanov@gmail.com"}
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+dependencies = [
+    "numpy >= 1.22.4",
+    "xarray >= 0.21",
+    "PyYAML >= 6.0",
+    "netCDF4 >= 1.5.8",
+    "stim >= 1.9.0",
+    "qec_util @ git+ssh://git@github.com/BorisVarbanov/qec-util",
+]
+keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
+
+[tool.setuptools.packages.find]
+include = ["surface_sim"]  # package names should match these glob patterns (["*"] by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[project.optional-dependencies]
+dev = ["pip-tools", "pytest", "black"]
+
