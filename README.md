@@ -6,6 +6,6 @@ For more information see the documentation in `docs/`.
 ## Installation
 
 ```
-git clone git@github.com:BorisVarbanov/surface-sim.git
+git clone git@github.com:MarcSerraPeralta/surface-sim.git
 pip install surface-sim/
 ```
