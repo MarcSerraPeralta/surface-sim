@@ -100,9 +100,10 @@ def qec_round(
     circuit = Circuit()
 
     # a
-    direction = int_order["x_type"][0]
+    directions = [int_order["x_type"][0],int_order["x_type"][3]] 
     rot_qubits = set(anc_qubits)
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=direction))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
     for instruction in model.hadamard(rot_qubits):
         circuit.append(instruction)
     idle_qubits = qubits - rot_qubits
@@ -111,19 +112,20 @@ def qec_round(
     circuit.append("TICK")
 
     # b
-    int_qubits = set()
+    interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        for ord_dir in int_order[stab_type][0]:
-            int_pairs = layout.get_neighbors(
-                stab_qubits, direction=ord_dir, as_pairs=True
-            )
-            int_qubits.update(list(chain.from_iterable(int_pairs)))
+        ord_dir = int_order[stab_type][0]
+        int_pairs = layout.get_neighbors(
+            stab_qubits, direction=ord_dir, as_pairs=True
+        )
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-            for instruction in model.cphase(int_qubits):
-                circuit.append(instruction)
+        for instruction in model.cphase(int_qubits):
+            circuit.append(instruction)
 
-    idle_qubits = qubits - set(int_qubits)
+    idle_qubits = qubits - set(interacted_qubits)
     for instruction in model.idle(idle_qubits):
         circuit.append(instruction)
     circuit.append("TICK")
@@ -136,37 +138,39 @@ def qec_round(
     circuit.append("TICK")
 
     # d
-    int_qubits = set()
+    interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        for ord_dir in int_order[stab_type][1]:
-            int_pairs = layout.get_neighbors(
-                stab_qubits, direction=ord_dir, as_pairs=True
-            )
-            int_qubits.update(list(chain.from_iterable(int_pairs)))
+        ord_dir = int_order[stab_type][1]
+        int_pairs = layout.get_neighbors(
+            stab_qubits, direction=ord_dir, as_pairs=True
+        )
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-            for instruction in model.cphase(int_qubits):
-                circuit.append(instruction)
+        for instruction in model.cphase(int_qubits):
+            circuit.append(instruction)
 
-    idle_qubits = qubits - set(int_qubits)
+    idle_qubits = qubits - set(interacted_qubits)
     for instruction in model.idle(idle_qubits):
         circuit.append(instruction)
     circuit.append("TICK")
 
     # e
-    int_qubits = set()
+    interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        for ord_dir in int_order[stab_type][2]:
-            int_pairs = layout.get_neighbors(
-                stab_qubits, direction=ord_dir, as_pairs=True
-            )
-            int_qubits.update(list(chain.from_iterable(int_pairs)))
+        ord_dir = int_order[stab_type][2]
+        int_pairs = layout.get_neighbors(
+            stab_qubits, direction=ord_dir, as_pairs=True
+        )
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-            for instruction in model.cphase(int_qubits):
-                circuit.append(instruction)
+        for instruction in model.cphase(int_qubits):
+            circuit.append(instruction)
 
-    idle_qubits = qubits - set(int_qubits)
+    idle_qubits = qubits - set(interacted_qubits)
     for instruction in model.idle(idle_qubits):
         circuit.append(instruction)
     circuit.append("TICK")
@@ -179,27 +183,29 @@ def qec_round(
     circuit.append("TICK")
 
     # g
-    int_qubits = set()
+    interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        for ord_dir in int_order[stab_type][3]:
-            int_pairs = layout.get_neighbors(
-                stab_qubits, direction=ord_dir, as_pairs=True
-            )
-            int_qubits.update(list(chain.from_iterable(int_pairs)))
+        ord_dir = int_order[stab_type][3]
+        int_pairs = layout.get_neighbors(
+            stab_qubits, direction=ord_dir, as_pairs=True
+        )
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-            for instruction in model.cphase(int_qubits):
-                circuit.append(instruction)
+        for instruction in model.cphase(int_qubits):
+            circuit.append(instruction)
 
-    idle_qubits = qubits - set(int_qubits)
+    idle_qubits = qubits - set(interacted_qubits)
     for instruction in model.idle(idle_qubits):
         circuit.append(instruction)
     circuit.append("TICK")
 
     # h
-    direction = int_order["x_type"][0]
+    directions = [int_order["x_type"][0],int_order["x_type"][3]] 
     rot_qubits = set(anc_qubits)
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=direction))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
     for instruction in model.hadamard(rot_qubits):
         circuit.append(instruction)
     idle_qubits = qubits - rot_qubits
