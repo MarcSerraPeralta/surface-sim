@@ -14,13 +14,11 @@ from stim import Circuit, target_rec
 from ..models import Model
 
 
-def qubit_coords(
-    model: Model, 
-    layout: Layout) -> Circuit:
+def qubit_coords(model: Model, layout: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates
-    of the qubits. 
+    of the qubits.
     """
-    coord_dict = {q:layout.get_coords([q])[0] for q in layout.get_qubits()}
+    coord_dict = {q: layout.get_coords([q])[0] for q in layout.get_qubits()}
     circuit = Circuit()
 
     for instruction in model.qubit_coords(coord_dict):

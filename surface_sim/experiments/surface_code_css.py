@@ -3,7 +3,12 @@ from stim import Circuit
 
 from qec_util import Layout
 
-from ..circuit_blocks.surface_code_css import init_qubits, log_meas, qec_round, qubit_coords
+from ..circuit_blocks.surface_code_css import (
+    init_qubits,
+    log_meas,
+    qec_round,
+    qubit_coords,
+)
 from ..models import Model
 
 
@@ -33,8 +38,8 @@ def memory_experiment(
         qec_circ = qec_round(model, layout, meas_reset)
 
         experiment = (
-            qubit_coords_circ + 
-            + init_circ
+            qubit_coords_circ
+            + +init_circ
             + first_qec_circ * num_init_rounds
             + qec_circ * (num_rounds - num_init_rounds)
             + meas_circuit
