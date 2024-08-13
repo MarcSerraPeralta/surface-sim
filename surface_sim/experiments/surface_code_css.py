@@ -39,7 +39,7 @@ def memory_experiment(
 
         experiment = (
             qubit_coords_circ
-            + +init_circ
+            + init_circ
             + first_qec_circ * num_init_rounds
             + qec_circ * (num_rounds - num_init_rounds)
             + meas_circuit
