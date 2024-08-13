@@ -7,6 +7,7 @@ from ..circuit_blocks.surface_code_xzzx_google import (
     init_qubits,
     qec_round_with_log_meas,
     qec_round,
+    qubit_coords,
 )
 from ..models import Model
 
@@ -27,6 +28,7 @@ def memory_experiment(
 
     num_init_rounds = 1 if meas_reset else 2
 
+    qubit_coords_circ = qubit_coords(model, layout)
     init_circ = init_qubits(model, layout, data_init, rot_basis)
     qec_meas_circuit = qec_round_with_log_meas(model, layout, rot_basis, meas_reset)
     first_qec_circ = qec_round(model, layout, meas_reset, meas_comparison=False)
@@ -35,7 +37,8 @@ def memory_experiment(
         qec_circ = qec_round(model, layout, meas_reset)
 
         experiment = (
-            init_circ
+            qubit_coords_circ
+            + init_circ
             + first_qec_circ * num_init_rounds
             + qec_circ * (num_rounds - 1 - num_init_rounds)
             + qec_meas_circuit
@@ -44,7 +47,8 @@ def memory_experiment(
         return experiment
 
     experiment = (
-        init_circ
+        qubit_coords_circ
+        + init_circ
         + first_qec_circ * (min(num_rounds, num_init_rounds) - 1)
         + qec_round_with_log_meas(
             model, layout, rot_basis, meas_reset=True, meas_comparison=False

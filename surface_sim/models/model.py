@@ -28,5 +28,13 @@ class Model(object):
         return self._setup.param(*qubits)
 
     # annotation gates
-    def tick(self, **kargs):
+    def tick(self, **_):
         yield CircuitInstruction("TICK", targets=[])
+
+    def qubit_coords(self, coords: Dict[str, list]):
+        if set(coords) >= set(self._qubit_inds):
+            raise ValueError("'coords' must have the coordinates for all the qubit")
+
+        for q_label, q_ind in self._qubit_inds.items():
+            q_coords = coords[q_label]
+            yield CircuitInstruction("QUBIT_COORDS", [q_ind], q_coords)
