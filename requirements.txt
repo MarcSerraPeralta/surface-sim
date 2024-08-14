@@ -61,7 +61,7 @@ pyyaml==6.0.1
     # via
     #   qec-util
     #   surface-sim (pyproject.toml)
-qec-util @ git+ssh://git@github.com/BorisVarbanov/qec-util
+qec-util @ git+ssh://git@github.com/MarcSerraPeralta/qec-util
     # via surface-sim (pyproject.toml)
 scipy==1.12.0
     # via lmfit
