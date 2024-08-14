@@ -32,7 +32,7 @@ class Model(object):
         yield CircuitInstruction("TICK", targets=[])
 
     def qubit_coords(self, coords: Dict[str, list]):
-        if set(coords) >= set(self._qubit_inds):
+        if set(coords) < set(self._qubit_inds):
             raise ValueError("'coords' must have the coordinates for all the qubit")
 
         for q_label, q_ind in self._qubit_inds.items():
