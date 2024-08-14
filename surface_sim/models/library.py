@@ -1,6 +1,5 @@
-from typing import Iterable, Iterator, Sequence, Tuple, Any, Dict
+from typing import Iterator, Sequence, Any, Dict
 
-import numpy as np
 from stim import CircuitInstruction
 
 from ..setup import Setup
@@ -33,6 +32,24 @@ class CircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("H", inds)
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
+
+    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        inds = self.get_inds(qubits)
+
+        yield CircuitInstruction("S", inds)
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
+
+    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        inds = self.get_inds(qubits)
+
+        yield CircuitInstruction("S_DAG", inds)
 
         for qubit, ind in zip(qubits, inds):
             prob = self.param("sq_error_prob", qubit)
@@ -116,6 +133,36 @@ class BiasedCircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("H", inds)
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli", qubit),
+                biased_factor=self.param("biased_factor", qubit),
+                num_qubits=1,
+            )
+            probs = prob * prefactors
+            yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
+
+    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        inds = self.get_inds(qubits)
+
+        yield CircuitInstruction("S", inds)
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli", qubit),
+                biased_factor=self.param("biased_factor", qubit),
+                num_qubits=1,
+            )
+            probs = prob * prefactors
+            yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
+
+    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        inds = self.get_inds(qubits)
+
+        yield CircuitInstruction("S_DAG", inds)
 
         for qubit, ind in zip(qubits, inds):
             prob = self.param("sq_error_prob", qubit)
@@ -227,6 +274,12 @@ class DecoherenceNoiseModel(Model):
 
     def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("H", qubits)
+
+    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        yield from self.generic_op("S", qubits)
+
+    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+        yield from self.generic_op("S_DAG", qubits)
 
     def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("CZ", qubits)
@@ -393,6 +446,16 @@ class NoiselessModel(Model):
         self, qubits: Sequence[str], *args, **kargs
     ) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("H", self.get_inds(qubits))
+
+    def s_gate(
+        self, qubits: Sequence[str], *args, **kargs
+    ) -> Iterator[CircuitInstruction]:
+        yield CircuitInstruction("S", self.get_inds(qubits))
+
+    def s_dag_gate(
+        self, qubits: Sequence[str], *args, **kargs
+    ) -> Iterator[CircuitInstruction]:
+        yield CircuitInstruction("S_DAG", self.get_inds(qubits))
 
     def cphase(
         self, qubits: Sequence[str], *args, **kargs
