@@ -6,6 +6,7 @@ https://doi.org/10.48550/arXiv.2207.06431
 
 from itertools import chain, compress
 from typing import List
+import warnings
 
 from qec_util import Layout
 
@@ -113,8 +114,15 @@ def qec_round_with_log_meas(
             targets.append(target)
         circuit.append("DETECTOR", targets)
 
-    targets = [target_rec(ind) for ind in range(-num_data, 0)]
-    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_op = "log_x" if rot_basis else "log_z"
+    if log_op not in dir(layout):
+        warnings.warn("Deprecation warning: specify log_x and log_z in your layout.", DeprecationWarning)
+        targets = [target_rec(ind) for ind in range(-num_data, 0)]
+        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    else:
+        log_data_qubits = getattr(layout, log_op)
+        targets = [target_rec(data_qubits.index(q) - num_data) for q in log_data_qubits]
+        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
