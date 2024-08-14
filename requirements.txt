@@ -77,3 +77,4 @@ xarray==0.21.1
     # via
     #   qec-util
     #   surface-sim (pyproject.toml)
+python-sat==1.8.dev13
