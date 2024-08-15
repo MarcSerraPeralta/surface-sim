@@ -7,16 +7,16 @@ message: >-
   A Python package implementing a stim wrapper that helps with error model (namely implementing circuit-level noise models) and constructing QEC code circuits.
 type: software
 authors:
-  - given-names: Boris Mihailov
-    family-names: Varbanov
-    email: b.m.varbanov@tudelft.nl
-    affiliation: "QuTech, Delft University of Technology"
-    orcid: "https://orcid.org/0000-0001-7124-8933"
   - given-names: Marc
     family-names: Serra-Peralta
     email: M.SerraPeralta@tudelft.nl
     affiliation: 'QuTech, Delft University of Technology'
     orcid: 'https://orcid.org/0000-0002-8000-8701'
+  - given-names: Boris Mihailov
+    family-names: Varbanov
+    email: b.m.varbanov@tudelft.nl
+    affiliation: "QuTech, Delft University of Technology"
+    orcid: "https://orcid.org/0000-0001-7124-8933"
 repository-code: "https://github.com/BorisVarbanov/surface-sim"
 abstract: >-
   Stim is a high-performance stabilizer simulator that is especially tailored to simulating quantum error correction (QEC) experiments. This package is a wrapper around Stim that aims to help the construction of QEC-code circuits easier. The package implements model classes that help with inserting ciruit-level noise models. It uses a code layout that helps with qubit labeling, indexing and connectivity. Finally, there are a number of circuits for the rotated surface code that are implemented in the package.
@@ -25,7 +25,4 @@ keywords:
   - quantum-computing
   - quantum-error-correction
   - surface-code
-license: Apache-2.0
-commit: 8d21839
-version: "1"
-date-released: "2023-07-06"
+license: MIT
