@@ -84,7 +84,10 @@ def log_meas(
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
-        warnings.warn("Deprecation warning: specify log_x and log_z in your layout.", DeprecationWarning)
+        warnings.warn(
+            "Deprecation warning: specify log_x and log_z in your layout.",
+            DeprecationWarning,
+        )
         targets = [target_rec(ind) for ind in range(-num_data, 0)]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
