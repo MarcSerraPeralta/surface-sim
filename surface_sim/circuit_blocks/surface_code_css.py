@@ -75,7 +75,10 @@ def log_meas(
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
-        warnings.warn("Deprecation warning: specify log_x and log_z in your layout.", DeprecationWarning)
+        warnings.warn(
+            "Deprecation warning: specify log_x and log_z in your layout.",
+            DeprecationWarning,
+        )
         targets = [target_rec(ind) for ind in range(-num_data, 0)]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
@@ -121,7 +124,7 @@ def qec_round(
     circuit = Circuit()
 
     # a
-    directions = [int_order["x_type"][0],int_order["x_type"][3]] 
+    directions = [int_order["x_type"][0], int_order["x_type"][3]]
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
@@ -137,9 +140,7 @@ def qec_round(
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][0]
-        int_pairs = layout.get_neighbors(
-            stab_qubits, direction=ord_dir, as_pairs=True
-        )
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
@@ -163,9 +164,7 @@ def qec_round(
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][1]
-        int_pairs = layout.get_neighbors(
-            stab_qubits, direction=ord_dir, as_pairs=True
-        )
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
@@ -182,9 +181,7 @@ def qec_round(
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][2]
-        int_pairs = layout.get_neighbors(
-            stab_qubits, direction=ord_dir, as_pairs=True
-        )
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
@@ -208,9 +205,7 @@ def qec_round(
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][3]
-        int_pairs = layout.get_neighbors(
-            stab_qubits, direction=ord_dir, as_pairs=True
-        )
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
@@ -223,7 +218,7 @@ def qec_round(
     circuit.append("TICK")
 
     # h
-    directions = [int_order["x_type"][0],int_order["x_type"][3]] 
+    directions = [int_order["x_type"][0], int_order["x_type"][3]]
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
