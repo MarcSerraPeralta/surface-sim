@@ -1,21 +1,23 @@
 # Creating and configuring a `Setup`
 
-This file contains information on how to create and configure a `Setup` object a the noise model `Model` from (1) a YAML file, and (2) a `dict` object. It explains the structure of these two inputs and the use of *free parameters* and *global parameters*. 
+This file contains information on how to create and configure a `Setup` object for a noise model `Model` using (1) a YAML file, and (2) a `dict` object. 
+This document explains the structure of these two inputs and the use of *free parameters* and *global parameters*. 
+
 
 ## Structure of the configuration for a `Setup`
 
-The configuration input must contain the following blocks:
+The configuration input must contain a `setup` block, including the noise parameters for each qubit.
+It can also contain a `gate_durations` block for experimental-based noise models, where the error probabilities depend on the opertaions durations. 
 
-- `gate_durations`: data in dictionary format specifying the durations of the gates used in the quantum circuit. The gate names follow the same convention as Stim. *Note: in some noise models this block is not needed.*
-- `setup`: data about the noise parameters for each qubit. Some noise parameters are:
-    - `sq_error_prob`: float,
-    - `cz_error_prob`: float,
-    - `meas_error_prob`: float, # quantum measurement errors
-    - `assign_error_prob`: float, # classical measurement error
-    - `reset_error_prob`: float,
-    - `idle_error_prob`: float,
-    - `T1`: float,
-    - `T2`: float,
+A common set of noise parameters for each qubits are:
+- `sq_error_prob`: float,
+- `cz_error_prob`: float,
+- `meas_error_prob`: float, # quantum measurement errors
+- `assign_error_prob`: float, # classical measurement error
+- `reset_error_prob`: float,
+- `idle_error_prob`: float,
+- `T1`: float,
+- `T2`: float,
 
 *Note: not all parameters are required for each noise model*
 
@@ -25,9 +27,10 @@ The configuration input can also contain a `name` and a `description`.
 
 The parameters are classified into three categories:
 
-- **local parameter**: float value that is defined for an specific qubit or pair of qubits for the case of two-qubit gates
+- **local parameter**: float value that is defined for a specific qubit or pair of qubits for the case of two-qubit gates
 - **global parameter**: float value that is defined for all qubits or all two-qubit gates
-- **free parameter**: string name that can be set up and modified for an specific qubit or all qubits. These parameters can be setup using the `Setup.set_var_param` function. 
+- **free parameter**: string name that can be set up and modified for an specific qubit or all qubits. 
+These parameters can be setup using the `Setup.set_var_param` function. 
 
 Examples that represent the same noise:
 ```
@@ -76,6 +79,7 @@ setup_input = [
 # setup.set_var_param("param2", 0.01)
 ```
 
+
 ## Loading `Setup` from YAML file
 
 ```
@@ -84,7 +88,8 @@ from surface_sim import Setup
 setup = Setup.from_yaml("path/to/yaml/file.yaml")
 ```
 
-Examples of the YAML file can be found in `docs/yaml_examples`.
+Examples of the YAML Setup file can be found in `docs/setup_examples`.
+
 
 ## Creating `Setup` from `dict`
 
