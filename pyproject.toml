@@ -17,18 +17,18 @@ maintainers = [
 license = {file = "LICENSE"}
 readme = "README.md"
 dependencies = [
-    "numpy >= 1.22.4",
-    "xarray >= 0.21",
-    "PyYAML >= 6.0",
-    "netCDF4 >= 1.5.8",
-    "stim >= 1.9.0",
+    "numpy",
+    "xarray",
+    "PyYAML",
+    "netCDF4",
+    "stim >= 1.13.0",
     "qec-util",
     "python-sat",
 ]
 keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
 
 [tool.setuptools.packages.find]
-include = ["surface_sim"]  # package names should match these glob patterns (["*"] by default)
+include = ["surface_sim", "surface_sim.*"]  # package names should match these glob patterns (["*"] by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project.optional-dependencies]
