@@ -16,7 +16,7 @@ This package is available in PyPI, thus it can be installed using
 pip install surface-sim
 ```
 
-or alternatively, it can be installed from source code using
+or alternatively, it can be installed from source using
 ```
 git clone git@github.com:MarcSerraPeralta/surface-sim.git
 pip install surface-sim/
