@@ -1,4 +1,5 @@
-import numpy as np
+from typing import List
+
 from stim import Circuit
 
 from qec_util import Layout
@@ -16,15 +17,15 @@ def memory_experiment(
     model: Model,
     layout: Layout,
     num_rounds: int,
-    data_init: np.ndarray,
+    data_init: List[int],
     rot_basis: bool = False,
     meas_reset: bool = False,
 ) -> Circuit:
     if not isinstance(num_rounds, int):
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
 
-    if num_rounds <= 0:
-        raise ValueError("num_rounds needs to be a positive integer")
+    if num_rounds < 0:
+        raise ValueError("num_rounds needs to be a positive integer.")
 
     num_init_rounds = 1 if meas_reset else 2
 
@@ -51,7 +52,7 @@ def memory_experiment(
         qubit_coords_circ
         + init_circ
         + first_qec_circ * min(num_rounds, num_init_rounds)
-        + log_meas(model, layout, rot_basis, meas_reset=1)
+        + log_meas(model, layout, rot_basis, meas_reset=True)
     )
 
     return experiment
