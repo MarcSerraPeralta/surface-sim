@@ -2,7 +2,7 @@ from typing import List
 import warnings
 from itertools import compress
 
-from stim import Circuit, target_rec
+from stim import Circuit
 from qec_util import Layout
 
 from ..models import Model
@@ -59,19 +59,16 @@ def log_meas(
 
     circuit.append("TICK")
 
-    num_data, num_anc = len(data_qubits), len(anc_qubits)
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
 
     for anc_qubit in stab_qubits:
         neighbors = layout.get_neighbors(anc_qubit)
-        neighbor_inds = layout.get_inds(neighbors)
-        targets = [target_rec(ind - num_data) for ind in neighbor_inds]
+        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
 
-        anc_ind = anc_qubits.index(anc_qubit)
         for round_ind in range(1, comp_rounds + 1):
-            target = target_rec(anc_ind - num_data - round_ind * num_anc)
-            targets.append(target)
+            targets.append(model.meas_target(anc_qubit, -round_ind))
+
         circuit.append("DETECTOR", targets)
 
     log_op = "log_x" if rot_basis else "log_z"
@@ -80,11 +77,11 @@ def log_meas(
             "Deprecation warning: specify log_x and log_z in your layout.",
             DeprecationWarning,
         )
-        targets = [target_rec(ind) for ind in range(-num_data, 0)]
+        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
         log_data_qubits = getattr(layout, log_op)
-        targets = [target_rec(data_qubits.index(q) - num_data) for q in log_data_qubits]
+        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
@@ -240,16 +237,14 @@ def log_meas_xzzx(
 
     circuit.append("TICK")
 
-    num_data, num_anc = len(data_qubits), len(anc_qubits)
     for anc_qubit in stab_qubits:
         neighbors = layout.get_neighbors(anc_qubit)
-        neighbor_inds = layout.get_inds(neighbors)
-        targets = [target_rec(ind - num_data) for ind in neighbor_inds]
+        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
 
-        anc_ind = anc_qubits.index(anc_qubit)
         for round_ind in range(1, comp_rounds + 1):
-            target = target_rec(anc_ind - num_data - round_ind * num_anc)
+            target = model.meas_target(anc_qubit, -round_ind)
             targets.append(target)
+
         circuit.append("DETECTOR", targets)
 
     log_op = "log_x" if rot_basis else "log_z"
@@ -258,11 +253,11 @@ def log_meas_xzzx(
             "Deprecation warning: specify log_x and log_z in your layout.",
             DeprecationWarning,
         )
-        targets = [target_rec(ind) for ind in range(-num_data, 0)]
+        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
         log_data_qubits = getattr(layout, log_op)
-        targets = [target_rec(data_qubits.index(q) - num_data) for q in log_data_qubits]
+        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit

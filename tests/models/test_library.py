@@ -1,3 +1,5 @@
+from stim import Circuit, target_rec
+
 from surface_sim import Setup
 from surface_sim.models import (
     NoiselessModel,
@@ -129,5 +131,35 @@ def test_CircuitNoiseModel():
 
     ops = [o.name for o in model.idle(["D1"])]
     assert set(NOISE_GATES + ["I"]) >= set(ops)
+
+    return
+
+
+def test_model_meas_roder():
+    setup = Setup(SETUP)
+    qubit_inds = {"D1": 1, "D2": 2}
+    models = [
+        CircuitNoiseModel(setup, qubit_inds=qubit_inds),
+        NoiselessModel(qubit_inds=qubit_inds),
+        DecoherenceNoiseModel(setup, qubit_inds=qubit_inds),
+    ]
+
+    for model in models:
+        circuit = Circuit()
+        for instr in model.measure(["D1", "D2"]):
+            circuit.append(instr)
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+
+        assert model.meas_target("D1", -2) == target_rec(-3)
+
+        model.new_circuit()
+        circuit = Circuit()
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+
+        assert model.meas_target("D1", -2) == target_rec(-2)
 
     return

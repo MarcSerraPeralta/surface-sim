@@ -9,7 +9,7 @@ import warnings
 
 from qec_util import Layout
 
-from stim import Circuit, target_rec
+from stim import Circuit
 
 from ..models import Model
 
@@ -17,7 +17,14 @@ from ..models import Model
 from .util import qubit_coords, log_x, log_z
 from .util import init_qubits_xzzx as init_qubits
 
-__all__ = ["qubit_coords", "qec_round_with_log_meas", "log_x", "log_z", "qec_round", "init_qubits"]
+__all__ = [
+    "qubit_coords",
+    "qec_round_with_log_meas",
+    "log_x",
+    "log_z",
+    "qec_round",
+    "init_qubits",
+]
 
 
 def qec_round_with_log_meas(
@@ -79,14 +86,17 @@ def qec_round_with_log_meas(
     for instruction in model.measure(anc_qubits):
         circuit.append(instruction)
 
+    # detectors ordered as in the measurements
     if meas_comparison:
         det_targets = []
-        for ind in range(num_anc):
-            target_inds = [ind - (comp_rounds + 1) * num_anc, ind - num_anc]
-            targets = [target_rec(ind) for ind in target_inds]
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
             det_targets.append(targets)
     else:
-        det_targets = [[target_rec(ind - num_anc)] for ind in range(num_anc)]
+        det_targets = []
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1)]
+            det_targets.append(targets)
 
     for targets in det_targets:
         circuit.append("DETECTOR", targets)
@@ -97,13 +107,11 @@ def qec_round_with_log_meas(
 
     for anc_qubit in stab_qubits:
         neighbors = layout.get_neighbors(anc_qubit)
-        neighbor_inds = layout.get_inds(neighbors)
-        targets = [target_rec(ind - num_data) for ind in neighbor_inds]
+        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
 
-        anc_ind = anc_qubits.index(anc_qubit)
         for round_ind in range(1, comp_rounds + 1):
-            target = target_rec(anc_ind - num_data - round_ind * num_anc)
-            targets.append(target)
+            targets.append(model.meas_target(anc_qubit, -round_ind))
+
         circuit.append("DETECTOR", targets)
 
     log_op = "log_x" if rot_basis else "log_z"
@@ -112,11 +120,11 @@ def qec_round_with_log_meas(
             "Deprecation warning: specify log_x and log_z in your layout.",
             DeprecationWarning,
         )
-        targets = [target_rec(ind) for ind in range(-num_data, 0)]
+        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
         log_data_qubits = getattr(layout, log_op)
-        targets = [target_rec(data_qubits.index(q) - num_data) for q in log_data_qubits]
+        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
@@ -281,15 +289,16 @@ def qec_round(
         circuit.append("TICK")
 
     # detectors ordered as in the measurements
-    num_anc = len(anc_qubits)
     if meas_comparison:
         det_targets = []
-        for ind in range(num_anc):
-            target_inds = [ind - (comp_round + 1) * num_anc, ind - num_anc]
-            targets = [target_rec(ind) for ind in target_inds]
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
             det_targets.append(targets)
     else:
-        det_targets = [[target_rec(ind - num_anc)] for ind in range(num_anc)]
+        det_targets = []
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1)]
+            det_targets.append(targets)
 
     for targets in det_targets:
         circuit.append("DETECTOR", targets)

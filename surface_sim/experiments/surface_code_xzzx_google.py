@@ -28,32 +28,21 @@ def memory_experiment(
         raise ValueError("num_rounds needs to be a (strickly) positive integer.")
 
     num_init_rounds = 1 if meas_reset else 2
+    model.new_circuit()
 
-    qubit_coords_circ = qubit_coords(model, layout)
-    init_circ = init_qubits(model, layout, data_init, rot_basis)
-    qec_meas_circuit = qec_round_with_log_meas(model, layout, rot_basis, meas_reset)
-    first_qec_circ = qec_round(model, layout, meas_reset, meas_comparison=False)
+    experiment = Circuit()
+    experiment += qubit_coords(model, layout)
+    experiment += init_qubits(model, layout, data_init, rot_basis)
 
-    if num_rounds > num_init_rounds:
-        qec_circ = qec_round(model, layout, meas_reset)
-
-        experiment = (
-            qubit_coords_circ
-            + init_circ
-            + first_qec_circ * num_init_rounds
-            + qec_circ * (num_rounds - 1 - num_init_rounds)
-            + qec_meas_circuit
-        )
-
+    if num_rounds <= num_init_rounds:
+        for _ in range(min(num_rounds, num_init_rounds) - 1):
+            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
+        experiment += qec_round_with_log_meas(model, layout, rot_basis, meas_reset=False)
         return experiment
-
-    experiment = (
-        qubit_coords_circ
-        + init_circ
-        + first_qec_circ * (min(num_rounds, num_init_rounds) - 1)
-        + qec_round_with_log_meas(
-            model, layout, rot_basis, meas_reset=True, meas_comparison=False
-        )
-    )
-
-    return experiment
+    else:
+        for _ in range(num_init_rounds):
+            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
+        for _ in range(num_rounds - num_init_rounds - 1):
+            experiment += qec_round(model, layout, meas_reset)
+        experiment += qec_round_with_log_meas(model, layout, rot_basis, meas_reset)
+        return experiment

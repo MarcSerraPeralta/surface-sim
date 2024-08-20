@@ -1,6 +1,6 @@
 from itertools import chain
 
-from stim import Circuit, target_rec
+from stim import Circuit
 from qec_util import Layout
 
 from ..models import Model
@@ -106,15 +106,16 @@ def qec_round(
         circuit.append("TICK")
 
     # detectors ordered as in the measurements
-    num_anc = len(anc_qubits)
     if meas_comparison:
         det_targets = []
-        for ind in range(num_anc):
-            target_inds = [ind - (comp_round + 1) * num_anc, ind - num_anc]
-            targets = [target_rec(ind) for ind in target_inds]
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
             det_targets.append(targets)
     else:
-        det_targets = [[target_rec(ind - num_anc)] for ind in range(num_anc)]
+        det_targets = []
+        for qubit in anc_qubits:
+            targets = [model.meas_target(qubit, -1)]
+            det_targets.append(targets)
 
     for targets in det_targets:
         circuit.append("DETECTOR", targets)
