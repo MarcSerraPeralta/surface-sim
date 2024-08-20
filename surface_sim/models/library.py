@@ -8,7 +8,7 @@ from .util import biased_prefactors, grouper, idle_error_probs
 
 
 class CircuitNoiseModel(Model):
-    def __init__(self, setup: Setup, qubit_inds: dict) -> None:
+    def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
     def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
@@ -71,6 +71,8 @@ class CircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+
             prob = self.param("meas_error_prob", qubit)
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
@@ -97,7 +99,7 @@ class CircuitNoiseModel(Model):
 
 
 class BiasedCircuitNoiseModel(Model):
-    def __init__(self, setup: Setup, qubit_inds: dict) -> None:
+    def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
     def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
@@ -196,6 +198,8 @@ class BiasedCircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+
             prob = self.param("meas_error_prob", qubit)
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
@@ -231,8 +235,8 @@ class DecoherenceNoiseModel(Model):
     """An coherence-limited noise model using T1 and T2"""
 
     def __init__(
-        self, setup: Setup, qubit_inds=dict, symmetric_noise: bool = True
-    ) -> Any:
+        self, setup: Setup, qubit_inds: Dict[str, int], symmetric_noise: bool = True
+    ) -> None:
         self._sym_noise = symmetric_noise
         return super().__init__(setup, qubit_inds)
 
@@ -291,25 +295,30 @@ class DecoherenceNoiseModel(Model):
 
             yield from self.idle(qubits, duration)
             for qubit in qubits:
+                self.add_meas(qubit)
+
                 if self.param("assign_error_flag", qubit):
                     prob = self.param("assign_error_prob", qubit)
                     yield CircuitInstruction(
                         name, targets=self.get_inds([qubit]), gate_args=[prob]
                     )
                 else:
-                    yield CircuitInstruction(name, gate_args=self.get_inds([qubit]))
+                    yield CircuitInstruction(name, targets=self.get_inds([qubit]))
             yield from self.idle(qubits, duration)
         else:
             duration = self.gate_duration(name)
 
-            yield CircuitInstruction(name, targets=self.get_inds(qubits))
-            yield from self.idle(qubits, duration)
+            for qubit in qubits:
+                self.add_meas(qubit)
+
+                yield CircuitInstruction(name, targets=[qubit])
+                yield from self.idle(qubit, duration)
 
     def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("R", qubits)
 
     def idle(
-        self, qubits: Sequence[int], duration: float
+        self, qubits: Sequence[str], duration: float
     ) -> Iterator[CircuitInstruction]:
         """
         idle Returns the circuit instructions for an idling period on the given qubits.
@@ -378,6 +387,8 @@ class ExperimentalNoiseModel(Model):
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+
             prob = self.param("meas_error_prob", qubit)
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
@@ -465,7 +476,9 @@ class NoiselessModel(Model):
     def measure(
         self, qubits: Sequence[str], *args, **kargs
     ) -> Iterator[CircuitInstruction]:
-        yield CircuitInstruction("M", self.get_inds(qubits))
+        for qubit in qubits:
+            self.add_meas(qubit)
+            yield CircuitInstruction("M", self.get_inds([qubit]))
 
     def reset(
         self, qubits: Sequence[str], *args, **kargs
