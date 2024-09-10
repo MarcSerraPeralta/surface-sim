@@ -1,3 +1,5 @@
+import pytest
+
 from surface_sim import Setup
 
 SETUP = {
@@ -33,6 +35,15 @@ def test_free_params():
 
     setup.set_var_param("free", 0.12)
     assert setup.param("sq_error_prob", "D1") == 0.12
+    return
+
+
+def test_unspecified_param():
+    setup = Setup(SETUP)
+    assert len(setup.free_params) > 0
+
+    with pytest.raises(Exception):
+        setup.param("sq_error_prob", "D1")
     return
 
 
