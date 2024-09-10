@@ -1,6 +1,6 @@
+from typing import Any, Dict, Type, TypeVar, Union, List
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Type, TypeVar, Union, List
 
 import yaml
 
@@ -116,17 +116,12 @@ class Setup:
             self._qubit_params[qubits][param] = param_val
 
     def param(self, param: str, *qubits: str) -> float:
-        try:
+        if qubits in self._qubit_params and param in self._qubit_params[qubits]:
             val = self._qubit_params[qubits][param]
             return self._eval_param_val(val)
-        except KeyError:
-            pass
-
-        try:
+        if param in self._global_params:
             val = self._global_params[param]
             return self._eval_param_val(val)
-        except KeyError:
-            pass
 
         if qubits:
             qubit_str = ", ".join(qubits)
@@ -134,10 +129,13 @@ class Setup:
         raise KeyError(f"Global parameter {param} not defined")
 
     def _eval_param_val(self, val):
-        try:
-            return self._var_params[val]
-        except KeyError:
-            return val
+        if val in self._var_params:
+            param = deepcopy(val)
+            val = self._var_params[param]
+            if val is None:
+                raise ValueError(f"Variable parameter {param} is not specified.")
+
+        return val
 
     def gate_duration(self, name: str) -> float:
         try:
