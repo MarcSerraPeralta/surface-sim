@@ -1,6 +1,5 @@
 import numpy as np
 import xarray as xr
-import stim
 
 from surface_sim.detectors import Detectors
 
@@ -48,8 +47,37 @@ def test_detectors_build_from_anc():
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_anc(meas_rec, meas_reset=True)
+    detector_rec = [
+        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert {-102, -101, -202} in detector_rec
+    assert {-101, -201} in detector_rec
 
-    assert "DETECTOR rec[-102] rec[-101] rec[-202]" in str(detectors_stim)
-    assert "DETECTOR rec[-101] rec[-201]" in str(detectors_stim)
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_anc(meas_rec, meas_reset=True)
+    detector_rec = [
+        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert {-102, -201, -202} in detector_rec
+    assert {-101, -201} in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_anc(meas_rec, meas_reset=False)
+    detector_rec = [
+        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert {-102, -101, -202, -201, -202, -302} in detector_rec
+    assert {-101, -201, -201, -301} in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_anc(meas_rec, meas_reset=False)
+    detector_rec = [
+        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert {-102, -201, -202, -301, -202, -302} in detector_rec
+    assert {-101, -201, -201, -301} in detector_rec
 
     return
