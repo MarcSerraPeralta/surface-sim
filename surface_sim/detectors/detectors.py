@@ -20,7 +20,7 @@ class Detectors:
             ),
         )
 
-        self.prev_gen = deepcopy(generators)
+        self.prev_gen = None
         self.curr_gen = deepcopy(generators)
         self.init_gen = deepcopy(generators)
         self.frame = frame
@@ -202,19 +202,39 @@ class Detectors:
 
 def _get_ancilla_meas_for_detectors(
     curr_gen: xr.DataArray,
-    prev_gen: xr.DataArray,
+    prev_gen: xr.DataArray | None,
     basis: xr.DataArray,
     meas_reset: bool,
 ) -> Dict[str, List[Tuple[str, int]]]:
     """Returns the ancilla measurements as ``(anc_qubit, rel_meas_ind)``
     required to build the detectors in the given frame.
+
+    Parameters
+    ----------
+    curr_gen
+        Current stabilizer generators.
+    prev_gen
+        Stabilizer generators measured in the previous round.
+        If no stabilizers have been measured, it is ``None``.
+    basis
+        Basis in which to represent the detectors.
+    meas_reset
+        Flag for if the ancillas are being reset after being measured.
+
+    Returns
+    -------
+    detectors
+        Dictionary of the ancilla qubits and their corresponding detectors
+        expressed as a list of ``(anc_qubit, -meas_rel_id)``.
     """
     # matrix inversion is not possible in xarray,
     # thus go to np.ndarrays with correct order of columns and rows.
     anc_qubits = curr_gen.stab_gen.values
     curr_gen_arr = curr_gen.sel(stab_gen=anc_qubits).values
-    prev_gen_arr = prev_gen.sel(stab_gen=anc_qubits).values
     basis_arr = basis.sel(stab_gen=anc_qubits).values
+    prev_gen_arr = np.zeros_like(curr_gen_arr)
+    if prev_gen is not None:
+        prev_gen_arr = prev_gen.sel(stab_gen=anc_qubits).values
 
     # convert self.prev_gen and self.curr_gen to the frame basis
     curr_gen_arr = curr_gen_arr @ np.linalg.inv(basis_arr)
