@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Dict, Tuple
 from copy import deepcopy
 
 import numpy as np
@@ -60,15 +60,15 @@ class Detectors:
                 "'unitary_mat' must be an xr.DataArray, "
                 f"but {type(unitary_mat)} was given."
             )
-        if unitary_mat.coords.dims != ["stab_gen", "new_stab_gen"]:
+        if set(unitary_mat.coords.dims) != set(["stab_gen", "new_stab_gen"]):
             raise ValueError(
                 "The coordinates of 'unitary_mat' must be 'stab_gen' and 'new_stab_gen', "
-                f"but {unitary_mat.coords} were given."
+                f"but {unitary_mat.coords.dims} were given."
             )
         if not (
-            unitary_mat.stab_gen.values()
-            == unitary_mat.new_stab_gen.values()
-            == self.init_gen.stab_gen.values()
+            set(unitary_mat.stab_gen.values)
+            == set(unitary_mat.new_stab_gen.values)
+            == set(self.init_gen.stab_gen.values)
         ):
             raise ValueError(
                 "The coordinate values of 'unitary_mat' must match "
@@ -81,11 +81,13 @@ class Detectors:
             raise ValueError("'unitary_mat' is not invertible.")
 
         self.curr_gen = (unitary_mat @ self.curr_gen) % 2
+        self.curr_gen = self.curr_gen.rename({"new_stab_gen": "stab_gen"})
 
         return
 
-    def build(self, get_rec: Callable) -> stim.Circuit:
-        """Returns the stim circuit with the corresponding detectors.
+    def build_from_anc(self, get_rec: Callable, meas_reset: bool) -> stim.Circuit:
+        """Returns the stim circuit with the corresponding detectors
+        given that the ancilla qubits have been measured.
 
         Parameters
         ----------
@@ -93,22 +95,144 @@ class Detectors:
             Function that given ``(qubit_label, rel_meas_id)`` returns the
             ``target_rec`` integer. The intention is to give the
             ``Model.meas_target`` method.
+        meas_reset
+            Flag for if the ancillas are being reset after being measured.
+
+        Returns
+        -------
+        detectors_stim
+            Detectors defined in a ``stim`` circuit.
         """
-        if self.frame == "0":
+        if self.frame == "1":
             basis = self.init_gen
         elif self.frame == "r":
             basis = self.curr_gen
         else:
-            raise ValueError(f"'frame' must be '0' or '1', but {self.frame} was given.")
+            raise ValueError(f"'frame' must be '1' or 'r', but {self.frame} was given.")
 
-        # convert self.prev_gen and self.curr_gen to the frame basis
-
-        # get all outcomes that need to be XORed
+        detectors = _get_ancilla_meas_for_detectors(
+            self.curr_gen,
+            self.prev_gen,
+            basis,
+            meas_reset,
+        )
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
+        for targets in detectors.values():
+            detectors_rec = [get_rec(t) for t in targets]
+            detectors_target_rec = [stim.target_rec(t) for t in detectors_rec]
+            detectors_stim.append(
+                stim.CircuitInstruction("DETECTOR", detectors_target_rec)
+            )
 
         # update generators
         self.previous_gen = deepcopy(self.curr_gen)
 
         return detectors_stim
+
+    def build_from_data(
+        self, get_rec: Callable, adjacency_matrix: xr.DataArray, meas_reset: bool
+    ) -> stim.Circuit:
+        """Returns the stim circuit with the corresponding detectors
+        given that the data qubits have been measured.
+
+        Parameters
+        ----------
+        get_rec
+            Function that given ``(qubit_label, rel_meas_id)`` returns the
+            ``target_rec`` integer. The intention is to give the
+            ``Model.meas_target`` method.
+        adjacency_matrix
+            Matrix descriving the data qubit support on the stabilizers.
+            Its coordinates are ``from_qubit`` and ``to_qubit``.
+            See ``qec_util.Layout.adjacency_matrix`` for more information.
+        meas_reset
+            Flag for if the ancillas are being reset after being measured.
+
+        Returns
+        -------
+        detectors_stim
+            Detectors defined in a ``stim`` circuit.
+        """
+        if self.frame == "1":
+            basis = self.init_gen
+        elif self.frame == "r":
+            basis = self.curr_gen
+        else:
+            raise ValueError(f"'frame' must be '1' or 'r', but {self.frame} was given.")
+
+        anc_detectors = _get_ancilla_meas_for_detectors(
+            self.curr_gen,
+            self.prev_gen,
+            basis,
+            meas_reset,
+        )
+
+        # udpate the (anc, -1) to a the corresponding set of (data, -1)
+        detectors = {}
+        for anc_qubit, dets in anc_detectors.items():
+            new_dets = []
+            for det in dets:
+                if det[1] != -1:
+                    new_dets.append(det)
+                    continue
+
+                support = adjacency_matrix.sel(from_qubit=dets[0])
+                data_qubits = [
+                    q for q, sup in zip(support.to_qubit.values, support) if sup
+                ]
+                new_dets += [(q, -1) for q in data_qubits]
+            detectors[anc_qubit] = new_dets
+
+        # build the stim circuit
+        detectors_stim = stim.Circuit()
+        for targets in detectors.values():
+            detectors_rec = [get_rec(t) for t in targets]
+            detectors_target_rec = [stim.target_rec(t) for t in detectors_rec]
+            detectors_stim.append(
+                stim.CircuitInstruction("DETECTOR", detectors_target_rec)
+            )
+
+        # update generators
+        self.previous_gen = deepcopy(self.curr_gen)
+
+        return detectors_stim
+
+
+def _get_ancilla_meas_for_detectors(
+    curr_gen: xr.DataArray,
+    prev_gen: xr.DataArray,
+    basis: xr.DataArray,
+    meas_reset: bool,
+) -> Dict[str, List[Tuple[str, int]]]:
+    """Returns the ancilla measurements as ``(anc_qubit, rel_meas_ind)``
+    required to build the detectors in the given frame.
+    """
+    # matrix inversion is not possible in xarray,
+    # thus go to np.ndarrays with correct order of columns and rows.
+    anc_qubits = curr_gen.stab_gen.values
+    curr_gen_arr = curr_gen.sel(stab_gen=anc_qubits).values
+    prev_gen_arr = prev_gen.sel(stab_gen=anc_qubits).values
+    basis_arr = basis.sel(stab_gen=anc_qubits).values
+
+    # convert self.prev_gen and self.curr_gen to the frame basis
+    curr_gen_arr = curr_gen_arr @ np.linalg.inv(basis_arr)
+    prev_gen_arr = prev_gen_arr @ np.linalg.inv(basis_arr)
+
+    # get all outcomes that need to be XORed
+    detectors = {}
+    for anc_qubit, c_gen, p_gen in zip(anc_qubits, curr_gen_arr, prev_gen_arr):
+        c_gen_inds = np.where(c_gen)[0]
+        p_gen_inds = np.where(p_gen)[0]
+
+        targets = [(anc_qubits[ind], -1) for ind in c_gen_inds]
+        targets += [(anc_qubits[ind], -2) for ind in p_gen_inds]
+
+        if not meas_reset:
+            targets += [(anc_qubits[ind], -2) for ind in c_gen_inds]
+            targets += [(anc_qubits[ind], -3) for ind in p_gen_inds]
+
+        detectors[anc_qubit] = targets
+
+    return detectors
