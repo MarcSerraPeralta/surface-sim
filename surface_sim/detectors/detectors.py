@@ -178,7 +178,7 @@ class Detectors:
                     new_dets.append(det)
                     continue
 
-                support = adjacency_matrix.sel(from_qubit=dets[0])
+                support = adjacency_matrix.sel(from_qubit=det[0])
                 data_qubits = [
                     q for q, sup in zip(support.to_qubit.values, support) if sup
                 ]
