@@ -1,6 +1,5 @@
-from typing import List
+from typing import Dict
 import warnings
-from itertools import compress
 
 from stim import Circuit
 from qec_util import Layout
@@ -90,7 +89,7 @@ def log_meas(
 def init_qubits(
     model: Model,
     layout: Layout,
-    data_init: List[int],
+    data_init: Dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -101,7 +100,6 @@ def init_qubits(
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
-
     qubits = set(data_qubits + anc_qubits)
 
     circuit = Circuit()
@@ -109,7 +107,7 @@ def init_qubits(
         circuit.append(instruction)
     circuit.append("TICK")
 
-    exc_qubits = set(compress(data_qubits, data_init))
+    exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
         for instruction in model.x_gate(exc_qubits):
             circuit.append(instruction)
@@ -266,7 +264,7 @@ def log_meas_xzzx(
 def init_qubits_xzzx(
     model: Model,
     layout: Layout,
-    data_init: List[int],
+    data_init: Dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -277,7 +275,6 @@ def init_qubits_xzzx(
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
-
     qubits = set(data_qubits + anc_qubits)
 
     circuit = Circuit()
@@ -285,7 +282,7 @@ def init_qubits_xzzx(
         circuit.append(instruction)
     circuit.append("TICK")
 
-    exc_qubits = set(compress(data_qubits, data_init))
+    exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
         for instruction in model.x_gate(exc_qubits):
             circuit.append(instruction)

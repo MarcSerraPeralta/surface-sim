@@ -15,7 +15,7 @@ def test_memory_experiment():
         layout=layout,
         num_rounds=10,
         meas_reset=False,
-        data_init=[0] * len(qubit_ids),
+        data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,
     )
 
