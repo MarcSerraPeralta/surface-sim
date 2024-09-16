@@ -37,7 +37,9 @@ def memory_experiment(
     if num_rounds <= num_init_rounds:
         for _ in range(min(num_rounds, num_init_rounds) - 1):
             experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
-        experiment += qec_round_with_log_meas(model, layout, rot_basis, meas_reset=False)
+        experiment += qec_round_with_log_meas(
+            model, layout, rot_basis, meas_reset=False
+        )
         return experiment
     else:
         for _ in range(num_init_rounds):
