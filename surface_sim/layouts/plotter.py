@@ -1,4 +1,4 @@
-from typing import Tuple, Reversible, Iterable, List
+from typing import Tuple, Iterable, List
 from copy import deepcopy
 import re
 
@@ -24,11 +24,17 @@ ZORDERS = dict(circle=3, patch=1, line=2, text=4)
 # Define the default colors
 COLORS = {
     "red": "#e41a1cff",
+    "red_light": "#f07f80ff",
     "green": "#4daf4aff",
+    "green_light": "#9dd49bff",
     "blue": "#377eb8ff",
+    "blue_light": "#90bbdfff",
     "orange": "#ff9933ff",
+    "orange_light": "#ffb770ff",
     "purple": "#984ea3ff",
+    "purple_light": "#ca9ed1ff",
     "yellow": "#f2c829ff",
+    "yellow_light": "#f7dc78ff",
 }
 
 
@@ -187,8 +193,7 @@ def qubit_connections(layout: Layout) -> Iterable[Line2D]:
         The layout to draw the connections of.
     """
     default_params = dict(
-        color="white",
-        linestyle="none",
+        linestyle="--",
     )
     anc_qubits = layout.get_qubits(role="anc")
 
@@ -202,6 +207,13 @@ def qubit_connections(layout: Layout) -> Iterable[Line2D]:
 
         metaparams = layout.param("metaparams", anc_qubit)
         line_params = deepcopy(default_params)
+        stab_type = layout.param("stab_type", anc_qubit)
+        if stab_type == "z_type":
+            line_params["color"] = COLORS["blue"]
+        elif stab_type == "x_type":
+            line_params["color"] = COLORS["red"]
+        else:
+            line_params["color"] = COLORS["green"]
         if isinstance(metaparams, dict):
             custom_params = metaparams.get("line", {})
             line_params.update(custom_params)
@@ -288,11 +300,11 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
         patch_params = deepcopy(default_params)
         stab_type = layout.param("stab_type", anc_qubit)
         if stab_type == "z_type":
-            patch_params["facecolor"] = COLORS["blue"]
+            patch_params["facecolor"] = COLORS["blue_light"]
         elif stab_type == "x_type":
-            patch_params["facecolor"] = COLORS["red"]
+            patch_params["facecolor"] = COLORS["red_light"]
         else:
-            patch_params["facecolor"] = COLORS["green"]
+            patch_params["facecolor"] = COLORS["green_light"]
 
         if isinstance(metaparams, dict):
             custom_params = metaparams.get("patch", {})
