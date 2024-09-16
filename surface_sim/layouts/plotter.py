@@ -1,13 +1,12 @@
 """Layout plotting module."""
 
 import re
-from typing import Sequence, Union, Tuple, Reversible, Iterable
+from typing import Sequence, Tuple, Reversible, Iterable
 from copy import deepcopy
 
 import numpy as np
 
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from matplotlib.patches import Circle, Polygon
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
@@ -265,59 +264,57 @@ def get_coord_range(layout: Layout) -> Tuple[CoordRange, CoordRange]:
 
 
 def plot(
-    axis: Axes,
+    ax: Axes,
     layout: Layout,
-    add_labels: bool = False,
-    add_patches: bool = False,
+    add_labels: bool = True,
+    add_patches: bool = True,
     add_connections: bool = True,
-    set_limits: bool = True,
     pad: float = 1,
-) -> Union[Figure, None]:
+) -> Axes:
     """
-    plot Plots a layout.
+    Plots a layout.
 
     Parameters
     ----------
-    axis : Axes
+    ax
         The axis to plot the layout on.
-    layout : Layout
+    layout
         The layout to plot.
-    add_labels : bool, optional
-        Whether to add qubit labels , by default True
-    add_patches : bool, optional
-        Whether to plot stabilizer patches, by default True
-    set_limits : bool, optional
-        Whether to set the figure limits, by default True
-    add_connections : bool, optional
-        Whether to plot lines indicating the connectivity, by default True
-    pad : float, optional
-        The padding to the bottom axis, by default 2
+    add_labels
+        Flag to add qubit labels, by default True.
+    add_patches
+        Flag to plot stabilizer patches, by default True.
+    add_connections
+        Flag to plot lines indicating the connectivity, by default True.
+    pad
+        The padding to the bottom axis, by default 1.
 
     Returns
     -------
-    Union[Figure, None]
+    ax
         The figure the layout was plotted on.
     """
     for artist in qubit_artists(layout):
-        axis.add_artist(artist)
+        ax.add_artist(artist)
 
     if add_patches:
         for artist in patch_artists(layout):
-            axis.add_artist(artist)
+            ax.add_artist(artist)
 
     if add_connections:
         for artist in qubit_connections(layout):
-            axis.add_artist(artist)
+            ax.add_artist(artist)
 
     if add_labels:
         for artist in qubit_labels(layout):
-            axis.add_artist(artist)
+            ax.add_artist(artist)
 
-    if set_limits:
-        x_range, y_range = get_coord_range(layout)
+    x_range, y_range = get_coord_range(layout)
 
-        x_min, x_max = x_range
-        axis.set_xlim(x_min - pad, x_max + pad)
+    x_min, x_max = x_range
+    ax.set_xlim(x_min - pad, x_max + pad)
 
-        y_min, y_max = y_range
-        axis.set_ylim(y_min - pad, y_max + pad)
+    y_min, y_max = y_range
+    ax.set_ylim(y_min - pad, y_max + pad)
+
+    return ax

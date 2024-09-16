@@ -1,6 +1,6 @@
 import pytest
 
-from qec_util.layouts import rot_surf_code, set_coords
+from surface_sim.layouts import rot_surf_code, set_coords
 
 
 def test_set_coords():

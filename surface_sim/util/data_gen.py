@@ -1,9 +1,10 @@
 from typing import Optional
 
 import numpy as np
-from qec_util import Layout
 from stim import Circuit
 from xarray import DataArray, Dataset
+
+from ..layouts import Layout
 
 
 def sample_memory_experiment(

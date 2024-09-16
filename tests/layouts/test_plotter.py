@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-from qec_util.layouts import rot_surf_code
-from qec_util.layouts import plot
+from surface_sim.layouts import rot_surf_code
+from surface_sim.layouts import plot
 
 
 def test_plot(show_figures):

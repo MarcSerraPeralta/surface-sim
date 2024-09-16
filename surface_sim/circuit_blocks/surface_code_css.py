@@ -1,8 +1,8 @@
 from itertools import chain
 
 from stim import Circuit
-from qec_util import Layout
 
+from ..layouts import Layout
 from ..models import Model
 
 # methods to have in this script

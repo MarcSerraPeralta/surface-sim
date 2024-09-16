@@ -12,7 +12,7 @@ for instr in model.x_gate(["D1", "D2"]):
     circuit.append(instr)
 ```
 
-The building blocks in `surface_sim.circuit_blocks` use a layout (from `qec_util.Layout`), which simplifies the qubit selection for gate scheduling. 
+The building blocks in `surface_sim.circuit_blocks` use a layout (from `surface_sim.Layout`), which simplifies the qubit selection for gate scheduling. 
 As an example, `Layout.get_qubits(role="anc")` selects all ancilla qubits from the layout.
 In `docs/layout_examples`, there is a YAML file that stores the Surface-17 layout and which can be loaded using `Layout.from_yaml()`.
 

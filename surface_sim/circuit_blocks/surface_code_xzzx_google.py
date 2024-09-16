@@ -7,10 +7,9 @@ https://doi.org/10.48550/arXiv.2207.06431
 from itertools import chain
 import warnings
 
-from qec_util import Layout
-
 from stim import Circuit
 
+from ..layouts import Layout
 from ..models import Model
 
 # methods to have in this script
