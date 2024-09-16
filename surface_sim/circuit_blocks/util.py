@@ -68,7 +68,7 @@ def log_meas(
         for round_ind in range(1, comp_rounds + 1):
             targets.append(model.meas_target(anc_qubit, -round_ind))
 
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
@@ -243,7 +243,7 @@ def log_meas_xzzx(
             target = model.meas_target(anc_qubit, -round_ind)
             targets.append(target)
 
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):

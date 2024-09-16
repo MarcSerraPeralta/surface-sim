@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence, List, Iterator
+from typing import Any, Dict, List, Iterator, Iterable
 
 from stim import CircuitInstruction, target_rec, GateTarget
 
@@ -24,7 +24,7 @@ class Model(object):
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
-    def get_inds(self, qubits: Sequence[str]) -> List[object]:
+    def get_inds(self, qubits: Iterable[str]) -> List[object]:
         # The proper annotation for this function should be "-> List[int]"
         # but stim gets confused and only accepts List[object] making the
         # LSP unusable with all the errors.
@@ -115,29 +115,29 @@ class Model(object):
             yield CircuitInstruction("QUBIT_COORDS", [q_ind], q_coords)
 
     # gate/measurement/reset operations
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def z_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError
 
-    def idle(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def idle(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         raise NotImplementedError

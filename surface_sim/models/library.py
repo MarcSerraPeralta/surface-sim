@@ -1,4 +1,4 @@
-from typing import Iterator, Sequence, Dict
+from typing import Iterator, Dict, Iterable
 
 from stim import CircuitInstruction
 
@@ -11,7 +11,7 @@ class CircuitNoiseModel(Model):
     def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("X", inds)
 
@@ -19,7 +19,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def z_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("Z", inds)
@@ -28,7 +28,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("H", inds)
@@ -37,7 +37,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("S", inds)
@@ -46,7 +46,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("S_DAG", inds)
@@ -55,7 +55,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
 
@@ -67,7 +67,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("cz_error_prob", *qubit_pair)
             yield CircuitInstruction("DEPOLARIZE2", ind_pair, [prob])
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
@@ -82,7 +82,7 @@ class CircuitNoiseModel(Model):
             else:
                 yield CircuitInstruction("MZ", [ind])
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("R", inds)
 
@@ -90,7 +90,7 @@ class CircuitNoiseModel(Model):
             prob = self.param("reset_error_prob", qubit)
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
-    def idle(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def idle(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
@@ -102,7 +102,7 @@ class BiasedCircuitNoiseModel(Model):
     def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("X", inds)
 
@@ -116,7 +116,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
 
-    def z_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("Z", inds)
@@ -131,7 +131,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("H", inds)
@@ -146,7 +146,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
 
-    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("S", inds)
@@ -161,7 +161,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("S_DAG", inds)
@@ -176,7 +176,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_1", [ind], probs)
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
 
@@ -194,7 +194,7 @@ class BiasedCircuitNoiseModel(Model):
             probs = prob * prefactors
             yield CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs)
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
@@ -209,7 +209,7 @@ class BiasedCircuitNoiseModel(Model):
             else:
                 yield CircuitInstruction("MZ", [ind])
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("R", inds)
 
@@ -217,7 +217,7 @@ class BiasedCircuitNoiseModel(Model):
             prob = self.param("reset_error_prob", qubit)
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
-    def idle(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def idle(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
@@ -241,16 +241,16 @@ class DecoherenceNoiseModel(Model):
         return super().__init__(setup, qubit_inds)
 
     def generic_op(
-        self, name: str, qubits: Sequence[str]
+        self, name: str, qubits: Iterable[str]
     ) -> Iterator[CircuitInstruction]:
         """
         generic_op Returns the circuit instructions for a generic operation (that is supported by Stim) on the given qubits.
 
         Parameters
         ----------
-        name : str
+        name
             The name of the gate (as defined in Stim)
-        qubits : Sequence[str]
+        qubits
             The qubits to apply the gate to.
 
         Yields
@@ -270,25 +270,25 @@ class DecoherenceNoiseModel(Model):
             yield CircuitInstruction(name, targets=self.get_inds(qubits))
             yield from self.idle(qubits, duration)
 
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("X", qubits)
 
-    def z_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("Z", qubits)
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("H", qubits)
 
-    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("S", qubits)
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("S_DAG", qubits)
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("CZ", qubits)
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         name = "M"
         if self._sym_noise:
             duration = 0.5 * self.gate_duration(name)
@@ -314,20 +314,20 @@ class DecoherenceNoiseModel(Model):
                 yield CircuitInstruction(name, targets=[qubit])
                 yield from self.idle(qubit, duration)
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield from self.generic_op("R", qubits)
 
     def idle(
-        self, qubits: Sequence[str], duration: float
+        self, qubits: Iterable[str], duration: float
     ) -> Iterator[CircuitInstruction]:
         """
         idle Returns the circuit instructions for an idling period on the given qubits.
 
         Parameters
         ----------
-        qubits : Sequence[str]
+        qubits
             The qubits to idle.
-        duration : float
+        duration
             The duration of the idling period.
 
         Yields
@@ -354,7 +354,7 @@ class ExperimentalNoiseModel(Model):
     an experimental setup
     """
 
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("X", inds)
 
@@ -362,7 +362,7 @@ class ExperimentalNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         yield CircuitInstruction("H", inds)
@@ -371,7 +371,7 @@ class ExperimentalNoiseModel(Model):
             prob = self.param("sq_error_prob", qubit)
             yield CircuitInstruction("DEPOLARIZE1", [ind], [prob])
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
 
@@ -383,7 +383,7 @@ class ExperimentalNoiseModel(Model):
             prob = self.param("cz_error_prob", *qubit_pair)
             yield CircuitInstruction("DEPOLARIZE2", ind_pair, [prob])
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
 
         for qubit, ind in zip(qubits, inds):
@@ -398,7 +398,7 @@ class ExperimentalNoiseModel(Model):
             else:
                 yield CircuitInstruction("MZ", [ind])
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         inds = self.get_inds(qubits)
         yield CircuitInstruction("R", inds)
 
@@ -407,16 +407,16 @@ class ExperimentalNoiseModel(Model):
             yield CircuitInstruction("X_ERROR", [ind], [prob])
 
     def idle(
-        self, qubits: Sequence[str], duration: float
+        self, qubits: Iterable[str], duration: float
     ) -> Iterator[CircuitInstruction]:
         """
         idle Returns the circuit instructions for an idling period on the given qubits.
 
         Parameters
         ----------
-        qubits : Sequence[str]
+        qubits
             The qubits to idle.
-        duration : float
+        duration
             The duration of the idling period.
 
         Yields
@@ -444,31 +444,31 @@ class NoiselessModel(Model):
         empty_setup = Setup(dict(setup=[{}]))
         return super().__init__(setup=empty_setup, qubit_inds=qubit_inds)
 
-    def x_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("X", self.get_inds(qubits))
 
-    def z_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("Z", self.get_inds(qubits))
 
-    def hadamard(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("H", self.get_inds(qubits))
 
-    def s_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("S", self.get_inds(qubits))
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("S_DAG", self.get_inds(qubits))
 
-    def cphase(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("CZ", self.get_inds(qubits))
 
-    def measure(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         for qubit in qubits:
             self.add_meas(qubit)
             yield CircuitInstruction("M", self.get_inds([qubit]))
 
-    def reset(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("R", self.get_inds(qubits))
 
-    def idle(self, qubits: Sequence[str]) -> Iterator[CircuitInstruction]:
+    def idle(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
         yield CircuitInstruction("I", self.get_inds(qubits))
