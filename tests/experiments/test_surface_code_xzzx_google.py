@@ -1,6 +1,6 @@
 import stim
 
-from qec_util.layouts import rot_surf_code
+from surface_sim.layouts import rot_surf_code
 
 from surface_sim.experiments.surface_code_xzzx_google import memory_experiment
 from surface_sim.models import NoiselessModel

@@ -1,4 +1,4 @@
-from qec_util import Layout
+from surface_sim import Layout
 
 
 def test_layout():

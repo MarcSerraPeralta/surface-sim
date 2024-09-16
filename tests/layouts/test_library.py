@@ -1,5 +1,5 @@
-from qec_util.layouts import rot_surf_code, rot_surf_code_rectangle
-from qec_util import Layout
+from surface_sim import Layout
+from surface_sim.layouts import rot_surf_code, rot_surf_code_rectangle
 
 
 def test_rot_surf_code():

@@ -2,8 +2,8 @@ from typing import Dict
 import warnings
 
 from stim import Circuit
-from qec_util import Layout
 
+from ..layouts import Layout
 from ..models import Model
 
 
