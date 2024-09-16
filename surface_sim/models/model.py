@@ -1,4 +1,4 @@
-from typing import Any, Dict, Sequence, List
+from typing import Any, Dict, List, Iterator, Iterable
 
 from stim import CircuitInstruction, target_rec, GateTarget
 
@@ -24,7 +24,10 @@ class Model(object):
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
-    def get_inds(self, qubits: Sequence[str]) -> List[int]:
+    def get_inds(self, qubits: Iterable[str]) -> List[object]:
+        # The proper annotation for this function should be "-> List[int]"
+        # but stim gets confused and only accepts List[object] making the
+        # LSP unusable with all the errors.
         return [self._qubit_inds[q] for q in qubits]
 
     def param(self, *qubits: str) -> Any:
@@ -101,9 +104,40 @@ class Model(object):
         yield CircuitInstruction("TICK", targets=[])
 
     def qubit_coords(self, coords: Dict[str, list]):
-        if set(coords) < set(self._qubit_inds):
-            raise ValueError("'coords' must have the coordinates for all qubits.")
+        if set(coords) > set(self._qubit_inds):
+            raise ValueError(
+                "'coords' have qubits not defined in the model:\n"
+                f"coords={list(coords.keys())}\nmodel={list(self._qubit_inds.keys())}."
+            )
 
-        for q_label, q_ind in self._qubit_inds.items():
-            q_coords = coords[q_label]
+        for q_label, q_coords in coords.items():
+            q_ind = self._qubit_inds[q_label]
             yield CircuitInstruction("QUBIT_COORDS", [q_ind], q_coords)
+
+    # gate/measurement/reset operations
+    def x_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def z_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def hadamard(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def s_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def s_dag_gate(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def cphase(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def measure(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def reset(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError
+
+    def idle(self, qubits: Iterable[str]) -> Iterator[CircuitInstruction]:
+        raise NotImplementedError

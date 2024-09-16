@@ -181,6 +181,6 @@ def qec_round(
             det_targets.append(targets)
 
     for targets in det_targets:
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     return circuit
