@@ -202,7 +202,7 @@ class Layout:
         Parameters
         ----------
         qubits
-            Qubit or list of qubits.
+            List of qubits.
 
         Returns
         -------
@@ -210,10 +210,8 @@ class Layout:
         """
         all_coords = nx.get_node_attributes(self.graph, "coords")
 
-        if set(all_coords) < set(qubits):
-            raise ValueError(
-                "No coordinates defined for all the qubits, use 'set_coords'."
-            )
+        if set(qubits) > set(all_coords):
+            raise ValueError("Some of the given qubits do not have coordinates.")
 
         return [all_coords[q] for q in qubits]
 
@@ -375,21 +373,21 @@ class Layout:
 
         Parameters
         ----------
-        param : str
+        param
             The label of the qubit parameter.
-        qubit : str
+        qubit
             The label of the qubit that is being queried.
 
         Returns
         -------
         Any
-            The value of the parameter
+            The value of the parameter if specified for the given qubit,
+            else ``None``.
         """
-        try:
-            param = self.graph.nodes[qubit][param]
-        except KeyError:
-            param = None
-        return param
+        if param not in self.graph.nodes[qubit]:
+            return None
+        else:
+            return self.graph.nodes[qubit][param]
 
     def set_param(self, param: str, qubit: str, value: Any) -> None:
         """

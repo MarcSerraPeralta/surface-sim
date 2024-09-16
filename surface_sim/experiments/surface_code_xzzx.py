@@ -3,8 +3,7 @@ import warnings
 
 from stim import Circuit
 
-from qec_util import Layout
-
+from ..layouts import Layout
 from ..circuit_blocks.surface_code_xzzx import (
     init_qubits,
     log_meas,
