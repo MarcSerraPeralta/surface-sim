@@ -32,10 +32,9 @@ def test_tests():
             # change root dir to test_dir
             relpath = os.path.relpath(path, mod_dir)
             testpath = os.path.join(test_dir, relpath)
-            if file not in FILE_EXCEPTIONS:
-                if not os.path.exists(os.path.join(testpath, "test_" + file)):
-                    raise ValueError(
-                        f"test file for {os.path.join(mod_dir, relpath, file)}"
-                        " does not exist"
-                    )
+            if not os.path.exists(os.path.join(testpath, "test_" + file)):
+                raise ValueError(
+                    f"test file for {os.path.join(mod_dir, relpath, file)}"
+                    " does not exist"
+                )
     return
