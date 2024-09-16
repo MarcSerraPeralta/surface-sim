@@ -99,7 +99,7 @@ def qec_round_with_log_meas(
             det_targets.append(targets)
 
     for targets in det_targets:
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     # 2) data qubits
     for instruction in model.measure(data_qubits):
@@ -112,7 +112,7 @@ def qec_round_with_log_meas(
         for round_ind in range(1, comp_rounds + 1):
             targets.append(model.meas_target(anc_qubit, -round_ind))
 
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
@@ -301,6 +301,6 @@ def qec_round(
             det_targets.append(targets)
 
     for targets in det_targets:
-        circuit.append("DETECTOR", targets)
+        circuit.append("DETECTOR", targets, [])
 
     return circuit
