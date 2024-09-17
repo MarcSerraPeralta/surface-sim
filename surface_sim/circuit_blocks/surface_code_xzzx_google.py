@@ -11,6 +11,7 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
+from ..detectors import Detectors
 
 # methods to have in this script
 from .util import qubit_coords, log_x, log_z
@@ -29,9 +30,9 @@ __all__ = [
 def qec_round_with_log_meas(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     rot_basis: bool = False,
     meas_reset: bool = False,
-    meas_comparison: bool = True,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
@@ -43,21 +44,10 @@ def qec_round_with_log_meas(
     rot_basis
         By default, the logical measurement is in the Z basis.
         If rot_basis, the logical measurement is in the X basis.
-    meas_comparison
-        If True, the detector is set to the measurement of the ancilla
-        instead of to the comparison of consecutive syndromes.
-    stab_type_det
-        If specified, only adds detectors to the ancillas for the
-        specific stabilizator type.
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
-    num_data, num_anc = len(data_qubits), len(anc_qubits)
-
-    # With reset defect[n] = m[n] XOR m[n-1]
-    # Wihtout reset defect[n] = m[n] XOR m[n-2]
-    comp_rounds = 1 if meas_reset else 2
 
     # a-h
     circuit = coherent_qec_part(model=model, layout=layout)
@@ -81,37 +71,18 @@ def qec_round_with_log_meas(
 
     # j (for logical measurement)
     # with detectors ordered as in the measurements
-    # 1) ancilla qubits
     for instruction in model.measure(anc_qubits):
         circuit.append(instruction)
-
-    # detectors ordered as in the measurements
-    if meas_comparison:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
-            det_targets.append(targets)
-    else:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1)]
-            det_targets.append(targets)
-
-    for targets in det_targets:
-        circuit.append("DETECTOR", targets, [])
-
-    # 2) data qubits
     for instruction in model.measure(data_qubits):
         circuit.append(instruction)
 
-    for anc_qubit in stab_qubits:
-        neighbors = layout.get_neighbors(anc_qubit)
-        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
-
-        for round_ind in range(1, comp_rounds + 1):
-            targets.append(model.meas_target(anc_qubit, -round_ind))
-
-        circuit.append("DETECTOR", targets, [])
+    # detectors and logical observables
+    stab_type = "x_type" if rot_basis else "z_type"
+    stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors_stim = detectors.build_from_data(
+        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+    )
+    circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
@@ -234,29 +205,17 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
 
 
 def qec_round(
-    model: Model, layout: Layout, meas_reset: bool = False, meas_comparison: bool = True
+    model: Model,
+    layout: Layout,
+    detectors: Detectors,
+    meas_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
-
-    Params
-    -------
-    meas_comparison
-        If True, the detector is set to the measurement of the ancilla
-        instead of to the comparison of consecutive syndromes.
-    stab_type_det
-        If specified, only adds detectors to the ancillas for the
-        specific stabilizator type.
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
-
-    qubits = set(data_qubits + anc_qubits)
-
-    # With reset defect[n] = m[n] XOR m[n-1]
-    # Wihtout reset defect[n] = m[n] XOR m[n-2]
-    comp_round = 1 if meas_reset else 2
 
     # a-h
     circuit = coherent_qec_part(model=model, layout=layout)
@@ -287,19 +246,8 @@ def qec_round(
 
         circuit.append("TICK")
 
-    # detectors ordered as in the measurements
-    if meas_comparison:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
-            det_targets.append(targets)
-    else:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1)]
-            det_targets.append(targets)
-
-    for targets in det_targets:
-        circuit.append("DETECTOR", targets, [])
+    # add detectors
+    detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)
+    circuit += detectors_stim
 
     return circuit

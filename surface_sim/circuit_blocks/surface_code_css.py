@@ -22,15 +22,11 @@ def qec_round(
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
 
+    Notes
+    -----
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
-
-    Params
-    -------
-    meas_comparison
-        If True, the detector is set to the measurement of the ancilla
-        instead of to the comparison of consecutive syndromes.
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")

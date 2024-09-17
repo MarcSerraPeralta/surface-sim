@@ -184,23 +184,24 @@ def log_z(model: Model, layout: Layout) -> Circuit:
 def log_meas_xzzx(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     rot_basis: bool = False,
     meas_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
     of the given model.
-    By default, the logical measurement is in the Z basis.
-    If rot_basis, the logical measurement is in the X basis.
+
+    Parameters
+    ----------
+    rot_basis
+        If True, the logical measurement is in the X basis.
+        By default, the logical measurement is in the Z basis.
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 
     qubits = set(data_qubits + anc_qubits)
-
-    # With reset defect[n] = m[n] XOR m[n-1]
-    # Wihtout reset defect[n] = m[n] XOR m[n-2]
-    comp_rounds = 1 if meas_reset else 2
 
     circuit = Circuit()
 
@@ -229,15 +230,13 @@ def log_meas_xzzx(
 
     circuit.append("TICK")
 
-    for anc_qubit in stab_qubits:
-        neighbors = layout.get_neighbors(anc_qubit)
-        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
-
-        for round_ind in range(1, comp_rounds + 1):
-            target = model.meas_target(anc_qubit, -round_ind)
-            targets.append(target)
-
-        circuit.append("DETECTOR", targets, [])
+    # detectors and logical observables
+    stab_type = "x_type" if rot_basis else "z_type"
+    stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors_stim = detectors.build_from_data(
+        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+    )
+    circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
