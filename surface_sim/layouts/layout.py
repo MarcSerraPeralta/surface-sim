@@ -370,9 +370,9 @@ class Layout:
         unitary_mat = DataArray(
             data=new_stab_gens,
             coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits),
-        ).astype(
-            int
-        )  # for galois
+        )
+        # galois requires that the arrays are integers, not floats.
+        unitary_mat = unitary_mat.astype(int)
 
         return unitary_mat
 
