@@ -28,7 +28,7 @@ def test_README_example():
 
     setup.set_var_param("prob", PROB)
     stim_circuit = memory_experiment(
-        model, layout, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET
+        model, layout, detectors, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET
     )
 
     stim_circuit.detector_error_model(allow_gauge_detectors=True)

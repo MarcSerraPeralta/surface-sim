@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import stim
 
 from surface_sim.detectors import Detectors
 
@@ -42,7 +43,7 @@ def test_detectors_build_from_anc():
     unitary_mat = xr.DataArray(
         data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
     )
-    meas_rec = lambda x: anc_qubits.index(x[0]) - 2 + x[1] * 100
+    meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 1
@@ -114,14 +115,14 @@ def test_detectors_build_from_data():
         coords=dict(from_qubit=anc_qubits, to_qubit=data_qubits),
     )
 
-    def meas_rec(x):
-        rec = x[1] * 100
-        if x[0] in anc_qubits:
-            rec += anc_qubits.index(x[0]) - 2
-            return rec
-        if x[0] in data_qubits:
-            rec += data_qubits.index(x[0]) * 10 - 30
-            return rec
+    def meas_rec(q, t):
+        rec = t * 100
+        if q in anc_qubits:
+            rec += anc_qubits.index(q) - 2
+            return stim.target_rec(rec)
+        if q in data_qubits:
+            rec += data_qubits.index(q) * 10 - 30
+            return stim.target_rec(rec)
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 1

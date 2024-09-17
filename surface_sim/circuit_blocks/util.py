@@ -5,6 +5,7 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
+from ..detectors import Detectors
 
 
 def qubit_coords(model: Model, layout: Layout) -> Circuit:
@@ -23,6 +24,7 @@ def qubit_coords(model: Model, layout: Layout) -> Circuit:
 def log_meas(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     rot_basis: bool = False,
     meas_reset: bool = False,
 ) -> Circuit:
@@ -34,10 +36,6 @@ def log_meas(
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
-
-    # With reset defect[n] = m[n] XOR m[n-1]
-    # Wihtout reset defect[n] = m[n] XOR m[n-2]
-    comp_rounds = 1 if meas_reset else 2
 
     circuit = Circuit()
 
@@ -58,17 +56,13 @@ def log_meas(
 
     circuit.append("TICK")
 
+    # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
-    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-    for anc_qubit in stab_qubits:
-        neighbors = layout.get_neighbors(anc_qubit)
-        targets = [model.meas_target(qubit, -1) for qubit in neighbors]
-
-        for round_ind in range(1, comp_rounds + 1):
-            targets.append(model.meas_target(anc_qubit, -round_ind))
-
-        circuit.append("DETECTOR", targets, [])
+    stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors_stim = detectors.build_from_data(
+        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+    )
+    circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):

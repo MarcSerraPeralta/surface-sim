@@ -11,11 +11,13 @@ from ..circuit_blocks.surface_code_css import (
     qubit_coords,
 )
 from ..models import Model
+from ..detectors import Detectors
 
 
 def memory_experiment(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     num_rounds: int,
     data_init: Dict[str, int] | List[int],
     rot_basis: bool = False,
@@ -40,13 +42,13 @@ def memory_experiment(
 
     if num_rounds <= num_init_rounds:
         for _ in range(min(num_rounds, num_init_rounds)):
-            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
-        experiment += log_meas(model, layout, rot_basis, meas_reset=False)
+            experiment += qec_round(model, layout, detectors, meas_reset)
+        experiment += log_meas(model, layout, detectors, rot_basis, meas_reset=False)
         return experiment
     else:
         for _ in range(num_init_rounds):
-            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
+            experiment += qec_round(model, layout, detectors, meas_reset)
         for _ in range(num_rounds - num_init_rounds):
-            experiment += qec_round(model, layout, meas_reset)
-        experiment += log_meas(model, layout, rot_basis, meas_reset)
+            experiment += qec_round(model, layout, detectors, meas_reset)
+        experiment += log_meas(model, layout, detectors, rot_basis, meas_reset)
         return experiment
