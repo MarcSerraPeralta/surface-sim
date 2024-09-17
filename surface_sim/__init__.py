@@ -5,6 +5,7 @@ __version__ = "0.1.0"
 from . import experiments, models, util, circuit_blocks, layouts
 from .setup import Setup
 from .models import Model
+from .detectors import Detectors
 from .layouts import Layout
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "layouts",
     "Setup",
     "Model",
+    "Detectors",
     "Layout",
 ]
