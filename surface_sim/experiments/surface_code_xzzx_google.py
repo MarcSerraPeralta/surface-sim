@@ -33,26 +33,22 @@ def memory_experiment(
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
-    num_init_rounds = 1 if meas_reset else 2
     model.new_circuit()
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
     experiment += init_qubits(model, layout, data_init, rot_basis)
 
-    if num_rounds <= num_init_rounds:
-        for _ in range(min(num_rounds, num_init_rounds) - 1):
-            experiment += qec_round(model, layout, detectors, meas_reset)
+    if num_rounds == 1:
         experiment += qec_round_with_log_meas(
             model, layout, detectors, rot_basis, meas_reset
         )
         return experiment
-    else:
-        for _ in range(num_init_rounds):
-            experiment += qec_round(model, layout, detectors, meas_reset)
-        for _ in range(num_rounds - num_init_rounds - 1):
-            experiment += qec_round(model, layout, detectors, meas_reset)
-        experiment += qec_round_with_log_meas(
-            model, layout, detectors, rot_basis, meas_reset
-        )
-        return experiment
+
+    for _ in range(num_rounds - 1):
+        experiment += qec_round(model, layout, detectors, meas_reset)
+    experiment += qec_round_with_log_meas(
+        model, layout, detectors, rot_basis, meas_reset
+    )
+
+    return experiment
