@@ -145,6 +145,7 @@ def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
     _check_distance(distance_z)
 
     name = f"Rotated dx-{distance_x} dz-{distance_z} surface code layout."
+    code = "rotated_surface_code"
     description = None
 
     freq_order = ["low", "mid", "high"]
@@ -159,6 +160,7 @@ def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
 
     layout_setup = dict(
         name=name,
+        code=code,
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
@@ -276,7 +278,6 @@ def rot_surf_code(distance: int) -> Layout:
     Layout
         The layout of the code.
     """
-    _check_distance(distance)
     return rot_surf_code_rectangle(distance_x=distance, distance_z=distance)
 
 
