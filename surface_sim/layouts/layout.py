@@ -1,11 +1,9 @@
-"""Module that implement the layout class."""
-
 from __future__ import annotations
 
-from copy import copy, deepcopy
+from copy import deepcopy
 from os import path
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -17,28 +15,54 @@ IntOrder = Union[IntDirections, Dict[str, IntDirections]]
 
 
 class Layout:
-    """
-    A general qubit layout class
+    """Layout class for a QEC code.
+
+    Initialization and storage
+    --------------------------
+    - ``__init__``
+    - ``__copy__``
+    - ``to_dict``
+    - ``from_yaml``
+    - ``to_yaml``
+
+    Get information
+    ---------------
+    - ``param``
+    - ``get_inds``
+    - ``get_qubits``
+    - ``get_neighbors``
+    - ``get_coords``
+
+    Set information
+    ---------------
+    - ``set_param``
+
+    Matrix generation
+    -----------------
+    - ``adjacency_matrix``
+    - ``expansion_matrix``
+    - ``projection_matrix``
+    - ``stab_gen_matrix``
+
     """
 
     def __init__(self, setup: Dict[str, Any]) -> None:
-        """
-        __init__ Initiailizes the layout.
+        """Initiailizes the layout.
 
         Parameters
         ----------
-        setup : Dict[str, Any]
+        setup
             The layout setup, provided as a dict.
 
             The setup dictionary is expected to have a 'layout' item, containing
-            a list of dictionaries. Each such dictionary (dict[str, Any]) must define the
-            qubit label (str) corresponding the 'qubit' item. In addition, each dictionary
-            must also have a 'neighbors" item that defines a dictonary (dict[str, str])
+            a list of dictionaries. Each such dictionary (``dict[str, Any]``) must define the
+            qubit label (``str``) corresponding the ``'qubit'`` item. In addition, each dictionary
+            must also have a ``'neighbors'`` item that defines a dictonary (``dict[str, str]``)
             of ordinal directions and neighbouring qubit labels. Apart from these two items,
             each dictionary can hold any other metadata or parameter relevant to these qubits.
 
-            In addition to the layout list, the setup dictionary can also optioonally
-            define the name of the layout (str), a description (str) of the layout as well
+            In addition to the layout list, the setup dictionary can also optionally
+            define the name of the layout (``str``), a description (``str``) of the layout as well
             as the interaction order of the different types of check, if the layout is used
             for a QEC code.
 
@@ -48,50 +72,46 @@ class Layout:
             If the type of the setup provided is not a dictionary.
         """
         if not isinstance(setup, dict):
-            raise ValueError(
-                f"layout_setup expected as dict, instead got {type(setup)}"
-            )
+            raise ValueError(f"'setup' must be a dict, instead got {type(setup)}.")
 
         self.name = setup.get("name")
-        self.distance = setup.get("distance")
-        self.distance_z = setup.get("distance_z")
-        self.distance_x = setup.get("distance_x")
-        self.log_z = setup.get("log_z")
-        self.log_x = setup.get("log_x")
+        self.code = setup.get("code", "")
+        self.distance = setup.get("distance", -1)
+        self.distance_z = setup.get("distance_z", -1)
+        self.distance_x = setup.get("distance_x", -1)
+        self.log_z = setup.get("log_z", [])
+        self.log_x = setup.get("log_x", [])
         self.description = setup.get("description")
-        self.interaction_order = setup.get("interaction_order")
+        self.interaction_order = setup.get("interaction_order", {})
 
         self.graph = nx.DiGraph()
         self._load_layout(setup)
 
         qubits = list(self.graph.nodes)
-        num_qubits = len(qubits)
-        self._qubit_inds = dict(zip(qubits, range(num_qubits)))
+        self._qubit_inds = dict(zip(qubits, range(len(qubits))))
 
     def __copy__(self) -> Layout:
-        """
-        __copy__ copies the Layout.
-
-        Returns
-        -------
-        Layout
-            _description_
-        """
+        """Copies the Layout."""
         return Layout(self.to_dict())
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        to_dict return a setup dictonary for the layout.
+        """Return a setup dictonary for the layout.
 
         Returns
         -------
-        Dict[str, Any]
-            The setup dictionary of the setup.
+        setup
+            The dictionary of the setup.
+            A copyt of this ``Layout`` can be initalized using ``Layout(setup)``.
         """
         setup = dict()
 
         setup["name"] = self.name
+        setup["code"] = self.code
         setup["distance"] = self.distance
+        setup["distance_z"] = self.distance_z
+        setup["distance_x"] = self.distance_x
+        setup["log_z"] = self.log_z
+        setup["log_x"] = self.log_x
         setup["description"] = self.description
         setup["interaction_order"] = self.interaction_order
 
@@ -119,32 +139,40 @@ class Layout:
         setup["layout"] = layout
         return setup
 
-    def get_inds(self, qubits: Sequence[str]) -> List[int]:
-        """
-        get_inds Returns the indices of the qubits.
+    def get_inds(self, qubits: Iterable[str]) -> List[int]:
+        """Returns the indices of the qubits.
+
+        Parameters
+        ----------
+        qubits
+            List of qubits.
 
         Returns
         -------
-        List[int]
-            The list of qubit indices.
+        The list of qubit indices.
         """
-        inds = [self._qubit_inds[qubit] for qubit in qubits]
-        return inds
+        return [self._qubit_inds[qubit] for qubit in qubits]
 
     def get_qubits(self, **conds: Any) -> List[str]:
-        """
-        get_qubits Return the qubit labels that meet a set of conditions.
+        """Return the qubit labels that meet a set of conditions.
 
+        Parameters
+        ----------
+        **conds
+            Dictionary of the conditions.
+
+        Returns
+        -------
+        nodes
+            The list of qubit labels that meet all conditions.
+
+        Notes
+        -----
         The order that the qubits appear in is defined during the initialization
         of the layout and remains fixed.
 
-        The conditions conds are the keyward arguments that specify the value (Any)
-        that each parameter label (str) needs to take.
-
-        Returns
-        -------
-        List[str]
-            The list of qubit indices that meet all conditions.
+        The conditions conds are the keyward arguments that specify the value (``Any``)
+        that each parameter label (``str``) needs to take.
         """
         if conds:
             node_view = self.graph.nodes(data=True)
@@ -156,32 +184,33 @@ class Layout:
 
     def get_neighbors(
         self,
-        qubits: Union[str, List[str]],
+        qubits: List[str],
         direction: Optional[str] = None,
         as_pairs: bool = False,
     ) -> Union[List[str], List[Tuple[str, str]]]:
-        """
-        get_neighbors Returns the list of qubit labels, neighboring specific qubits
+        """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
-
-        The order that the qubits appear in is defined during the initialization
-        of the layout and remains fixed.
-
-        The conditions conds are the keyward arguments that specify the value (Any)
-        that each parameter label (str) needs to take.
 
         Parameters
         ----------
-        qubits : str
-            The qubit labels, whose neighbors are being considered
+        qubits
+            The qubit labels, whose neighbors are being considered.
 
-        direction : Optional[str]
+        direction
             The direction along which to consider the neigbors along.
 
         Returns
         -------
-        List[str]
+        end_notes
             The list of qubit label, neighboring qubit, that meet the conditions.
+
+        Notes
+        -----
+        The order that the qubits appear in is defined during the initialization
+        of the layout and remains fixed.
+
+        The conditions conds are the keyward arguments that specify the value (``Any``)
+        that each parameter label (``str``) needs to take.
         """
         edge_view = self.graph.out_edges(qubits, data=True)
 
@@ -215,32 +244,16 @@ class Layout:
 
         return [all_coords[q] for q in qubits]
 
-    def index_qubits(self) -> Layout:
-        """index_qubits Returns a copy of the layout, where the qubits are indexed by integers."""
-        indexed_layout = copy(self)
-        nodes = list(self.graph.nodes)
-
-        num_nodes = len(nodes)
-        inds = list(range(num_nodes))
-
-        mapping = dict(zip(nodes, inds))
-        relabled_graph = nx.relabel_nodes(indexed_layout.graph, mapping)
-        for node, ind in zip(nodes, inds):
-            relabled_graph.nodes[ind]["name"] = node
-        indexed_layout.graph = relabled_graph
-        return indexed_layout
-
     def adjacency_matrix(self) -> DataArray:
-        """
-        adjacency_matrix Returns the adjaceny matrix corresponding to the layout.
+        """Returns the adjaceny matrix corresponding to the layout.
 
         The layout is encoded as a directed graph, such that there are two edges
         in opposite directions between each pair of neighboring qubits.
 
         Returns
         -------
-        DataArray
-            The adjacency matrix
+        ajd_matrix
+            The adjacency matrix.
         """
         qubits = self.get_qubits()
         adj_matrix = nx.adjacency_matrix(self.graph)
@@ -256,8 +269,7 @@ class Layout:
         return data_arr
 
     def expansion_matrix(self) -> DataArray:
-        """
-        expansion_matrix Returns the expansion matrix corresponding to the layout.
+        """Returns the expansion matrix corresponding to the layout.
         The matrix can expand a vector of measurements/defects to a 2D array corresponding to layout of the ancilla qubits. Used for convolutional neural networks.
 
         Returns
@@ -292,8 +304,7 @@ class Layout:
         return expansion_tensor
 
     def projection_matrix(self, stab_type: str) -> DataArray:
-        """
-        projection_matrix Returns the projection matrix, mapping
+        """Returns the projection matrix, mapping
         data qubits (defined by a parameter 'role' equal to 'data')
         to ancilla qubits (defined by a parameter 'role' equal to 'anc')
         measuing a given stabilizerr type (defined by a parameter
@@ -321,10 +332,51 @@ class Layout:
         proj_mat = adj_mat.sel(from_qubit=data_qubits, to_qubit=anc_qubits)
         return proj_mat.rename(from_qubit="data_qubit", to_qubit="anc_qubit")
 
+    def stab_gen_matrix(self, log_gate: str) -> DataArray:
+        """Returns the unitary matrix that specified how the stabilizer
+        generators are transformed in the specified logical gate.
+
+        See module ``surface_sim.log_gates`` to see how to prepare
+        the layout to run logical gates.
+
+        Parameters
+        ---------
+        log_gate
+            Logical gate.
+
+        Returns
+        -------
+        unitary_mat
+            Unitary matrix specifying the transformation of the stabilizer
+            generators. Its coordinates are ``stab_gen`` and ``new_stab_gen``.
+        """
+        anc_qubits = self.get_qubits(role="anc")
+        new_stab_gens = []
+        for anc_qubit in anc_qubits:
+            log_gate_attrs = self.param(anc_qubit, log_gate)
+            if log_gate_attrs is None:
+                raise ValueError(
+                    f"New stabilizer generators for {log_gate} "
+                    f"are not specified for qubit {anc_qubit}."
+                    "They should be setted with 'surface_sim.log_gates'."
+                )
+            new_stab_gen = log_gate_attrs["new_stab_gen"]
+            new_stab_gen_inds = [anc_qubits.index(q) for q in new_stab_gen]
+
+            new_stab_gen_array = np.zeros(len(anc_qubits))
+            new_stab_gen_array[new_stab_gen_inds] = 1
+            new_stab_gens.append(new_stab_gen_array)
+
+        unitary_mat = DataArray(
+            data=new_stab_gens,
+            coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits),
+        )
+
+        return unitary_mat
+
     @classmethod
     def from_yaml(cls, filename: Union[str, Path]) -> "Layout":
-        """
-        from_yaml Loads the layout class from a YAML file.
+        """Loads the layout class from a YAML file.
 
         The file must define the setup dictionary that initializes
         the layout.
@@ -354,8 +406,7 @@ class Layout:
             return cls(layout_setup)
 
     def to_yaml(self, filename: Union[str, Path]) -> None:
-        """
-        to_yaml Saves the layout as a YAML file.
+        """Saves the layout as a YAML file.
 
         Parameters
         ----------
@@ -368,8 +419,7 @@ class Layout:
             yaml.dump(setup, file, default_flow_style=False)
 
     def param(self, param: str, qubit: str) -> Any:
-        """
-        param Returns the parameter value of a given qubit
+        """Returns the parameter value of a given qubit
 
         Parameters
         ----------
@@ -390,8 +440,7 @@ class Layout:
             return self.graph.nodes[qubit][param]
 
     def set_param(self, param: str, qubit: str, value: Any) -> None:
-        """
-        set_param Sets the value of a given qubit parameter
+        """Sets the value of a given qubit parameter
 
         Parameters
         ----------
@@ -405,8 +454,7 @@ class Layout:
         self.graph.nodes[qubit][param] = value
 
     def _load_layout(self, setup: Dict[str, Any]) -> None:
-        """
-        _load_layout Internal function that loads the directed graph from the
+        """Internal function that loads the directed graph from the
         setup dictionary that is provided during initialization.
 
         Parameters
@@ -423,6 +471,8 @@ class Layout:
             If any qubit label is repeated in the layout list.
         """
         layout = deepcopy(setup.get("layout"))
+        if layout is None:
+            raise ValueError("'setup' does not contain a 'layout' key.")
 
         for qubit_info in layout:
             qubit = qubit_info.pop("qubit", None)
@@ -435,55 +485,14 @@ class Layout:
             self.graph.add_node(qubit, **qubit_info)
 
         for node, attrs in self.graph.nodes(data=True):
-            nbr_dict = attrs.pop("neighbors", None)
+            nbr_dict = attrs.get("neighbors", None)
             for edge_dir, nbr_qubit in nbr_dict.items():
                 if nbr_qubit is not None:
                     self.graph.add_edge(node, nbr_qubit, direction=edge_dir)
 
-    def sublayout(
-        self,
-        qubits: List[str],
-        name: Optional[str] = None,
-        distance: Optional[int] = None,
-        description: Optional[str] = None,
-    ) -> Layout:
-        setup = {}
-
-        setup["name"] = name
-        setup["distance"] = distance
-        setup["description"] = description
-        setup["interaction_order"] = self.interaction_order
-
-        layout = []
-        for node, attrs in self.graph.nodes(data=True):
-            if node in qubits:
-                node_dict = deepcopy(attrs)
-                node_dict["qubit"] = node
-
-                nbr_dict = dict()
-                adj_view = self.graph.adj[node]
-
-                for nbr_node, edge_attrs in adj_view.items():
-                    if nbr_node in qubits:
-                        edge_dir = edge_attrs["direction"]
-                        nbr_dict[edge_dir] = nbr_node
-
-                for ver_dir in ("north", "south"):
-                    for hor_dir in ("east", "west"):
-                        edge_dir = f"{ver_dir}_{hor_dir}"
-                        if edge_dir not in nbr_dict:
-                            nbr_dict[edge_dir] = None
-
-                node_dict["neighbors"] = nbr_dict
-
-                layout.append(node_dict)
-        setup["layout"] = layout
-        return Layout(setup)
-
 
 def valid_attrs(attrs: Dict[str, Any], **conditions: Any) -> bool:
-    """
-    valid_attrs Checks if the items in attrs match each condition in conditions.
+    """Checks if the items in attrs match each condition in conditions.
     Both attrs and conditions are dictionaries mapping parameter labels (str)
     to values (Any).
 
@@ -505,8 +514,7 @@ def valid_attrs(attrs: Dict[str, Any], **conditions: Any) -> bool:
 
 
 def index_coords(coords: List[int], reverse: bool = False) -> Tuple[List[int], int]:
-    """
-    index_coords Indexes a list of coordinates.
+    """Indexes a list of coordinates.
 
     Parameters
     ----------
