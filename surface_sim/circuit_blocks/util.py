@@ -1,5 +1,6 @@
 from typing import Dict
 import warnings
+from itertools import chain
 
 from stim import Circuit
 
@@ -121,7 +122,7 @@ def init_qubits(
     return circuit
 
 
-def log_x(model: Model, layout: Layout) -> Circuit:
+def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical X gate
     of the given model.
@@ -148,10 +149,12 @@ def log_x(model: Model, layout: Layout) -> Circuit:
         circuit.append(instruction)
     circuit.append("TICK")
 
+    # the stabilizer generators do not change when applying a logical X gate
+
     return circuit
 
 
-def log_z(model: Model, layout: Layout) -> Circuit:
+def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical Z gate
     of the given model.
@@ -177,6 +180,63 @@ def log_z(model: Model, layout: Layout) -> Circuit:
     for instruction in model.idle(idle_qubits):
         circuit.append(instruction)
     circuit.append("TICK")
+
+    # the stabilizer generators do not change when applying a logical Z gate
+
+    return circuit
+
+
+def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical S gate
+    implemented following:
+
+    https://quantum-journal.org/papers/q-2024-04-08-1310/
+    """
+    qubits = set(layout.get_qubits())
+
+    cz_pairs = set()
+    qubits_s_gate = set()
+    qubits_s_dag_gate = set()
+    for data_qubit in layout.get_qubits(role="data"):
+        trans_s = layout.param("trans_s", data_qubit)
+        if trans_s is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal S gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the cz gates.
+        # Using tuple so that the object is hashable for the set.
+        cz_pairs.add(tuple(sorted([data_qubit, trans_s["cz"]])))
+        if trans_s["local"] == "S":
+            qubits_s_gate.add(data_qubit)
+        elif trans_s["local"] == "S_DAG":
+            qubits_s_dag_gate.add(data_qubit)
+
+    circuit = Circuit()
+
+    # S, S_DAG gates
+    idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
+    for instruction in model.s_gate(qubits_s_gate):
+        circuit.append(instruction)
+    for instruction in model.s_dag_gate(qubits_s_dag_gate):
+        circuit.append(instruction)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # long-range CZ gates
+    int_qubits = list(chain.from_iterable(cz_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    for instruction in model.cphase(int_qubits):
+        circuit.append(instruction)
+    for instruction in model.idle(idle_qubits):
+        circuit.append(instruction)
+    circuit.append("TICK")
+
+    # update the stabilizer generators
+    unitary_mat = layout.stab_gen_matrix("trans_s")
+    detectors.update(unitary_mat)
 
     return circuit
 
