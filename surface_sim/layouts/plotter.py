@@ -336,6 +336,7 @@ def plot(
     add_patches: bool = True,
     add_connections: bool = True,
     pad: float = 1,
+    stim_orientation: bool = True,
 ) -> Axes:
     """Plots a layout.
 
@@ -353,6 +354,8 @@ def plot(
         Flag to plot lines indicating the connectivity, by default True.
     pad
         The padding to the bottom axis, by default 1.
+    stim_orientation
+        Flag to orient the layout and axis as stim does for ``diagram``.
 
     Returns
     -------
@@ -383,5 +386,7 @@ def plot(
     ax.set_xlabel("$x$ coordinate")
     ax.set_ylabel("$y$ coordinate")
     ax.set_aspect("equal")
+    if stim_orientation:
+        ax.invert_yaxis()
 
     return ax
