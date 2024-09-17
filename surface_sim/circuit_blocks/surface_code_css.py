@@ -4,6 +4,7 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
+from ..detectors import Detectors
 
 # methods to have in this script
 from .util import qubit_coords, log_meas, log_x, log_z, init_qubits
@@ -14,22 +15,18 @@ __all__ = ["qubit_coords", "log_meas", "log_x", "log_z", "qec_round", "init_qubi
 def qec_round(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     meas_reset: bool = False,
-    meas_comparison: bool = True,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
 
+    Notes
+    -----
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
-
-    Params
-    -------
-    meas_comparison
-        If True, the detector is set to the measurement of the ancilla
-        instead of to the comparison of consecutive syndromes.
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
@@ -38,10 +35,6 @@ def qec_round(
     int_order = layout.interaction_order
     stab_types = list(int_order.keys())
     x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
-
-    # With reset defect[n] = m[n] XOR m[n-1]
-    # Wihtout reset defect[n] = m[n] XOR m[n-2]
-    comp_round = 1 if meas_reset else 2
 
     circuit = Circuit()
 
@@ -168,19 +161,8 @@ def qec_round(
 
         circuit.append("TICK")
 
-    # detectors ordered as in the measurements
-    if meas_comparison:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1), model.meas_target(qubit, -2)]
-            det_targets.append(targets)
-    else:
-        det_targets = []
-        for qubit in anc_qubits:
-            targets = [model.meas_target(qubit, -1)]
-            det_targets.append(targets)
-
-    for targets in det_targets:
-        circuit.append("DETECTOR", targets, [])
+    # add detectors
+    detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)
+    circuit += detectors_stim
 
     return circuit

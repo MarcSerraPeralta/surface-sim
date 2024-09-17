@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict, Tuple
+from typing import List, Callable, Dict, Tuple, Optional
 from copy import deepcopy
 
 import numpy as np
@@ -86,18 +86,26 @@ class Detectors:
 
         return
 
-    def build_from_anc(self, get_rec: Callable, meas_reset: bool) -> stim.Circuit:
+    def build_from_anc(
+        self,
+        get_rec: Callable,
+        meas_reset: bool,
+        anc_qubits: Optional[List[str]] = None,
+    ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the ancilla qubits have been measured.
 
         Parameters
         ----------
         get_rec
-            Function that given ``(qubit_label, rel_meas_id)`` returns the
+            Function that given ``qubit_label, rel_meas_id`` returns the
             ``target_rec`` integer. The intention is to give the
             ``Model.meas_target`` method.
         meas_reset
             Flag for if the ancillas are being reset after being measured.
+        anc_qubits
+            List of the ancilla qubits for which to build the detectors.
+            By default, builds all the detectors.
 
         Returns
         -------
@@ -120,13 +128,14 @@ class Detectors:
             num_rounds=self.num_rounds,
             meas_reset=meas_reset,
         )
+        if anc_qubits is not None:
+            detectors = {anc: d for anc, d in detectors.items() if anc in anc_qubits}
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
         for targets in detectors.values():
-            detectors_rec = [get_rec(t) for t in targets]
-            detectors_target_rec = [stim.target_rec(t) for t in detectors_rec]
-            detectors_stim.append("DETECTOR", detectors_target_rec, [])
+            detectors_rec = [get_rec(*t) for t in targets]
+            detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators
         self.previous_gen = deepcopy(self.curr_gen)
@@ -134,7 +143,11 @@ class Detectors:
         return detectors_stim
 
     def build_from_data(
-        self, get_rec: Callable, adjacency_matrix: xr.DataArray, meas_reset: bool
+        self,
+        get_rec: Callable,
+        adjacency_matrix: xr.DataArray,
+        meas_reset: bool,
+        anc_qubits: Optional[List[str]] = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
@@ -142,7 +155,7 @@ class Detectors:
         Parameters
         ----------
         get_rec
-            Function that given ``(qubit_label, rel_meas_id)`` returns the
+            Function that given ``qubit_label, rel_meas_id`` returns the
             ``target_rec`` integer. The intention is to give the
             ``Model.meas_target`` method.
         adjacency_matrix
@@ -151,6 +164,9 @@ class Detectors:
             See ``qec_util.Layout.adjacency_matrix`` for more information.
         meas_reset
             Flag for if the ancillas are being reset after being measured.
+        anc_qubits
+            List of the ancilla qubits for which to build the detectors.
+            By default, builds all the detectors.
 
         Returns
         -------
@@ -173,6 +189,10 @@ class Detectors:
             num_rounds=self.num_rounds,
             meas_reset=meas_reset,
         )
+        if anc_qubits is not None:
+            anc_detectors = {
+                anc: d for anc, d in anc_detectors.items() if anc in anc_qubits
+            }
 
         # udpate the (anc, -1) to a the corresponding set of (data, -1)
         detectors = {}
@@ -193,9 +213,8 @@ class Detectors:
         # build the stim circuit
         detectors_stim = stim.Circuit()
         for targets in detectors.values():
-            detectors_rec = [get_rec(t) for t in targets]
-            detectors_target_rec = [stim.target_rec(t) for t in detectors_rec]
-            detectors_stim.append("DETECTOR", detectors_target_rec, [])
+            detectors_rec = [get_rec(*t) for t in targets]
+            detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators
         self.previous_gen = deepcopy(self.curr_gen)

@@ -52,7 +52,7 @@ MEAS_RESET = True # reset after ancilla measurements
 PROB = 1e-5
 
 setup.set_var_param("prob", PROB)
-stim_circuit = memory_experiment(model, layout, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET)
+stim_circuit = memory_experiment(model, layout, detectors, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET)
 ```
 
 For more information and examples about `surface-sim`, please read the `docs/`.

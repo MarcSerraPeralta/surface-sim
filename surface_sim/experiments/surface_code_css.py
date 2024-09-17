@@ -11,11 +11,13 @@ from ..circuit_blocks.surface_code_css import (
     qubit_coords,
 )
 from ..models import Model
+from ..detectors import Detectors
 
 
 def memory_experiment(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     num_rounds: int,
     data_init: Dict[str, int] | List[int],
     rot_basis: bool = False,
@@ -31,22 +33,14 @@ def memory_experiment(
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
-    num_init_rounds = 1 if meas_reset else 2
     model.new_circuit()
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
     experiment += init_qubits(model, layout, data_init, rot_basis)
 
-    if num_rounds <= num_init_rounds:
-        for _ in range(min(num_rounds, num_init_rounds)):
-            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
-        experiment += log_meas(model, layout, rot_basis, meas_reset=False)
-        return experiment
-    else:
-        for _ in range(num_init_rounds):
-            experiment += qec_round(model, layout, meas_reset, meas_comparison=False)
-        for _ in range(num_rounds - num_init_rounds):
-            experiment += qec_round(model, layout, meas_reset)
-        experiment += log_meas(model, layout, rot_basis, meas_reset)
-        return experiment
+    for _ in range(num_rounds):
+        experiment += qec_round(model, layout, detectors, meas_reset)
+    experiment += log_meas(model, layout, detectors, rot_basis, meas_reset)
+
+    return experiment
