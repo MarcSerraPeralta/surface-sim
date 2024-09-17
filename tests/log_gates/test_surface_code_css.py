@@ -54,4 +54,12 @@ def test_set_trans_s():
         "I",
     ]
 
+    stab_gen_matrix = layout.stab_gen_matrix("trans_s")
+    for z in z_stab:
+        assert stab_gen_matrix.sel(new_stab_gen=z).sum() == 1
+    for x in x_stab:
+        if x == "X1":
+            assert stab_gen_matrix.sel(new_stab_gen=x).sum() == 1
+        else:
+            assert stab_gen_matrix.sel(new_stab_gen=x).sum() == 2
     return

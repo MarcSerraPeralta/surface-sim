@@ -353,7 +353,7 @@ class Layout:
         anc_qubits = self.get_qubits(role="anc")
         new_stab_gens = []
         for anc_qubit in anc_qubits:
-            log_gate_attrs = self.param(anc_qubit, log_gate)
+            log_gate_attrs = self.param(log_gate, anc_qubit)
             if log_gate_attrs is None:
                 raise ValueError(
                     f"New stabilizer generators for {log_gate} "
