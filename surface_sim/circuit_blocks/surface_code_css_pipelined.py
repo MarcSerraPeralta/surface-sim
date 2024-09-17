@@ -7,9 +7,17 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_meas, log_x, log_z, init_qubits
+from .util import qubit_coords, log_meas, log_x, log_z, init_qubits, log_trans_s
 
-__all__ = ["qubit_coords", "log_meas", "log_x", "log_z", "qec_round", "init_qubits"]
+__all__ = [
+    "qubit_coords",
+    "log_meas",
+    "log_x",
+    "log_z",
+    "qec_round",
+    "init_qubits",
+    "log_trans_s",
+]
 
 
 def qec_round(
