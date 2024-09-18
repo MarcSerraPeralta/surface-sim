@@ -156,8 +156,8 @@ def test_detectors_build_from_data():
     detector_rec = [
         set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110, -202} in detector_rec
-    assert {-110, -201} in detector_rec
+    assert {-130, -120, -110, -102} in detector_rec
+    assert {-110, -101} in detector_rec
 
     detectors.num_rounds = 0
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, meas_reset=True)
@@ -174,8 +174,8 @@ def test_detectors_build_from_data():
     detector_rec = [
         set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -201, -202} in detector_rec
-    assert {-110, -201} in detector_rec
+    assert {-130, -120, -101, -102} in detector_rec
+    assert {-110, -101} in detector_rec
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 2
@@ -184,16 +184,16 @@ def test_detectors_build_from_data():
     detector_rec = [
         set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110, -202, -201, -202, -302} in detector_rec
-    assert {-110, -201, -201, -301} in detector_rec
+    assert {-130, -120, -110, -102, -101, -102, -202} in detector_rec
+    assert {-110, -101, -201} in detector_rec
 
     detectors.num_rounds = 1
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, meas_reset=False)
     detector_rec = [
         set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110, -202, -201, -202} in detector_rec
-    assert {-110, -201, -201} in detector_rec
+    assert {-130, -120, -110, -102, -101, -102} in detector_rec
+    assert {-110, -101, -101} in detector_rec
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 2
@@ -202,7 +202,7 @@ def test_detectors_build_from_data():
     detector_rec = [
         set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-120, -130, -201, -202, -301, -202, -302} in detector_rec
-    assert {-110, -201, -201, -301} in detector_rec
+    assert {-120, -130, -101, -102, -201, -102, -202} in detector_rec
+    assert {-110, -101, -101, -201} in detector_rec
 
     return
