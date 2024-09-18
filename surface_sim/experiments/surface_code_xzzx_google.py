@@ -34,6 +34,7 @@ def memory_experiment(
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
     model.new_circuit()
+    detectors.new_circuit()
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
