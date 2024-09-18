@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.10"
+name = "surface-sim"
+description = "Suface code simulations package" 
+version = "0.2.0"
+authors = [
+    { name = "Marc Serra Peralta", email = "marcserraperalta@gmail.com" },
+    { name = "Boris Varbanov", email = "b.m.varbanov@gmail.com"}
+]
+maintainers = [
+    { name = "Marc Serra Peralta", email = "marcserraperalta@gmail.com" },
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+dependencies = [
+    "numpy",
+    "xarray",
+    "PyYAML",
+    "netCDF4",
+    "stim >= 1.13.0", # for 'likeliest_error_sat_problem'
+    "qec-util",
+    "python-sat",
+    "galois",
+]
+keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
+
+[tool.setuptools.packages.find]
+include = ["surface_sim", "surface_sim.*"]  # package names should match these glob patterns (["*"] by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[project.optional-dependencies]
+dev = ["pip-tools", "pytest", "black", "pytest-black"]
+
