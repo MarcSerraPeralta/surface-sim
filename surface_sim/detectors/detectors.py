@@ -228,6 +228,10 @@ class Detectors:
             new_dets = []
             for det in dets:
                 if det[1] != -1:
+                    # rel_meas need to be updated because the ancillas have not
+                    # been measured in the last round, only the data qubits
+                    # e.g. ("X1", -2) should be ("X1", -1)
+                    det = (det[0], det[1] + 1)
                     new_dets.append(det)
                     continue
 
