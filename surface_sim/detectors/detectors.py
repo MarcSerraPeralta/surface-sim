@@ -11,21 +11,49 @@ GF2 = galois.GF(2)
 
 
 class Detectors:
-    def __init__(self, anc_qubits: List[str], frame: str):
+    def __init__(self, anc_qubits: List[str], frame: str) -> None:
+        """Initalises the ``Detectors`` class.
+
+        Parameters
+        ----------
+        anc_qubits
+            List of ancilla qubits.
+        frame
+            Detector frame to use when building the detectors.
+            Options are ``'1'`` and ``'r'``. For more information,
+            check the Notes.
+
+        Notes
+        -----
+        Detector frame ``'1'`` builds the detectors in the basis given by the
+        stabilizer generators of the first QEC round.
+
+        Detector frame ``'r'`` build the detectors in the basis given by the
+        stabilizer generators of the last-measured QEC round.
+        """
+        self.anc_qubits = anc_qubits
+        self.frame = frame
+
+        self.new_circuit()
+
+        return
+
+    def new_circuit(self):
+        """Resets all the current generators and number of rounds in order
+        to create a different circuit.
+        """
         generators = xr.DataArray(
-            data=np.identity(len(anc_qubits), dtype=np.int64),
+            data=np.identity(len(self.anc_qubits), dtype=np.int64),
             coords=dict(
-                stab_gen=anc_qubits,
-                basis=range(len(anc_qubits)),
+                stab_gen=self.anc_qubits,
+                basis=range(len(self.anc_qubits)),
             ),
         )
 
         self.prev_gen = deepcopy(generators)
         self.curr_gen = deepcopy(generators)
         self.init_gen = deepcopy(generators)
-        self.frame = frame
         self.num_rounds = 0
-
         return
 
     def update(self, unitary_mat: xr.DataArray):
@@ -99,7 +127,7 @@ class Detectors:
         ----------
         get_rec
             Function that given ``qubit_label, rel_meas_id`` returns the
-            ``target_rec`` integer. The intention is to give the
+            corresponding ``stim.target_rec``. The intention is to give the
             ``Model.meas_target`` method.
         meas_reset
             Flag for if the ancillas are being reset after being measured.
