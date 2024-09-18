@@ -38,6 +38,31 @@ def test_detectors_update():
     return
 
 
+def test_detectors_new_circuit():
+    anc_qubits = ["X1", "Z1"]
+    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    unitary_mat = xr.DataArray(
+        data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
+    )
+    detectors.update(unitary_mat)
+    detectors.new_circuit()
+
+    init_gen = xr.DataArray(
+        data=np.identity(len(anc_qubits), dtype=np.int64),
+        coords=dict(
+            stab_gen=anc_qubits,
+            basis=range(len(anc_qubits)),
+        ),
+    )
+
+    assert (detectors.curr_gen == init_gen).all()
+    assert (detectors.prev_gen == init_gen).all()
+    assert (detectors.init_gen == init_gen).all()
+    assert detectors.num_rounds == 0
+
+    return
+
+
 def test_detectors_build_from_anc():
     anc_qubits = ["X1", "Z1"]
     unitary_mat = xr.DataArray(
