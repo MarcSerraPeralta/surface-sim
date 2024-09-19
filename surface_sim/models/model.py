@@ -100,7 +100,7 @@ class Model(object):
         return
 
     # annotation operations
-    def tick(self, *args, **kargs) -> Circuit:
+    def tick(self) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("TICK", targets=[]))
         return circ

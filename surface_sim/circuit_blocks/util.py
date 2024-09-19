@@ -16,8 +16,7 @@ def qubit_coords(model: Model, layout: Layout) -> Circuit:
     coord_dict = {q: layout.get_coords([q])[0] for q in layout.get_qubits()}
     circuit = Circuit()
 
-    for instruction in model.qubit_coords(coord_dict):
-        circuit.append(instruction)
+    circuit += model.qubit_coords(coord_dict)
 
     return circuit
 
@@ -41,21 +40,17 @@ def log_meas(
     circuit = Circuit()
 
     if rot_basis:
-        for instruction in model.hadamard(data_qubits):
-            circuit.append(instruction)
+        circuit += model.hadamard(data_qubits)
 
-        for instruction in model.idle(anc_qubits):
-            circuit.append(instruction)
+        circuit += model.idle(anc_qubits)
 
-        circuit.append("TICK")
+        circuit += model.tick()
 
-    for instruction in model.measure(data_qubits):
-        circuit.append(instruction)
+    circuit += model.measure(data_qubits)
 
-    for instruction in model.idle(anc_qubits):
-        circuit.append(instruction)
+    circuit += model.idle(anc_qubits)
 
-    circuit.append("TICK")
+    circuit += model.tick()
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
@@ -98,26 +93,21 @@ def init_qubits(
     qubits = set(data_qubits + anc_qubits)
 
     circuit = Circuit()
-    for instruction in model.reset(qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.reset(qubits)
+    circuit += model.tick()
 
     exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
-        for instruction in model.x_gate(exc_qubits):
-            circuit.append(instruction)
+        circuit += model.x_gate(exc_qubits)
 
     idle_qubits = qubits - exc_qubits
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     if rot_basis:
-        for instruction in model.hadamard(data_qubits):
-            circuit.append(instruction)
-        for instruction in model.idle(anc_qubits):
-            circuit.append(instruction)
-        circuit.append("TICK")
+        circuit += model.hadamard(data_qubits)
+        circuit += model.idle(anc_qubits)
+        circuit += model.tick()
 
     return circuit
 
@@ -141,13 +131,11 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     circuit = Circuit()
 
-    for instruction in model.x_gate(log_x_qubits):
-        circuit.append(instruction)
+    circuit += model.x_gate(log_x_qubits)
 
     idle_qubits = set(anc_qubits) + set(data_qubits) - set(log_x_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # the stabilizer generators do not change when applying a logical X gate
 
@@ -173,13 +161,11 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     circuit = Circuit()
 
-    for instruction in model.z_gate(log_z_qubits):
-        circuit.append(instruction)
+    circuit += model.z_gate(log_z_qubits)
 
     idle_qubits = set(anc_qubits) + set(data_qubits) - set(log_z_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # the stabilizer generators do not change when applying a logical Z gate
 
@@ -217,22 +203,17 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     # S, S_DAG gates
     idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
-    for instruction in model.s_gate(qubits_s_gate):
-        circuit.append(instruction)
-    for instruction in model.s_dag_gate(qubits_s_dag_gate):
-        circuit.append(instruction)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.s_gate(qubits_s_gate)
+    circuit += model.s_dag_gate(qubits_s_dag_gate)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # long-range CZ gates
     int_qubits = list(chain.from_iterable(cz_pairs))
     idle_qubits = qubits - set(int_qubits)
-    for instruction in model.cphase(int_qubits):
-        circuit.append(instruction)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.cphase(int_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # update the stabilizer generators
     unitary_mat = layout.stab_gen_matrix("trans_s")
@@ -273,22 +254,18 @@ def log_meas_xzzx(
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
 
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     idle_qubits = qubits - rot_qubits
 
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
-    for instruction in model.measure(data_qubits):
-        circuit.append(instruction)
+    circuit += model.measure(data_qubits)
 
-    for instruction in model.idle(anc_qubits):
-        circuit.append(instruction)
+    circuit += model.idle(anc_qubits)
 
-    circuit.append("TICK")
+    circuit += model.tick()
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
@@ -331,19 +308,16 @@ def init_qubits_xzzx(
     qubits = set(data_qubits + anc_qubits)
 
     circuit = Circuit()
-    for instruction in model.reset(qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.reset(qubits)
+    circuit += model.tick()
 
     exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
-        for instruction in model.x_gate(exc_qubits):
-            circuit.append(instruction)
+        circuit += model.x_gate(exc_qubits)
 
     idle_qubits = qubits - exc_qubits
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -353,13 +327,11 @@ def init_qubits_xzzx(
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
 
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     idle_qubits = qubits - rot_qubits
 
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     return circuit
