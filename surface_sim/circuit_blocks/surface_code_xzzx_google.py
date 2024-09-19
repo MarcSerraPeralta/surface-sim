@@ -61,20 +61,16 @@ def qec_round_with_log_meas(
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
 
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     idle_qubits = qubits - rot_qubits
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # j (for logical measurement)
     # with detectors ordered as in the measurements
-    for instruction in model.measure(anc_qubits):
-        circuit.append(instruction)
-    for instruction in model.measure(data_qubits):
-        circuit.append(instruction)
+    circuit += model.measure(anc_qubits)
+    circuit += model.measure(data_qubits)
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
@@ -115,35 +111,29 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
 
     # a
     rot_qubits = set(anc_qubits)
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     x_qubits = set(data_qubits)
-    for instruction in model.x_gate(x_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.x_gate(x_qubits)
+    circuit += model.tick()
 
     # b
     int_pairs = layout.get_neighbors(anc_qubits, direction="north_east", as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    for instruction in model.cphase(int_qubits):
-        circuit.append(instruction)
+    circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(int_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # c
     rot_qubits = set(data_qubits)
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     x_qubits = set(anc_qubits)
-    for instruction in model.x_gate(x_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.x_gate(x_qubits)
+    circuit += model.tick()
 
     # d
     x_pairs = layout.get_neighbors(x_anc, direction="north_west", as_pairs=True)
@@ -151,19 +141,16 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     int_pairs = chain(x_pairs, z_pairs)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    for instruction in model.cphase(int_qubits):
-        circuit.append(instruction)
+    circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(int_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # e
     x_qubits = qubits
-    for instruction in model.x_gate(x_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.x_gate(x_qubits)
+    circuit += model.tick()
 
     # f
     x_pairs = layout.get_neighbors(x_anc, direction="south_east", as_pairs=True)
@@ -171,35 +158,29 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     int_pairs = chain(x_pairs, z_pairs)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    for instruction in model.cphase(int_qubits):
-        circuit.append(instruction)
+    circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(int_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # g
     rot_qubits = set(data_qubits)
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
     x_qubits = set(anc_qubits)
-    for instruction in model.x_gate(x_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.x_gate(x_qubits)
+    circuit += model.tick()
 
     # h
     int_pairs = layout.get_neighbors(anc_qubits, direction="south_west", as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    for instruction in model.cphase(int_qubits):
-        circuit.append(instruction)
+    circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(int_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     return circuit
 
@@ -222,29 +203,23 @@ def qec_round(
 
     # i
     rot_qubits = set(anc_qubits)
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
 
-    for instruction in model.x_gate(data_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.x_gate(data_qubits)
+    circuit += model.tick()
 
     # j
-    for instruction in model.measure(anc_qubits):
-        circuit.append(instruction)
+    circuit += model.measure(anc_qubits)
 
-    for instruction in model.idle(data_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(data_qubits)
+    circuit += model.tick()
 
     if meas_reset:
-        for instruction in model.reset(anc_qubits):
-            circuit.append(instruction)
+        circuit += model.reset(anc_qubits)
 
-        for instruction in model.idle(data_qubits):
-            circuit.append(instruction)
+        circuit += model.idle(data_qubits)
 
-        circuit.append("TICK")
+        circuit += model.tick()
 
     # add detectors
     detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)

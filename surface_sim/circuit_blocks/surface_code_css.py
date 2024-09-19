@@ -51,12 +51,10 @@ def qec_round(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
     idle_qubits = qubits - rot_qubits
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # b
     interacted_qubits = set()
@@ -67,20 +65,16 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        for instruction in model.cphase(int_qubits):
-            circuit.append(instruction)
+        circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # c
-    for instruction in model.hadamard(data_qubits):
-        circuit.append(instruction)
-    for instruction in model.idle(anc_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.hadamard(data_qubits)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
 
     # d
     interacted_qubits = set()
@@ -91,13 +85,11 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        for instruction in model.cphase(int_qubits):
-            circuit.append(instruction)
+        circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # e
     interacted_qubits = set()
@@ -108,20 +100,16 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        for instruction in model.cphase(int_qubits):
-            circuit.append(instruction)
+        circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # f
-    for instruction in model.hadamard(data_qubits):
-        circuit.append(instruction)
-    for instruction in model.idle(anc_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.hadamard(data_qubits)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
 
     # g
     interacted_qubits = set()
@@ -132,42 +120,34 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        for instruction in model.cphase(int_qubits):
-            circuit.append(instruction)
+        circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # h
     directions = [int_order["x_type"][0], int_order["x_type"][3]]
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    for instruction in model.hadamard(rot_qubits):
-        circuit.append(instruction)
+    circuit += model.hadamard(rot_qubits)
     idle_qubits = qubits - rot_qubits
-    for instruction in model.idle(idle_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
     # i
-    for instruction in model.measure(anc_qubits):
-        circuit.append(instruction)
+    circuit += model.measure(anc_qubits)
 
-    for instruction in model.idle(data_qubits):
-        circuit.append(instruction)
-    circuit.append("TICK")
+    circuit += model.idle(data_qubits)
+    circuit += model.tick()
 
     if meas_reset:
-        for instruction in model.reset(anc_qubits):
-            circuit.append(instruction)
+        circuit += model.reset(anc_qubits)
 
-        for instruction in model.idle(data_qubits):
-            circuit.append(instruction)
+        circuit += model.idle(data_qubits)
 
-        circuit.append("TICK")
+        circuit += model.tick()
 
     # add detectors
     detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)
