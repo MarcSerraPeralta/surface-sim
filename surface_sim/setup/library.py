@@ -3,6 +3,11 @@ from .setup import Setup
 
 class CircuitNoiseSetup(Setup):
     def __init__(self) -> None:
+        """Initialises a ``Setup`` class for circuit-level noise.
+
+        It contains a variable parameter ``"prob"`` that can be set for
+        different physical error probabilities.
+        """
         setup_dict = dict(
             name="Circuit-level noise setup",
             description="Setup for a circuit-level noise model that can be used for any distance.",

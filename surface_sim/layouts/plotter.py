@@ -313,6 +313,17 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
 
 
 def get_coord_range(layout: Layout) -> Tuple[CoordRange, CoordRange]:
+    """Returns the range for the X and Y coordinates in the Layout.
+
+    Parameters
+    ----------
+    layout
+        Layout of which to compute the coordinate range.
+
+    Returns
+    -------
+    [(x_min, x_max), (y_min, y_max)].
+    """
     qubits = layout.get_qubits()
 
     list_coords = [layout.param("coords", qubit) for qubit in qubits]

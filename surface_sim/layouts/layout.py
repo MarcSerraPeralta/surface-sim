@@ -270,7 +270,9 @@ class Layout:
 
     def expansion_matrix(self) -> DataArray:
         """Returns the expansion matrix corresponding to the layout.
-        The matrix can expand a vector of measurements/defects to a 2D array corresponding to layout of the ancilla qubits. Used for convolutional neural networks.
+        The matrix can expand a vector of measurements/defects to a 2D array
+        corresponding to layout of the ancilla qubits.
+        Used for convolutional neural networks.
 
         Returns
         -------
@@ -305,17 +307,17 @@ class Layout:
 
     def projection_matrix(self, stab_type: str) -> DataArray:
         """Returns the projection matrix, mapping
-        data qubits (defined by a parameter 'role' equal to 'data')
-        to ancilla qubits (defined by a parameter 'role' equal to 'anc')
+        data qubits (defined by a parameter ``'role'`` equal to ``'data'``)
+        to ancilla qubits (defined by a parameter ``'role'`` equal to ``'anc'``)
         measuing a given stabilizerr type (defined by a parameter
-        'stab_type' equal to stab_type).
+        ``'stab_type'`` equal to stab_type).
 
         This matrix can be used to project a final set of data-qubit
         measurements to a set of syndromes.
 
         Parameters
         ----------
-        stab_type : str
+        stab_type
             The type of the stabilizers that the data qubit measurement
             is being projected to.
 
@@ -385,7 +387,7 @@ class Layout:
 
         Parameters
         ----------
-        filename : Union[str, Path]
+        filename
             The pathfile name of the YAML setup file.
 
         Returns
@@ -412,7 +414,7 @@ class Layout:
 
         Parameters
         ----------
-        filename : Union[str, Path]
+        filename
             The pathfile name of the YAML setup file.
 
         """
@@ -446,11 +448,11 @@ class Layout:
 
         Parameters
         ----------
-        param : str
+        param
             The label of the qubit parameter.
-        qubit : str
+        qubit
             The label of the qubit that is being queried.
-        value : Any
+        value
             The new value of the qubit parameter.
         """
         self.graph.nodes[qubit][param] = value
@@ -461,7 +463,7 @@ class Layout:
 
         Parameters
         ----------
-        setup : Dict[str, Any]
+        setup
             The setup dictionary that must specify the 'layout' list
             of dictionaries, containing the qubit informaiton.
 
@@ -500,7 +502,7 @@ def valid_attrs(attrs: Dict[str, Any], **conditions: Any) -> bool:
 
     Parameters
     ----------
-    attrs : Dict[str, Any]
+    attrs
         The attribute dictionary.
 
     Returns
@@ -520,9 +522,9 @@ def index_coords(coords: List[int], reverse: bool = False) -> Tuple[List[int], i
 
     Parameters
     ----------
-    coords : List[int]
+    coords
         The list of coordinates.
-    reverse : bool, optional
+    reverse
         Whether to return the values in reverse, by default False
 
     Returns

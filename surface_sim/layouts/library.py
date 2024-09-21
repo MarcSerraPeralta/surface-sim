@@ -9,8 +9,7 @@ from .layout import Layout
 
 
 def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int:
-    """
-    Converts row and column to data qubit index.
+    """Converts row and column to data qubit index.
 
     The data qubits are numbered starting from the bottom-left data qubit,
     and increasing the index by 1 on the horizontal direction.
@@ -39,14 +38,13 @@ def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int
 
 
 def shift_direction(row_shift: int, col_shift: int) -> str:
-    """
-    Translates a row and column shift to a direction.
+    """Translates a row and column shift to a direction.
 
     Parameters
     ----------
-    row_shift : int
+    row_shift
         The row shift.
-    col_shift : int
+    col_shift
         The column shift.
 
     Returns
@@ -61,8 +59,7 @@ def shift_direction(row_shift: int, col_shift: int) -> str:
 
 
 def invert_shift(row_shift: int, col_shift: int) -> Tuple[int, int]:
-    """
-    Inverts a row and column shift.
+    """Inverts a row and column shift.
 
     Parameters
     ----------
@@ -80,8 +77,7 @@ def invert_shift(row_shift: int, col_shift: int) -> Tuple[int, int]:
 
 
 def is_valid(row: int, col: int, max_size_row: int, max_size_col: int) -> bool:
-    """
-    Checks if a row and column are valid for a grid of a given size.
+    """Checks if a row and column are valid for a grid of a given size.
 
     Parameters
     ----------
@@ -107,8 +103,7 @@ def is_valid(row: int, col: int, max_size_row: int, max_size_col: int) -> bool:
 
 
 def add_missing_neighbours(neighbor_data: Dict) -> None:
-    """
-    Adds None for missing neighbours in the neighbor data.
+    """Adds None for missing neighbours in the neighbor data.
     Note that this modifies the dictionary in place.
 
     Parameters
@@ -126,8 +121,7 @@ def add_missing_neighbours(neighbor_data: Dict) -> None:
 
 
 def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
-    """
-    Generates a rotated surface code layout.
+    """Generates a rotated surface code layout.
 
     Parameters
     ----------
@@ -265,8 +259,7 @@ def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
 
 
 def rot_surf_code(distance: int) -> Layout:
-    """
-    Generates a rotated surface code layout.
+    """Generates a rotated surface code layout.
 
     Parameters
     ----------
@@ -282,8 +275,7 @@ def rot_surf_code(distance: int) -> Layout:
 
 
 def _check_distance(distance: int) -> None:
-    """
-    Checks if the distance is valid.
+    """Checks if the distance is valid.
 
     Parameters
     ----------

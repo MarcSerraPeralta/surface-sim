@@ -14,6 +14,28 @@ def sample_memory_experiment(
     num_rounds: int,
     seed: Optional[int] = None,
 ) -> Dataset:
+    """Samples the given memory experiment.
+
+    Parameters
+    ----------
+    layout
+        Layout of the qubits for the experiment.
+    experiment
+        ``stim`` circuit corresponding to a memory experiment.
+    num_shots
+        Number of shots to simulate.
+    num_rounds
+        Number of rounds that the memory experiment has.
+    seed
+        Random seed to give to the simulator.
+
+    Returns
+    -------
+    dataset
+        Dataset with variables ``anc_meas``, ``data_meas``, ``ideal_anc_meas``,
+        and ``ideal_data_meas``; and with coordinates ``seed``, ``shot``,
+        ``qec_round``, ``anc_qubit`` and ``data_qubit``.
+    """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 

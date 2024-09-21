@@ -9,6 +9,16 @@ T = TypeVar("T", bound="Setup")
 
 class Setup:
     def __init__(self, setup: Dict[str, Any]) -> None:
+        """Initialises teh ``Setup`` class.
+
+        Parameters
+        ----------
+        setup
+            Dictionary with the configuration.
+            Must have the key ``"setup"`` containing the information.
+            It can also include ``"name"``, ``"description"`` and
+            ``"gate_durations"`` keys with the corresponding information.
+        """
         self._qubit_params = dict()
         self._global_params = dict()
         self._var_params = dict()
@@ -18,6 +28,7 @@ class Setup:
         self.description = _setup.pop("description", None)
         self._gate_durations = _setup.pop("gate_durations", {})
         self._load_setup(_setup)
+        return
 
     def _load_setup(self, setup: Dict[str, Any]) -> None:
         params = setup.get("setup")
@@ -46,16 +57,16 @@ class Setup:
 
     @property
     def free_params(self) -> List[str]:
+        """Returns the unset variable parameters."""
         return [param for param, val in self._var_params.items() if val is None]
 
     @classmethod
     def from_yaml(cls: Type[T], filename: Union[str, Path]) -> T:
-        """
-        from_yaml Create new surface_sim.setup.Setup instance from YAML configuarion file.
+        """Create new surface_sim.setup.Setup instance from YAML configuarion file.
 
         Parameters
         ----------
-        filename : str
+        filename
             The YAML file name.
 
         Returns
@@ -68,6 +79,7 @@ class Setup:
             return cls(setup)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Returns a dictionary that can be used to initialize ``Setup``."""
         setup = dict()
 
         setup["name"] = self.name
@@ -92,30 +104,84 @@ class Setup:
         return setup
 
     def to_yaml(self, filename: Union[str, Path]) -> None:
+        """Stores the current ``Setup`` configuration in the given file
+        in YAML format.
+
+        Parameters
+        ----------
+        filename
+            Name of the file in which to store the configuration.
+        """
         setup = self.to_dict()
 
         with open(filename, "w") as file:
             yaml.dump(setup, file, default_flow_style=False)
+        return
 
     def var_param(self, var_param: str) -> float:
+        """Returns the value of the given variable parameter name.
+
+        Parameters
+        ----------
+        var_param
+            Name of the variable parameter.
+
+        Returns
+        -------
+        Value of the specified ``var_param``.
+        """
         try:
             return self._var_params[var_param]
         except KeyError:
             raise ValueError(f"Variable param {var_param} not in setup.free_params.")
 
     def set_var_param(self, var_param: str, val: float) -> None:
+        """Sets the given value to the given variable parameter.
+
+        Parameters
+        ----------
+        var_param
+            Name of the variable parameter.
+        val
+            Value to set to ``var_param``.
+        """
         try:
             self._var_params[var_param] = val
         except KeyError:
             raise ValueError(f"Variable param {var_param} not in setup.")
 
     def set_param(self, param: str, param_val: float, *qubits: str) -> None:
+        """Sets the given value to the given parameter of the given qubit(s).
+
+        Parameters
+        ----------
+        param
+            Name of the parameter.
+        param_val
+            Value to set to ``param``.
+        *qubits
+            Qubit or qubit pairs of which to set the parameter.
+        """
         if not qubits:
             self._global_params[param] = param_val
         else:
             self._qubit_params[qubits][param] = param_val
 
     def param(self, param: str, *qubits: str) -> float:
+        """Returns the value of the given parameter for the specified qubit(s).
+
+        Parameters
+        ----------
+        param
+            Name of the parameter.
+        *qubits
+            Qubit or qubit pairs of which to set the parameter.
+
+        Returns
+        -------
+        val
+            Value of the parameter.
+        """
         if qubits in self._qubit_params and param in self._qubit_params[qubits]:
             val = self._qubit_params[qubits][param]
             return self._eval_param_val(val)
@@ -138,6 +204,17 @@ class Setup:
         return val
 
     def gate_duration(self, name: str) -> float:
+        """Returns the duration of the specified gate.
+
+        Parameters
+        ----------
+        name
+            Name of the gate.
+
+        Returns
+        -------
+        Duration of the gate.
+        """
         try:
             return self._gate_durations[name]
         except KeyError:

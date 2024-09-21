@@ -9,12 +9,11 @@ from .layout import Layout
 
 
 def set_coords(layout: Layout, override: bool = False) -> None:
-    """
-    set_coords Sets the coordinates of the nodes in the layout.
+    """Sets the coordinates of the nodes in the layout.
 
     Parameters
     ----------
-    layout : Layout
+    layout
         The layout to set the coordinates of.
     """
     if (not override) and (nx.get_node_attributes(layout.graph, "coords") != {}):
@@ -50,14 +49,13 @@ def set_coords(layout: Layout, override: bool = False) -> None:
 
 
 def index_chain(layout: Layout, init_node: str) -> None:
-    """
-    index_chain Indexes the chain of qubits in the layout.
+    """Indexes the chain of qubits in the layout.
 
     Parameters
     ----------
-    layout : Layout
+    layout
         The layout to index the chain of.
-    init_node : str
+    init_node
         The initial qubit of the chain.
 
     Raises
