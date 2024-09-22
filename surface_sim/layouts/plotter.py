@@ -1,4 +1,4 @@
-from typing import Tuple, Iterable, List
+from collections.abc import Iterable
 from copy import deepcopy
 import re
 
@@ -11,8 +11,8 @@ from matplotlib.text import Text
 from .layout import Layout
 
 
-Coordinates = Tuple[float, float]
-CoordRange = Tuple[float, float]
+Coordinates = tuple[float, float]
+CoordRange = tuple[float, float]
 
 # Regex to filter qubit labels for TeX text
 RE_FILTER = re.compile("([a-zA-Z]+)([0-9]+)")
@@ -38,7 +38,7 @@ COLORS = {
 }
 
 
-def clockwise_sort(coordinates: Iterable[Coordinates]) -> List[Coordinates]:
+def clockwise_sort(coordinates: Iterable[Coordinates]) -> list[Coordinates]:
     """Sorts a sequence of coordinates in clockwise order.
 
     This function is used to correcly draw a ``matplotlib.patches.Polygon``.
@@ -312,7 +312,7 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
         yield get_patch(patch_coords, **patch_params)
 
 
-def get_coord_range(layout: Layout) -> Tuple[CoordRange, CoordRange]:
+def get_coord_range(layout: Layout) -> tuple[CoordRange, CoordRange]:
     """Returns the range for the X and Y coordinates in the Layout.
 
     Parameters

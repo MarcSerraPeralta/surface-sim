@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Sequence, Iterable
+from collections.abc import Sequence, Iterable
 
 from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 
@@ -6,7 +6,7 @@ from ..setup import Setup
 
 
 class Model(object):
-    def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._setup = setup
         self._qubit_inds = qubit_inds
         self._meas_order = {q: [] for q in qubit_inds}
@@ -18,19 +18,19 @@ class Model(object):
         return self._setup
 
     @property
-    def qubits(self) -> List[str]:
+    def qubits(self) -> list[str]:
         return list(self._qubit_inds.keys())
 
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
-    def get_inds(self, qubits: Iterable[str]) -> List[object]:
-        # The proper annotation for this function should be "-> List[int]"
-        # but stim gets confused and only accepts List[object] making the
+    def get_inds(self, qubits: Iterable[str]) -> list[object]:
+        # The proper annotation for this function should be "-> list[int]"
+        # but stim gets confused and only accepts list[object] making the
         # LSP unusable with all the errors.
         return [self._qubit_inds[q] for q in qubits]
 
-    def param(self, *qubits: str) -> Any:
+    def param(self, *qubits: str):
         return self._setup.param(*qubits)
 
     # easier detector definition
@@ -105,7 +105,7 @@ class Model(object):
         circ.append(CircuitInstruction("TICK", targets=[]))
         return circ
 
-    def qubit_coords(self, coords: Dict[str, list]) -> Circuit:
+    def qubit_coords(self, coords: dict[str, list]) -> Circuit:
         if set(coords) > set(self._qubit_inds):
             raise ValueError(
                 "'coords' have qubits not defined in the model:\n"

@@ -1,4 +1,3 @@
-from typing import List, Dict
 import warnings
 
 from stim import Circuit
@@ -20,7 +19,7 @@ def memory_experiment(
     layout: Layout,
     detectors: Detectors,
     num_rounds: int,
-    data_init: Dict[str, int] | List[int],
+    data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
     meas_reset: bool = False,
 ) -> Circuit:
@@ -54,7 +53,7 @@ def repeated_s_experiment(
     detectors: Detectors,
     num_s_gates: int,
     num_rounds_per_gate: int,
-    data_init: Dict[str, int] | List[int],
+    data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
     meas_reset: bool = False,
 ) -> Circuit:

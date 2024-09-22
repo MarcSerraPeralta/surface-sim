@@ -1,4 +1,3 @@
-from typing import Dict
 import warnings
 from itertools import chain
 
@@ -79,7 +78,7 @@ def log_meas(
 def init_qubits(
     model: Model,
     layout: Layout,
-    data_init: Dict[str, int],
+    data_init: dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -294,7 +293,7 @@ def log_meas_xzzx(
 def init_qubits_xzzx(
     model: Model,
     layout: Layout,
-    data_init: Dict[str, int],
+    data_init: dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
     """

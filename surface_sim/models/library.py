@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from stim import CircuitInstruction, Circuit
 
@@ -8,7 +8,7 @@ from .util import biased_prefactors, grouper, idle_error_probs
 
 
 class CircuitNoiseModel(Model):
-    def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
@@ -119,7 +119,7 @@ class CircuitNoiseModel(Model):
 
 
 class BiasedCircuitNoiseModel(Model):
-    def __init__(self, setup: Setup, qubit_inds: Dict[str, int]) -> None:
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         super().__init__(setup, qubit_inds)
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
@@ -275,7 +275,7 @@ class DecoherenceNoiseModel(Model):
     """An coherence-limited noise model using T1 and T2"""
 
     def __init__(
-        self, setup: Setup, qubit_inds: Dict[str, int], symmetric_noise: bool = True
+        self, setup: Setup, qubit_inds: dict[str, int], symmetric_noise: bool = True
     ) -> None:
         self._sym_noise = symmetric_noise
         return super().__init__(setup, qubit_inds)
@@ -507,7 +507,7 @@ class ExperimentalNoiseModel(Model):
 class NoiselessModel(Model):
     """Noiseless model"""
 
-    def __init__(self, qubit_inds: Dict[str, int]) -> None:
+    def __init__(self, qubit_inds: dict[str, int]) -> None:
         empty_setup = Setup(dict(setup=[{}]))
         return super().__init__(setup=empty_setup, qubit_inds=qubit_inds)
 

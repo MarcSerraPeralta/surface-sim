@@ -1,14 +1,12 @@
-from typing import Any, Dict, Type, TypeVar, Union, List
+from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
 
 import yaml
 
-T = TypeVar("T", bound="Setup")
-
 
 class Setup:
-    def __init__(self, setup: Dict[str, Any]) -> None:
+    def __init__(self, setup: dict[str, object]) -> None:
         """Initialises teh ``Setup`` class.
 
         Parameters
@@ -30,10 +28,10 @@ class Setup:
         self._load_setup(_setup)
         return
 
-    def _load_setup(self, setup: Dict[str, Any]) -> None:
+    def _load_setup(self, setup: dict[str, object]) -> None:
         params = setup.get("setup")
         if not params:
-            raise ValueError("setup not found or contains no information")
+            raise ValueError("'setup['setup']' not found or contains no information.")
 
         for params_dict in params:
             if "qubit" in params_dict:
@@ -56,13 +54,14 @@ class Setup:
                     self._var_params[val] = None
 
     @property
-    def free_params(self) -> List[str]:
+    def free_params(self) -> list[str]:
         """Returns the unset variable parameters."""
         return [param for param, val in self._var_params.items() if val is None]
 
     @classmethod
-    def from_yaml(cls: Type[T], filename: Union[str, Path]) -> T:
-        """Create new surface_sim.setup.Setup instance from YAML configuarion file.
+    def from_yaml(cls: type[Setup], filename: str | Path) -> Setup:
+        """Create new ``surface_sim.setup.Setup`` instance from YAML
+        configuarion file.
 
         Parameters
         ----------
@@ -72,13 +71,13 @@ class Setup:
         Returns
         -------
         T
-            The initialised surface_sim.setup.Setup object based on the yaml.
+            The initialised ``surface_sim.setup.Setup`` object based on the yaml.
         """
         with open(filename, "r") as file:
             setup = yaml.safe_load(file)
             return cls(setup)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Returns a dictionary that can be used to initialize ``Setup``."""
         setup = dict()
 
@@ -103,7 +102,7 @@ class Setup:
 
         return setup
 
-    def to_yaml(self, filename: Union[str, Path]) -> None:
+    def to_yaml(self, filename: str | Path) -> None:
         """Stores the current ``Setup`` configuration in the given file
         in YAML format.
 

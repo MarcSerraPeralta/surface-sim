@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict, Tuple, Optional
+from collections.abc import Callable
 from copy import deepcopy
 
 import numpy as np
@@ -11,7 +11,7 @@ GF2 = galois.GF(2)
 
 
 class Detectors:
-    def __init__(self, anc_qubits: List[str], frame: str) -> None:
+    def __init__(self, anc_qubits: list[str], frame: str) -> None:
         """Initalises the ``Detectors`` class.
 
         Parameters
@@ -118,7 +118,7 @@ class Detectors:
         self,
         get_rec: Callable,
         meas_reset: bool,
-        anc_qubits: Optional[List[str]] = None,
+        anc_qubits: list[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the ancilla qubits have been measured.
@@ -175,7 +175,7 @@ class Detectors:
         get_rec: Callable,
         adjacency_matrix: xr.DataArray,
         meas_reset: bool,
-        anc_qubits: Optional[List[str]] = None,
+        anc_qubits: list[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
@@ -260,7 +260,7 @@ def _get_ancilla_meas_for_detectors(
     basis: xr.DataArray,
     num_rounds: int,
     meas_reset: bool,
-) -> Dict[str, List[Tuple[str, int]]]:
+) -> dict[str, list[tuple[str, int]]]:
     """Returns the ancilla measurements as ``(anc_qubit, rel_meas_ind)``
     required to build the detectors in the given frame.
 
