@@ -1,9 +1,6 @@
-"""Module implementing layout generator for the surface code."""
-
 from collections import defaultdict
 from functools import partial
 from itertools import count, cycle, product
-from typing import Dict, Tuple
 
 from .layout import Layout
 
@@ -58,7 +55,7 @@ def shift_direction(row_shift: int, col_shift: int) -> str:
     return direction
 
 
-def invert_shift(row_shift: int, col_shift: int) -> Tuple[int, int]:
+def invert_shift(row_shift: int, col_shift: int) -> tuple[int, int]:
     """Inverts a row and column shift.
 
     Parameters
@@ -70,7 +67,7 @@ def invert_shift(row_shift: int, col_shift: int) -> Tuple[int, int]:
 
     Returns
     -------
-    Tuple[int, int]
+    tuple[int, int]
         The inverted row and column shift.
     """
     return -row_shift, -col_shift
@@ -102,7 +99,7 @@ def is_valid(row: int, col: int, max_size_row: int, max_size_col: int) -> bool:
     return True
 
 
-def add_missing_neighbours(neighbor_data: Dict) -> None:
+def add_missing_neighbours(neighbor_data: dict) -> None:
     """Adds None for missing neighbours in the neighbor data.
     Note that this modifies the dictionary in place.
 
@@ -118,6 +115,7 @@ def add_missing_neighbours(neighbor_data: Dict) -> None:
         for direction in directions:
             if direction not in neighbors:
                 neighbors[direction] = None
+    return None
 
 
 def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:

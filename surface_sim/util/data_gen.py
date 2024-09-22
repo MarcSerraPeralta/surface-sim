@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from stim import Circuit
 from xarray import DataArray, Dataset
@@ -12,7 +10,7 @@ def sample_memory_experiment(
     experiment: Circuit,
     num_shots: int,
     num_rounds: int,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> Dataset:
     """Samples the given memory experiment.
 

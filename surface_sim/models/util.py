@@ -1,4 +1,4 @@
-from typing import Iterable, Iterator, Sequence, Tuple, List
+from collections.abc import Iterable, Iterator
 
 from itertools import product
 
@@ -12,16 +12,17 @@ def num_biased_ops(n):
     return res
 
 
-def grouper(iterable: Iterable[str], block_size: int) -> Iterator[Tuple[str, ...]]:
+def grouper(iterable: Iterable[str], block_size: int) -> Iterator[tuple[str, ...]]:
     "Collect data into non-overlapping fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3) --> ABC DEF ValueError
     args = [iter(iterable)] * block_size
     return zip(*args, strict=True)
 
 
-def biased_prefactors(biased_pauli: str, biased_factor: float, num_qubits: int):
-    """
-    biased_prefactors Return a biased channel prefactors.
+def biased_prefactors(
+    biased_pauli: str, biased_factor: float, num_qubits: int
+) -> np.ndarray:
+    """Return a biased channel prefactors.
 
     The bias of the channel is defined as any error operator that
     applied the biased Pauli operator on any qubit.
@@ -32,7 +33,6 @@ def biased_prefactors(biased_pauli: str, biased_factor: float, num_qubits: int):
         The biased Pauli operator, represented as a string
     biased_factor : float
         The strength of the bias.
-
         A bias factor of 1 corresponds to a standard depolarizing channel.
         A bias factor of 0 leads to no probability of biased errors occurring.
         A bias channel tending towards infinify (but inf not supported) leads to
@@ -42,7 +42,7 @@ def biased_prefactors(biased_pauli: str, biased_factor: float, num_qubits: int):
 
     Returns
     -------
-    np.ndarray
+    prefactors
         The array of prefactors
     """
     paulis = ["I", "X", "Y", "Z"]
@@ -62,16 +62,15 @@ def biased_prefactors(biased_pauli: str, biased_factor: float, num_qubits: int):
             prefactors.append(bias_prefactor)
         else:
             prefactors.append(nonbias_prefactor)
-    prefactors = np.array(prefactors)
+    prefactors_np = np.array(prefactors)
 
-    return prefactors
+    return prefactors_np
 
 
 def idle_error_probs(
     relax_time: float, deph_time: float, duration: float
-) -> List[float]:
-    """
-    idle_error_probs Returns the probabilities of X, Y, and Z errors
+) -> tuple[float, float, float]:
+    """Returns the probabilities of X, Y, and Z errors
     for a Pauli-twirled amplitude and phase damping channel.
 
     References:
@@ -89,7 +88,7 @@ def idle_error_probs(
 
     Returns
     -------
-    List[float, float, float]
+    tuple[float, float, float]
         The probabilities of X, Y, and Z errors
     """
     # Check for invalid inputs
@@ -109,4 +108,4 @@ def idle_error_probs(
     x_prob = y_prob = 0.25 * relax_prob
     z_prob = 0.5 * deph_prob - 0.25 * relax_prob
 
-    return [x_prob, y_prob, z_prob]
+    return (x_prob, y_prob, z_prob)

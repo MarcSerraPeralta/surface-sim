@@ -20,7 +20,7 @@ class CircuitNoiseSetup(Setup):
                     idle_error_prob="prob",
                     assign_error_flag=True,
                     assign_error_prob="prob",
-                )
+                ),
             ],
         )
         super().__init__(setup_dict)
