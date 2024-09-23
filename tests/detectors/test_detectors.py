@@ -23,6 +23,14 @@ def test_detectors_update():
 
     assert (detectors.curr_gen == new_gen).all()
 
+    # check that the stabilizers are correctly updated in
+    # `build_from_anc`.
+    _ = detectors.build_from_anc(
+        get_rec=lambda *_: stim.target_rec(-1), meas_reset=True
+    )
+    assert (detectors.curr_gen == new_gen).all()
+    assert (detectors.prev_gen == new_gen).all()
+
     detectors.update(unitary_mat)
 
     new_gen = xr.DataArray(
@@ -34,6 +42,33 @@ def test_detectors_update():
     )
 
     assert (detectors.curr_gen == new_gen).all()
+
+    # this is required for testing that the stabilizers are correctly
+    # updated in `build_from_data`.
+    _ = detectors.build_from_anc(
+        get_rec=lambda *_: stim.target_rec(-1), meas_reset=True
+    )
+
+    detectors.update(unitary_mat)
+
+    new_gen = xr.DataArray(
+        data=[[1, 1], [0, 1]],
+        coords=dict(
+            stab_gen=anc_qubits,
+            basis=range(len(anc_qubits)),
+        ),
+    )
+
+    _ = detectors.build_from_data(
+        get_rec=lambda *_: stim.target_rec(-1),
+        meas_reset=True,
+        adjacency_matrix=xr.DataArray(
+            data=np.identity(2),
+            coords=dict(from_qubit=["X1", "Z1"], to_qubit=["D1", "D2"]),
+        ),
+    )
+    assert (detectors.curr_gen == new_gen).all()
+    assert (detectors.prev_gen == new_gen).all()
 
     return
 

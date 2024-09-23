@@ -166,7 +166,7 @@ class Detectors:
             detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators
-        self.previous_gen = deepcopy(self.curr_gen)
+        self.prev_gen = deepcopy(self.curr_gen)
 
         return detectors_stim
 
@@ -249,7 +249,7 @@ class Detectors:
             detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators
-        self.previous_gen = deepcopy(self.curr_gen)
+        self.prev_gen = deepcopy(self.curr_gen)
 
         return detectors_stim
 
