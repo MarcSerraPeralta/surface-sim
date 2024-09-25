@@ -46,13 +46,19 @@ def qec_round(
 
     circuit = Circuit()
 
+    if meas_reset:
+        circuit += model.reset(anc_qubits)
+        circuit += model.idle(data_qubits)
+        circuit += model.tick()
+
     # a
     directions = [int_order["x_type"][0], int_order["x_type"][3]]
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    circuit += model.hadamard(rot_qubits)
     idle_qubits = qubits - rot_qubits
+
+    circuit += model.hadamard(rot_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -131,23 +137,16 @@ def qec_round(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    circuit += model.hadamard(rot_qubits)
     idle_qubits = qubits - rot_qubits
+
+    circuit += model.hadamard(rot_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
     # i
     circuit += model.measure(anc_qubits)
-
     circuit += model.idle(data_qubits)
     circuit += model.tick()
-
-    if meas_reset:
-        circuit += model.reset(anc_qubits)
-
-        circuit += model.idle(data_qubits)
-
-        circuit += model.tick()
 
     # add detectors
     detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)

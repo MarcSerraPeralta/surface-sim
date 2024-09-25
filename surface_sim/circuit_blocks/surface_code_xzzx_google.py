@@ -68,7 +68,6 @@ def qec_round_with_log_meas(
     circuit += model.tick()
 
     # j (for logical measurement)
-    # with detectors ordered as in the measurements
     circuit += model.measure(anc_qubits)
     circuit += model.measure(data_qubits)
 

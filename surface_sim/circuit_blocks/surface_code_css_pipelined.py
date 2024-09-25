@@ -32,12 +32,17 @@ def qec_round(
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
-
     qubits = set(data_qubits + anc_qubits)
 
-    circuit = Circuit()
     int_order = layout.interaction_order
     stab_types = list(int_order.keys())
+
+    circuit = Circuit()
+
+    if meas_reset:
+        circuit += model.reset(anc_qubits)
+        circuit += model.idle(data_qubits)
+        circuit += model.tick()
 
     for ind, stab_type in enumerate(stab_types):
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -46,9 +51,8 @@ def qec_round(
             rot_qubits.update(data_qubits)
 
         if not ind:
-            circuit += model.hadamard(rot_qubits)
-
             idle_qubits = qubits - rot_qubits
+            circuit += model.hadamard(rot_qubits)
             circuit += model.idle(idle_qubits)
             circuit += model.tick()
 
@@ -57,33 +61,24 @@ def qec_round(
                 stab_qubits, direction=ord_dir, as_pairs=True
             )
             int_qubits = list(chain.from_iterable(int_pairs))
+            idle_qubits = qubits - set(int_qubits)
 
             circuit += model.cphase(int_qubits)
-
-            idle_qubits = qubits - set(int_qubits)
             circuit += model.idle(idle_qubits)
             circuit += model.tick()
 
         if not ind:
             circuit += model.hadamard(qubits)
         else:
-            circuit += model.hadamard(rot_qubits)
-
             idle_qubits = qubits - rot_qubits
+            circuit += model.hadamard(rot_qubits)
             circuit += model.idle(idle_qubits)
 
         circuit += model.tick()
 
     circuit += model.measure(anc_qubits)
-
     circuit += model.idle(data_qubits)
     circuit += model.tick()
-
-    if meas_reset:
-        circuit += model.reset(anc_qubits)
-        circuit += model.idle(data_qubits)
-
-        circuit += model.tick()
 
     # add detectors
     detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)
