@@ -117,7 +117,7 @@ class Detectors:
     def build_from_anc(
         self,
         get_rec: Callable,
-        meas_reset: bool,
+        anc_reset: bool,
         anc_qubits: list[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
@@ -129,8 +129,8 @@ class Detectors:
             Function that given ``qubit_label, rel_meas_id`` returns the
             corresponding ``stim.target_rec``. The intention is to give the
             ``Model.meas_target`` method.
-        meas_reset
-            Flag for if the ancillas are being reset after being measured.
+        anc_reset
+            Flag for if the ancillas are being reset in every QEC cycle.
         anc_qubits
             List of the ancilla qubits for which to build the detectors.
             By default, builds all the detectors.
@@ -154,7 +154,7 @@ class Detectors:
             self.prev_gen,
             basis=basis,
             num_rounds=self.num_rounds,
-            meas_reset=meas_reset,
+            anc_reset=anc_reset,
         )
         if anc_qubits is not None:
             detectors = {anc: d for anc, d in detectors.items() if anc in anc_qubits}
@@ -174,7 +174,7 @@ class Detectors:
         self,
         get_rec: Callable,
         adjacency_matrix: xr.DataArray,
-        meas_reset: bool,
+        anc_reset: bool,
         anc_qubits: list[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
@@ -190,8 +190,8 @@ class Detectors:
             Matrix descriving the data qubit support on the stabilizers.
             Its coordinates are ``from_qubit`` and ``to_qubit``.
             See ``qec_util.Layout.adjacency_matrix`` for more information.
-        meas_reset
-            Flag for if the ancillas are being reset after being measured.
+        anc_reset
+            Flag for if the ancillas are being reset in every QEC cycle.
         anc_qubits
             List of the ancilla qubits for which to build the detectors.
             By default, builds all the detectors.
@@ -215,7 +215,7 @@ class Detectors:
             self.prev_gen,
             basis=basis,
             num_rounds=self.num_rounds,
-            meas_reset=meas_reset,
+            anc_reset=anc_reset,
         )
         if anc_qubits is not None:
             anc_detectors = {
@@ -259,7 +259,7 @@ def _get_ancilla_meas_for_detectors(
     prev_gen: xr.DataArray,
     basis: xr.DataArray,
     num_rounds: int,
-    meas_reset: bool,
+    anc_reset: bool,
 ) -> dict[str, list[tuple[str, int]]]:
     """Returns the ancilla measurements as ``(anc_qubit, rel_meas_ind)``
     required to build the detectors in the given frame.
@@ -275,8 +275,8 @@ def _get_ancilla_meas_for_detectors(
         Basis in which to represent the detectors.
     num_rounds
         Number of QEC cycles performed (including the current one).
-    meas_reset
-        Flag for if the ancillas are being reset after being measured.
+    anc_reset
+        Flag for if the ancillas are being reset in every QEC cycle.
 
     Returns
     -------
@@ -305,7 +305,7 @@ def _get_ancilla_meas_for_detectors(
         if num_rounds >= 2:
             targets += [(anc_qubits[ind], -2) for ind in p_gen_inds]
 
-        if not meas_reset:
+        if not anc_reset:
             if num_rounds >= 2:
                 targets += [(anc_qubits[ind], -2) for ind in c_gen_inds]
             if num_rounds >= 3:

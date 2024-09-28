@@ -20,7 +20,8 @@ def memory_experiment(
     num_rounds: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    meas_reset: bool = False,
+    anc_reset: bool = False,
+    meas_reset: bool | None = None,
 ) -> Circuit:
     if not isinstance(num_rounds, int):
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
@@ -31,6 +32,9 @@ def memory_experiment(
         warnings.warn("'data_init' should be a dict.", DeprecationWarning)
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
+    if meas_reset is not None:
+        warnings.warn("Use 'anc_reset' instead of 'meas_reset'", DeprecationWarning)
+        anc_reset = meas_reset
 
     model.new_circuit()
     detectors.new_circuit()
@@ -40,7 +44,7 @@ def memory_experiment(
     experiment += init_qubits(model, layout, data_init, rot_basis)
 
     for _ in range(num_rounds):
-        experiment += qec_round(model, layout, detectors, meas_reset)
-    experiment += log_meas(model, layout, detectors, rot_basis, meas_reset)
+        experiment += qec_round(model, layout, detectors, anc_reset)
+    experiment += log_meas(model, layout, detectors, rot_basis, anc_reset)
 
     return experiment
