@@ -25,7 +25,7 @@ def log_meas(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    meas_reset: bool = False,
+    anc_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
@@ -55,7 +55,7 @@ def log_meas(
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+        model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
     )
     circuit += detectors_stim
 
@@ -226,7 +226,7 @@ def log_meas_xzzx(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    meas_reset: bool = False,
+    anc_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
@@ -270,7 +270,7 @@ def log_meas_xzzx(
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+        model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
     )
     circuit += detectors_stim
 

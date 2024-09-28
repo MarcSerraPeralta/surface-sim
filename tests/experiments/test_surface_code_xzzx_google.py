@@ -17,7 +17,6 @@ def test_memory_experiment():
         layout=layout,
         detectors=detectors,
         num_rounds=10,
-        meas_reset=False,
         data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,
     )

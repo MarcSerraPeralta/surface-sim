@@ -20,7 +20,6 @@ def memory_experiment(
     num_rounds: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    meas_reset: bool = False,
 ) -> Circuit:
     if not isinstance(num_rounds, int):
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
@@ -40,15 +39,11 @@ def memory_experiment(
     experiment += init_qubits(model, layout, data_init, rot_basis)
 
     if num_rounds == 1:
-        experiment += qec_round_with_log_meas(
-            model, layout, detectors, rot_basis, meas_reset
-        )
+        experiment += qec_round_with_log_meas(model, layout, detectors, rot_basis)
         return experiment
 
     for _ in range(num_rounds - 1):
-        experiment += qec_round(model, layout, detectors, meas_reset)
-    experiment += qec_round_with_log_meas(
-        model, layout, detectors, rot_basis, meas_reset
-    )
+        experiment += qec_round(model, layout, detectors)
+    experiment += qec_round_with_log_meas(model, layout, detectors, rot_basis)
 
     return experiment

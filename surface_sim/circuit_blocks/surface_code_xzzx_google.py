@@ -32,7 +32,6 @@ def qec_round_with_log_meas(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    meas_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
@@ -75,7 +74,7 @@ def qec_round_with_log_meas(
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), meas_reset, anc_qubits=stabs
+        model.meas_target, layout.adjacency_matrix(), anc_reset=True, anc_qubits=stabs
     )
     circuit += detectors_stim
 
@@ -188,7 +187,6 @@ def qec_round(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    meas_reset: bool = False,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
@@ -213,15 +211,12 @@ def qec_round(
     circuit += model.idle(data_qubits)
     circuit += model.tick()
 
-    if meas_reset:
-        circuit += model.reset(anc_qubits)
-
-        circuit += model.idle(data_qubits)
-
-        circuit += model.tick()
+    circuit += model.reset(anc_qubits)
+    circuit += model.idle(data_qubits)
+    circuit += model.tick()
 
     # add detectors
-    detectors_stim = detectors.build_from_anc(model.meas_target, meas_reset)
+    detectors_stim = detectors.build_from_anc(model.meas_target, anc_reset=True)
     circuit += detectors_stim
 
     return circuit

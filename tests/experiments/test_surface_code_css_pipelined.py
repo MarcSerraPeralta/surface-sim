@@ -21,7 +21,7 @@ def test_memory_experiment():
         layout=layout,
         detectors=detectors,
         num_rounds=10,
-        meas_reset=False,
+        anc_reset=False,
         data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,
     )
@@ -47,7 +47,7 @@ def test_repeated_s_experiment():
         detectors=detectors,
         num_s_gates=4,
         num_rounds_per_gate=2,
-        meas_reset=False,
+        anc_reset=False,
         data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,
     )
