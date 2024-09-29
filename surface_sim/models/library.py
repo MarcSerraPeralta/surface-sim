@@ -117,6 +117,9 @@ class CircuitNoiseModel(Model):
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
+
 
 class BiasedCircuitNoiseModel(Model):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
@@ -270,6 +273,9 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_1", [ind], prob))
         return circ
 
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
+
 
 class DecoherenceNoiseModel(Model):
     """An coherence-limited noise model using T1 and T2"""
@@ -399,6 +405,9 @@ class DecoherenceNoiseModel(Model):
             )
         return circ
 
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
+
 
 class ExperimentalNoiseModel(Model):
     """
@@ -409,12 +418,26 @@ class ExperimentalNoiseModel(Model):
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
+
         circ.append(CircuitInstruction("X", inds))
-        return circ
 
         for qubit, ind in zip(qubits, inds):
             prob = self.param("sq_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
+
+        return circ
+
+    def z_gate(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("Z", inds))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
+
+        return circ
 
     def hadamard(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
@@ -503,6 +526,9 @@ class ExperimentalNoiseModel(Model):
             )
         return circ
 
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
+
 
 class NoiselessModel(Model):
     """Noiseless model"""
@@ -556,4 +582,46 @@ class NoiselessModel(Model):
     def idle(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("I", self.get_inds(qubits)))
+        return circ
+
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
+
+
+class IncomingNoiseModel(NoiselessModel):
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+        self._setup = setup
+        self._qubit_inds = qubit_inds
+        self._meas_order = {q: [] for q in qubit_inds}
+        self._num_meas = 0
+        return
+
+    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+
+        return circ
+
+
+class PhenomenologicalNoiseModel(IncomingNoiseModel):
+    def measure(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MZ", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MZ", [ind]))
         return circ

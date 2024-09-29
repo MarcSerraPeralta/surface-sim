@@ -38,17 +38,15 @@ def log_meas(
 
     circuit = Circuit()
 
+    circuit += model.incoming_noise(data_qubits)
+
     if rot_basis:
         circuit += model.hadamard(data_qubits)
-
         circuit += model.idle(anc_qubits)
-
         circuit += model.tick()
 
     circuit += model.measure(data_qubits)
-
     circuit += model.idle(anc_qubits)
-
     circuit += model.tick()
 
     # detectors and logical observables
@@ -118,6 +116,7 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
+    qubits = anc_qubits + data_qubits
 
     if "log_x" not in dir(layout):
         warnings.warn(
@@ -130,9 +129,10 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     circuit = Circuit()
 
+    circuit += model.incoming_noise(data_qubits)
     circuit += model.x_gate(log_x_qubits)
 
-    idle_qubits = set(anc_qubits) + set(data_qubits) - set(log_x_qubits)
+    idle_qubits = set(qubits) - set(log_x_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -148,6 +148,7 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
+    qubits = anc_qubits + data_qubits
 
     if "log_z" not in dir(layout):
         warnings.warn(
@@ -160,9 +161,10 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     circuit = Circuit()
 
+    circuit += model.incoming_noise(data_qubits)
     circuit += model.z_gate(log_z_qubits)
 
-    idle_qubits = set(anc_qubits) + set(data_qubits) - set(log_z_qubits)
+    idle_qubits = set(qubits) - set(log_z_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -177,12 +179,13 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     https://quantum-journal.org/papers/q-2024-04-08-1310/
     """
+    data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
 
     cz_pairs = set()
     qubits_s_gate = set()
     qubits_s_dag_gate = set()
-    for data_qubit in layout.get_qubits(role="data"):
+    for data_qubit in data_qubits:
         trans_s = layout.param("trans_s", data_qubit)
         if trans_s is None:
             raise ValueError(
@@ -199,6 +202,8 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
             qubits_s_dag_gate.add(data_qubit)
 
     circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
 
     # S, S_DAG gates
     idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
@@ -240,30 +245,27 @@ def log_meas_xzzx(
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
-
     qubits = set(data_qubits + anc_qubits)
-
-    circuit = Circuit()
 
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
 
     rot_qubits = set()
     for direction in ("north_west", "south_east"):
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
-
-    circuit += model.hadamard(rot_qubits)
-
     idle_qubits = qubits - rot_qubits
 
+    circuit += model.hadamard(rot_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
     circuit += model.measure(data_qubits)
-
     circuit += model.idle(anc_qubits)
-
     circuit += model.tick()
 
     # detectors and logical observables
