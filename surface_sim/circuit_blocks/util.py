@@ -39,6 +39,7 @@ def log_meas(
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
 
     if rot_basis:
         circuit += model.hadamard(data_qubits)
@@ -130,6 +131,8 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
     circuit += model.x_gate(log_x_qubits)
 
     idle_qubits = set(qubits) - set(log_x_qubits)
@@ -162,6 +165,8 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
     circuit += model.z_gate(log_z_qubits)
 
     idle_qubits = set(qubits) - set(log_z_qubits)
@@ -204,6 +209,7 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
 
     # S, S_DAG gates
     idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
@@ -253,6 +259,7 @@ def log_meas_xzzx(
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
 
     rot_qubits = set()
     for direction in ("north_west", "south_east"):

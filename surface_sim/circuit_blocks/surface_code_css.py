@@ -47,6 +47,7 @@ def qec_round(
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
 
     if anc_reset:
         circuit += model.reset(anc_qubits)
