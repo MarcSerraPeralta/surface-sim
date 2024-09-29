@@ -107,6 +107,8 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
 
     circuit = Circuit()
 
+    circuit += model.incoming_noise(data_qubits)
+
     # a
     rot_qubits = set(anc_qubits)
     circuit += model.hadamard(rot_qubits)

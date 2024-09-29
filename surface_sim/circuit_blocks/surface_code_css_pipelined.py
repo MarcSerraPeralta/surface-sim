@@ -39,6 +39,8 @@ def qec_round(
 
     circuit = Circuit()
 
+    circuit += model.incoming_noise(data_qubits)
+
     if anc_reset:
         circuit += model.reset(anc_qubits)
         circuit += model.idle(data_qubits)
