@@ -600,9 +600,13 @@ class IncomingNoiseModel(NoiselessModel):
         inds = self.get_inds(qubits)
         circ = Circuit()
 
+        # Split the 'for' loop in two so that the stim diagram looks better
         for qubit, ind in zip(qubits, inds):
             prob = self.param("sq_error_prob", qubit)
             circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("sq_error_prob", qubit)
             circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
 
         return circ
