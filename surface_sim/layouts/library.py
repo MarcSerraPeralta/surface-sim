@@ -118,7 +118,9 @@ def add_missing_neighbours(neighbor_data: dict) -> None:
     return None
 
 
-def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
+def rot_surf_code_rectangle(
+    distance_x: int, distance_z: int, logical_qubit_label: str = "L0"
+) -> Layout:
     """Generates a rotated surface code layout.
 
     Parameters
@@ -127,6 +129,8 @@ def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
         The logical X distance of the code.
     distance_z
         The logical Z distance of the code.
+    logical_qubit_label
+        Label for the logical qubit, by default ``"L0"``.
 
     Returns
     -------
@@ -153,13 +157,14 @@ def rot_surf_code_rectangle(distance_x: int, distance_z: int) -> Layout:
     layout_setup = dict(
         name=name,
         code=code,
+        logical_qubit_labels=[logical_qubit_label],
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
         freq_order=freq_order,
         interaction_order=int_order,
-        log_z=log_z,
-        log_x=log_x,
+        log_z={logical_qubit_label: log_z},
+        log_x={logical_qubit_label: log_x},
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
