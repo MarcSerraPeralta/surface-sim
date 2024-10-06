@@ -28,3 +28,23 @@ def test_memory_experiment():
     circuit.diagram(type="detslice-with-ops")
 
     return
+
+
+def test_memory_experiment_anc_detectors():
+    layout = rot_surf_code(distance=3)
+    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
+    model = NoiselessModel(qubit_ids)
+    detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
+    circuit = memory_experiment(
+        model=model,
+        layout=layout,
+        detectors=detectors,
+        num_rounds=10,
+        anc_detectors=["X1"],
+        data_init={q: 0 for q in layout.get_qubits(role="data")},
+        rot_basis=True,
+    )
+
+    assert circuit.num_detectors == 10 + 1
+
+    return

@@ -24,11 +24,28 @@ def qec_round(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
+    anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    detectors
+        Detector definitions to use.
+    anc_reset
+        If True, ancillas are reset at the beginning of the QEC cycle.
+        By default True.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
 
     Notes
     -----
@@ -36,6 +53,11 @@ def qec_round(
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
     """
+    if anc_detectors is None:
+        anc_detectors = layout.get_qubits(role="anc")
+    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
+
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
     qubits = set(data_qubits + anc_qubits)
@@ -152,7 +174,9 @@ def qec_round(
     circuit += model.tick()
 
     # add detectors
-    detectors_stim = detectors.build_from_anc(model.meas_target, anc_reset)
+    detectors_stim = detectors.build_from_anc(
+        model.meas_target, anc_reset, anc_qubits=anc_detectors
+    )
     circuit += detectors_stim
 
     return circuit

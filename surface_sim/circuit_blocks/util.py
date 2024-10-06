@@ -26,13 +26,37 @@ def log_meas(
     detectors: Detectors,
     rot_basis: bool = False,
     anc_reset: bool = False,
+    anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
     of the given model.
-    By default, the logical measurement is in the Z basis.
-    If rot_basis, the logical measurement is in the X basis.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    detectors
+        Detector definitions to use.
+    rot_basis
+        If ``True``, the memory experiment is performed in the X basis.
+        If ``False``, the memory experiment is performed in the Z basis.
+        By deafult ``False``.
+    anc_reset
+        If True, ancillas are reset at the beginning of the QEC cycle.
+        By default True.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
     """
+    if anc_detectors is None:
+        anc_detectors = layout.get_qubits(role="anc")
+    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
+
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 
@@ -53,6 +77,7 @@ def log_meas(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
         model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
     )
@@ -246,6 +271,7 @@ def log_meas_xzzx(
     detectors: Detectors,
     rot_basis: bool = False,
     anc_reset: bool = False,
+    anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
@@ -253,10 +279,29 @@ def log_meas_xzzx(
 
     Parameters
     ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    detectors
+        Detector definitions to use.
     rot_basis
-        If True, the logical measurement is in the X basis.
-        By default, the logical measurement is in the Z basis.
+        If ``True``, the memory experiment is performed in the X basis.
+        If ``False``, the memory experiment is performed in the Z basis.
+        By deafult ``False``.
+    anc_reset
+        If True, ancillas are reset at the beginning of the QEC cycle.
+        By default True.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
     """
+    if anc_detectors is None:
+        anc_detectors = layout.get_qubits(role="anc")
+    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
+
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
@@ -286,6 +331,7 @@ def log_meas_xzzx(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
         model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
     )
