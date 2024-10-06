@@ -18,6 +18,15 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     data_qubit
         The data qubit in a corner through which the folding of the surface
         code runs.
+
+    Notes
+    -----
+    The circuit implementation follows from https://doi.org/10.22331/q-2024-04-08-1310.
+    The information about the logical transversal S gate is stored in the layout
+    as the parameter ``"trans_s_{log_qubit_name}"`` for each of the qubits,
+    where for the case of data qubits it is the information about which gates
+    to perform and for the case of the ancilla qubits it corresponds to
+    how the stabilizers generators are transformed.
     """
     if layout.code != "rotated_surface_code":
         raise ValueError(
