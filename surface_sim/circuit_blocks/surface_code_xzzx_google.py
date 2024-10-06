@@ -31,6 +31,7 @@ def qec_round_with_log_meas(
     model: Model,
     layout: Layout,
     detectors: Detectors,
+    anc_detectors: list[str] | None = None,
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -38,12 +39,28 @@ def qec_round_with_log_meas(
     that includes the logical measurement
     of the given model.
 
-    Params
-    -------
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    detectors
+        Detector definitions to use.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
     rot_basis
-        By default, the logical measurement is in the Z basis.
-        If rot_basis, the logical measurement is in the X basis.
+        If ``True``, the memory experiment is performed in the X basis.
+        If ``False``, the memory experiment is performed in the Z basis.
+        By deafult ``False``.
     """
+    if anc_detectors is None:
+        anc_detectors = layout.get_qubits(role="anc")
+    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
+
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
@@ -71,8 +88,14 @@ def qec_round_with_log_meas(
     circuit += model.measure(data_qubits)
 
     # detectors and logical observables
+    detectors_stim = detectors.build_from_anc(
+        model.meas_target, anc_reset=True, anc_qubits=anc_detectors
+    )
+    circuit += detectors_stim
+
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
         model.meas_target, layout.adjacency_matrix(), anc_reset=True, anc_qubits=stabs
     )
@@ -81,13 +104,16 @@ def qec_round_with_log_meas(
     log_op = "log_x" if rot_basis else "log_z"
     if log_op not in dir(layout):
         warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout.",
+            "Deprecation warning: specify log_x and log_z in your layout."
+            "Assuming that X/Z on all data qubits is a logical X/Z.",
             DeprecationWarning,
         )
         targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
     else:
-        log_data_qubits = getattr(layout, log_op)
+        log_qubits_support = getattr(layout, log_op)
+        log_qubit_label = layout.get_logical_qubits()[0]
+        log_data_qubits = log_qubits_support[log_qubit_label]
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
@@ -190,10 +216,24 @@ def qec_round(
     model: Model,
     layout: Layout,
     detectors: Detectors,
+    anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
     of the given model.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    detectors
+        Detector definitions to use.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
     """
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
@@ -219,7 +259,9 @@ def qec_round(
     circuit += model.tick()
 
     # add detectors
-    detectors_stim = detectors.build_from_anc(model.meas_target, anc_reset=True)
+    detectors_stim = detectors.build_from_anc(
+        model.meas_target, anc_reset=True, anc_qubits=anc_detectors
+    )
     circuit += detectors_stim
 
     return circuit
