@@ -23,7 +23,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     -----
     The circuit implementation follows from https://doi.org/10.22331/q-2024-04-08-1310.
     The information about the logical transversal S gate is stored in the layout
-    as the parameter ``"trans_s"`` for each of the qubits,
+    as the parameter ``"trans_s_{log_qubit_label}"`` for each of the qubits,
     where for the case of data qubits it is the information about which gates
     to perform and for the case of the ancilla qubits it corresponds to
     how the stabilizers generators are transformed.
@@ -39,11 +39,17 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
     if set(map(len, layout.get_coords(layout.get_qubits()))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
+    if len(layout.get_logical_qubits()) != 1:
+        raise ValueError(
+            "The given surface code does not have a logical qubit, "
+            f"it has {len(layout.get_logical_qubits())}."
+        )
 
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
+    gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
 
     # get the jump coordinates
     neighbors = layout.param("neighbors", data_qubit)
@@ -110,7 +116,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     # Store logical gate information to the data qubits
     for qubit in data_qubits:
         layout.set_param(
-            "trans_s", qubit, {"cz": cz_gates[qubit], "local": s_gates[qubit]}
+            gate_label, qubit, {"cz": cz_gates[qubit], "local": s_gates[qubit]}
         )
 
     # Compute the new stabilizer generators based on the CZs connections
@@ -145,7 +151,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     # Store new stabilizer generators to the ancilla qubits
     for anc_qubit in anc_qubits:
         layout.set_param(
-            "trans_s", anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
+            gate_label, anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
         )
 
     return
