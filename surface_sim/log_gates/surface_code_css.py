@@ -140,3 +140,19 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
         )
 
     return
+
+
+def set_trans_cnot(layout_c: Layout, layout_t: Layout):
+    """Adds the required attributes (in place) for the layout to run the
+    transversal CNOT gate for the rotated surface code.
+
+    This implementation assumes that the qubits are placed in a square 2D grid.
+
+    Parameters
+    ----------
+    layout_c
+        The layout for the control of the CNOT for which to add the attributes.
+    layout_t
+        The layout for the target of the CNOT for which to add the attributes.
+    """
+    return
