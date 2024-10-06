@@ -5,9 +5,10 @@ from surface_sim.layouts import rot_surf_code_rectangle
 def test_set_trans_s():
     layout = rot_surf_code_rectangle(distance_z=4, distance_x=3)
     set_trans_s(layout, "D1")
+    gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
 
     x_stab = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
-    new_stab_x = [layout.param("trans_s", x_stab)["new_stab_gen"] for x_stab in x_stab]
+    new_stab_x = [layout.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stab]
     assert new_stab_x == [
         ["X1"],
         ["X2", "Z3"],
@@ -18,11 +19,11 @@ def test_set_trans_s():
     ]
 
     z_stab = sorted(layout.get_qubits(role="anc", stab_type="z_type"))
-    new_stab_z = [layout.param("trans_s", z_stab)["new_stab_gen"] for z_stab in z_stab]
+    new_stab_z = [layout.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stab]
     assert new_stab_z == [["Z1"], ["Z2"], ["Z3"], ["Z4"], ["Z5"]]
 
     data_qubits = sorted(layout.get_qubits(role="data"))
-    cz_gates = [layout.param("trans_s", d)["cz"] for d in data_qubits]
+    cz_gates = [layout.param(gate_label, d)["cz"] for d in data_qubits]
     assert cz_gates == [
         "D2",
         "D8",
@@ -38,7 +39,7 @@ def test_set_trans_s():
         "D4",
     ]
 
-    local_gates = [layout.param("trans_s", d)["local"] for d in data_qubits]
+    local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
     assert local_gates == [
         "S",
         "I",
@@ -54,7 +55,7 @@ def test_set_trans_s():
         "I",
     ]
 
-    stab_gen_matrix = layout.stab_gen_matrix("trans_s")
+    stab_gen_matrix = layout.stab_gen_matrix(gate_label)
     for z in z_stab:
         assert stab_gen_matrix.sel(new_stab_gen=z).sum() == 1
     for x in x_stab:

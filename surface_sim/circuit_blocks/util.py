@@ -193,12 +193,13 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
+    gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
     qubits_s_gate = set()
     qubits_s_dag_gate = set()
     for data_qubit in data_qubits:
-        trans_s = layout.param("trans_s", data_qubit)
+        trans_s = layout.param(gate_label, data_qubit)
         if trans_s is None:
             raise ValueError(
                 "The layout does not have the information to run a "
@@ -233,7 +234,7 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit += model.tick()
 
     # update the stabilizer generators
-    unitary_mat = layout.stab_gen_matrix("trans_s")
+    unitary_mat = layout.stab_gen_matrix(gate_label)
     detectors.update(unitary_mat)
 
     return circuit
