@@ -30,6 +30,7 @@ class Layout:
     - ``param``
     - ``get_inds``
     - ``get_qubits``
+    - ``get_logical_qubits``
     - ``get_neighbors``
     - ``get_coords``
 
@@ -47,7 +48,7 @@ class Layout:
     """
 
     def __init__(self, setup: Dict[str, Any]) -> None:
-        """Initiailizes the layout.
+        """Initiailizes the layout for a particular code.
 
         Parameters
         ----------
@@ -76,11 +77,12 @@ class Layout:
 
         self.name = setup.get("name")
         self.code = setup.get("code", "")
+        self._log_qubits = setup.get("logical_qubit_labels", [])
         self.distance = setup.get("distance", -1)
         self.distance_z = setup.get("distance_z", -1)
         self.distance_x = setup.get("distance_x", -1)
-        self.log_z = setup.get("log_z", [])
-        self.log_x = setup.get("log_x", [])
+        self.log_z = setup.get("log_z", {})
+        self.log_x = setup.get("log_x", {})
         self.description = setup.get("description")
         self.interaction_order = setup.get("interaction_order", {})
 
@@ -181,6 +183,10 @@ class Layout:
 
         nodes = list(self.graph.nodes)
         return nodes
+
+    def get_logical_qubits(self) -> List[str]:
+        """Returns the logical qubit labels."""
+        return deepcopy(self._log_qubits)
 
     def get_neighbors(
         self,
