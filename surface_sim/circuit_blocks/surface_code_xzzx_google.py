@@ -56,6 +56,10 @@ def qec_round_with_log_meas(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -235,6 +239,11 @@ def qec_round(
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
 
