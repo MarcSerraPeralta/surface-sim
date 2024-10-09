@@ -216,6 +216,11 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     https://quantum-journal.org/papers/q-2024-04-08-1310/
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
     gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
@@ -297,6 +302,11 @@ def log_meas_xzzx(
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -368,6 +378,11 @@ def init_qubits_xzzx(
     By default, the logical measurement is in the Z basis.
     If rot_basis, the logical measurement is in the X basis.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
