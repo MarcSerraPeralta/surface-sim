@@ -161,7 +161,8 @@ class Detectors:
             self.prev_gen,
             basis=basis,
             num_rounds=self.num_rounds,
-            anc_reset=anc_reset,
+            anc_reset_curr=anc_reset,
+            anc_reset_prev=anc_reset,
         )
         if anc_qubits is not None:
             detectors = {anc: d for anc, d in detectors.items() if anc in anc_qubits}
@@ -226,7 +227,8 @@ class Detectors:
             self.prev_gen,
             basis=basis,
             num_rounds=self.num_rounds,
-            anc_reset=anc_reset,
+            anc_reset_curr=True,
+            anc_reset_prev=anc_reset,
         )
         if anc_qubits is not None:
             anc_detectors = {
@@ -270,7 +272,8 @@ def _get_ancilla_meas_for_detectors(
     prev_gen: xr.DataArray,
     basis: xr.DataArray,
     num_rounds: int,
-    anc_reset: bool,
+    anc_reset_curr: bool,
+    anc_reset_prev: bool,
 ) -> dict[str, list[tuple[str, int]]]:
     """Returns the ancilla measurements as ``(anc_qubit, rel_meas_ind)``
     required to build the detectors in the given frame.
@@ -286,8 +289,12 @@ def _get_ancilla_meas_for_detectors(
         Basis in which to represent the detectors.
     num_rounds
         Number of QEC cycles performed (including the current one).
-    anc_reset
-        Flag for if the ancillas are being reset in every QEC cycle.
+    anc_reset_curr
+        Flag for if the ancillas are being reset in the currently
+        measured QEC cycle.
+    anc_reset_prev
+        Flag for if the ancillas are being reset in the second-last QEC cycle,
+        corresponding to the previus cycle to the currently measured one.
 
     Returns
     -------
@@ -316,11 +323,10 @@ def _get_ancilla_meas_for_detectors(
         if num_rounds >= 2:
             targets += [(anc_qubits[ind], -2) for ind in p_gen_inds]
 
-        if not anc_reset:
-            if num_rounds >= 2:
-                targets += [(anc_qubits[ind], -2) for ind in c_gen_inds]
-            if num_rounds >= 3:
-                targets += [(anc_qubits[ind], -3) for ind in p_gen_inds]
+        if not anc_reset_curr and num_rounds >= 2:
+            targets += [(anc_qubits[ind], -2) for ind in c_gen_inds]
+        if not anc_reset_prev and num_rounds >= 3:
+            targets += [(anc_qubits[ind], -3) for ind in p_gen_inds]
 
         detectors[anc_qubit] = targets
 

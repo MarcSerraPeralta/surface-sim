@@ -142,6 +142,8 @@ def test_detectors_build_from_anc_frame_1():
     assert sorted([-102, -101, -202, -201, -202, -302]) in detector_rec
     assert sorted([-101, -201, -201, -301]) in detector_rec
 
+    return
+
 
 def test_detectors_build_from_anc_frame_r():
     anc_qubits = ["X1", "Z1"]
@@ -190,6 +192,8 @@ def test_detectors_build_from_anc_frame_r():
     ]
     assert sorted([-102, -201, -202, -301, -202, -302]) in detector_rec
     assert sorted([-101, -201, -201, -301]) in detector_rec
+
+    return
 
 
 def test_detectors_build_from_anc_frame_r_1():
@@ -243,7 +247,7 @@ def test_detectors_build_from_anc_frame_r_1():
     return
 
 
-def test_detectors_build_from_data():
+def test_detectors_build_from_data_frame_1():
     anc_qubits = ["X1", "Z1"]
     data_qubits = ["D1", "D2", "D3"]
     unitary_mat = xr.DataArray(
@@ -264,59 +268,169 @@ def test_detectors_build_from_data():
             return stim.target_rec(rec)
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    detectors.num_rounds = 1
-    detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
-    detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
-    ]
-    assert {-130, -120, -110, -102} in detector_rec
-    assert {-110, -101} in detector_rec
-
     detectors.num_rounds = 0
+    detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
     detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110} in detector_rec
-    assert {-110} in detector_rec
+    assert sorted([-130, -120, -110]) in detector_rec
+    assert sorted([-110]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
     detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -101, -102} in detector_rec
-    assert {-110, -101} in detector_rec
+    assert sorted([-130, -120, -110, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    detectors.num_rounds = 1
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120, -110, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 2
     detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
     detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110, -102, -101, -102, -202} in detector_rec
-    assert {-110, -101, -201} in detector_rec
+    assert sorted([-130, -120, -110, -102, -202]) in detector_rec
+    assert sorted([-110, -101, -201]) in detector_rec
 
+    return
+
+
+def test_detectors_build_from_data_frame_r():
+    anc_qubits = ["X1", "Z1"]
+    data_qubits = ["D1", "D2", "D3"]
+    unitary_mat = xr.DataArray(
+        data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
+    )
+    adj_matrix = xr.DataArray(
+        data=[[1, 1, 0], [0, 0, 1]],
+        coords=dict(from_qubit=anc_qubits, to_qubit=data_qubits),
+    )
+
+    def meas_rec(q, t):
+        rec = t * 100
+        if q in anc_qubits:
+            rec += anc_qubits.index(q) - 2
+            return stim.target_rec(rec)
+        if q in data_qubits:
+            rec += data_qubits.index(q) * 10 - 30
+            return stim.target_rec(rec)
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors.num_rounds = 0
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120]) in detector_rec
+    assert sorted([-110]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 1
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120, -101, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors.num_rounds = 1
+    detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
     detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-130, -120, -110, -102, -101, -102} in detector_rec
-    assert {-110, -101, -101} in detector_rec
+    assert sorted([-130, -120, -101, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
 
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 2
     detectors.update(unitary_mat)
     detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
     detector_rec = [
-        set([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
-    assert {-120, -130, -101, -102, -201, -102, -202} in detector_rec
-    assert {-110, -101, -101, -201} in detector_rec
+    assert sorted([-120, -130, -101, -102, -201, -202]) in detector_rec
+    assert sorted([-110, -101, -201]) in detector_rec
+
+    return
+
+
+def test_detectors_build_from_data_frame_r_1():
+    anc_qubits = ["X1", "Z1"]
+    data_qubits = ["D1", "D2", "D3"]
+    unitary_mat = xr.DataArray(
+        data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
+    )
+    adj_matrix = xr.DataArray(
+        data=[[1, 1, 0], [0, 0, 1]],
+        coords=dict(from_qubit=anc_qubits, to_qubit=data_qubits),
+    )
+
+    def meas_rec(q, t):
+        rec = t * 100
+        if q in anc_qubits:
+            rec += anc_qubits.index(q) - 2
+            return stim.target_rec(rec)
+        if q in data_qubits:
+            rec += data_qubits.index(q) * 10 - 30
+            return stim.target_rec(rec)
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors.num_rounds = 0
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120, -110]) in detector_rec
+    assert sorted([-110]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors.num_rounds = 1
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120, -110, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors.num_rounds = 1
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-130, -120, -110, -102]) in detector_rec
+    assert sorted([-110, -101]) in detector_rec
+
+    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors.num_rounds = 2
+    detectors.update(unitary_mat)
+    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detector_rec = [
+        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
+    ]
+    assert sorted([-120, -130, -110, -102, -202]) in detector_rec
+    assert sorted([-110, -101, -201]) in detector_rec
 
     return
