@@ -30,6 +30,9 @@ class Detectors:
 
         Detector frame ``'r'`` build the detectors in the basis given by the
         stabilizer generators of the last-measured QEC round.
+
+        Detector frame ``'r-1'`` build the detectors in the basis given by the
+        stabilizer generators of the previous-last-measured QEC round.
         """
         self.anc_qubits = anc_qubits
         self.frame = frame
@@ -144,8 +147,12 @@ class Detectors:
             basis = self.init_gen
         elif self.frame == "r":
             basis = self.curr_gen
+        elif self.frame == "r-1":
+            basis = self.prev_gen
         else:
-            raise ValueError(f"'frame' must be '1' or 'r', but {self.frame} was given.")
+            raise ValueError(
+                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+            )
 
         self.num_rounds += 1
 
@@ -205,8 +212,12 @@ class Detectors:
             basis = self.init_gen
         elif self.frame == "r":
             basis = self.curr_gen
+        elif self.frame == "r-1":
+            basis = self.prev_gen
         else:
-            raise ValueError(f"'frame' must be '1' or 'r', but {self.frame} was given.")
+            raise ValueError(
+                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+            )
 
         self.num_rounds += 1
 
