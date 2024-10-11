@@ -2,7 +2,7 @@ import stim
 
 from surface_sim.layouts import rot_surf_code
 
-from surface_sim.experiments.surface_code_xzzx import memory_experiment
+from surface_sim.experiments.rot_surface_code_xzzx import memory_experiment
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
 

@@ -4,13 +4,6 @@ import numpy as np
 
 from ..layouts import Layout
 
-import warnings
-
-warnings.warn(
-    "'surface_code_css' has been deprecated, use 'rot_surface_code_css'.",
-    DeprecationWarning,
-)
-
 
 def set_trans_s(layout: Layout, data_qubit: str) -> None:
     """Adds the required attributes (in place) for the layout to run the transversal S

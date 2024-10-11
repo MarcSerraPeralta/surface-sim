@@ -6,13 +6,6 @@ from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
 
-import warnings
-
-warnings.warn(
-    "'surface_code_css' has been deprecated, use 'rot_surface_code_css'.",
-    DeprecationWarning,
-)
-
 # methods to have in this script
 from .util import qubit_coords, log_meas, log_x, log_z, init_qubits, log_trans_s
 

@@ -3,7 +3,7 @@ import warnings
 from stim import Circuit
 
 from ..layouts import Layout
-from ..circuit_blocks.surface_code_css_pipelined import (
+from ..circuit_blocks.rot_surface_code_css_pipelined import (
     init_qubits,
     log_meas,
     qec_round,
@@ -12,6 +12,13 @@ from ..circuit_blocks.surface_code_css_pipelined import (
 )
 from ..models import Model
 from ..detectors import Detectors
+
+import warnings
+
+warnings.warn(
+    "'surface_code_css_pipelined' has been deprecated, use 'rot_surface_code_css_pipelined'.",
+    DeprecationWarning,
+)
 
 
 def memory_experiment(

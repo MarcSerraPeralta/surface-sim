@@ -12,13 +12,6 @@ from ..circuit_blocks.rot_surface_code_xzzx import (
 from ..models import Model
 from ..detectors import Detectors
 
-import warnings
-
-warnings.warn(
-    "'surface_code_xzzx' has been deprecated, use 'rot_surface_code_xzzx'.",
-    DeprecationWarning,
-)
-
 
 def memory_experiment(
     model: Model,
