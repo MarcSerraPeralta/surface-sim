@@ -3,7 +3,7 @@ import warnings
 from stim import Circuit
 
 from ..layouts import Layout
-from ..circuit_blocks.rot_surface_code_css import (
+from ..circuit_blocks.rot_surface_code_css_pipelined import (
     init_qubits,
     log_meas,
     qec_round,
@@ -12,13 +12,6 @@ from ..circuit_blocks.rot_surface_code_css import (
 )
 from ..models import Model
 from ..detectors import Detectors
-
-import warnings
-
-warnings.warn(
-    "'surface_code_css' has been deprecated, use 'rot_surface_code_css'.",
-    DeprecationWarning,
-)
 
 
 def memory_experiment(

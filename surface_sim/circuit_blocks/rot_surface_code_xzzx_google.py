@@ -13,12 +13,6 @@ from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
 
-import warnings
-
-warnings.warn(
-    "'surface_code_xzzx_google' has been deprecated, use 'rot_surface_code_xzzx_google'.",
-    DeprecationWarning,
-)
 # methods to have in this script
 from .util import qubit_coords, log_x, log_z
 from .util import init_qubits_xzzx as init_qubits

@@ -13,13 +13,6 @@ from ..circuit_blocks.rot_surface_code_css import (
 from ..models import Model
 from ..detectors import Detectors
 
-import warnings
-
-warnings.warn(
-    "'surface_code_css' has been deprecated, use 'rot_surface_code_css'.",
-    DeprecationWarning,
-)
-
 
 def memory_experiment(
     model: Model,

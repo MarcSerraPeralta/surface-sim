@@ -1,4 +1,4 @@
-from surface_sim.log_gates.surface_code_css import set_trans_s
+from surface_sim.log_gates.rot_surface_code_css import set_trans_s
 from surface_sim.layouts import rot_surf_code_rectangle
 
 

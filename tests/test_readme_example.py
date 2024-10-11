@@ -2,7 +2,7 @@ from surface_sim.layouts import rot_surf_code
 from surface_sim.models import CircuitNoiseModel
 from surface_sim.setup import CircuitNoiseSetup
 from surface_sim import Detectors
-from surface_sim.experiments.surface_code_css import memory_experiment
+from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
 
 def test_README_example():
