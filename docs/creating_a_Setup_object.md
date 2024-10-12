@@ -3,6 +3,8 @@
 This file contains information on how to create and configure a `Setup` object for a noise model `Model` using (1) a YAML file, and (2) a `dict` object. 
 This document explains the structure of these two inputs and the use of *free parameters* and *global parameters*. 
 
+For convenience, `surface_sim.setup.CircuitNoiseSetup` returns a `Setup` initialized for circuit-level noise.
+
 
 ## Structure of the configuration for a `Setup`
 
