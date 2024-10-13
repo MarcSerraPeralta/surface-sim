@@ -9,11 +9,6 @@ DIR_EXCEPTIONS = [
 FILE_EXCEPTIONS = [
     "__init__.py",
     "surface_sim/models/util.py",  # functions already tested in surface_sim.models
-    "surface_sim/experiments/surface_code_css.py",  # deprecated module
-    "surface_sim/experiments/surface_code_css_pipelined.py",  # deprecated module
-    "surface_sim/experiments/surface_code_xzzx.py",  # deprecated module
-    "surface_sim/experiments/surface_code_xzzx_google.py",  # deprecated module
-    "surface_sim/log_gates/surface_code_css.py",  # deprecated module
 ]
 
 

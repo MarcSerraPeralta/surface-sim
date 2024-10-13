@@ -22,7 +22,6 @@ def memory_experiment(
     rot_basis: bool = False,
     anc_reset: bool = False,
     anc_detectors: list[str] | None = None,
-    meas_reset: bool | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -54,14 +53,8 @@ def memory_experiment(
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
     if num_rounds < 0:
         raise ValueError("num_rounds needs to be a positive integer.")
-    if isinstance(data_init, list) and len(set(data_init)) == 1:
-        data_init = {q: data_init[0] for q in layout.get_qubits(role="data")}
-        warnings.warn("'data_init' should be a dict.", DeprecationWarning)
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
-    if meas_reset is not None:
-        warnings.warn("Use 'anc_reset' instead of 'meas_reset'", DeprecationWarning)
-        anc_reset = meas_reset
 
     model.new_circuit()
     detectors.new_circuit()

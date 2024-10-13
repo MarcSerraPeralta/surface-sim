@@ -84,20 +84,11 @@ def log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
@@ -147,16 +138,8 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     data_qubits = layout.get_qubits(role="data")
     qubits = anc_qubits + data_qubits
 
-    if "log_x" not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x in your layout."
-            "Assuming that X on all data qubits is a logical X.",
-            DeprecationWarning,
-        )
-        log_x_qubits = data_qubits
-    else:
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_x_qubits = layout.log_x[log_qubit_label]
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_x_qubits = layout.log_x[log_qubit_label]
 
     circuit = Circuit()
 
@@ -183,16 +166,8 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     data_qubits = layout.get_qubits(role="data")
     qubits = anc_qubits + data_qubits
 
-    if "log_z" not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_z in your layout."
-            "Assuming that Z on all data qubits is a logical Z.",
-            DeprecationWarning,
-        )
-        log_z_qubits = data_qubits
-    else:
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_z_qubits = layout.log_z[log_qubit_label]
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_z_qubits = layout.log_z[log_qubit_label]
 
     circuit = Circuit()
 
@@ -348,20 +323,11 @@ def log_meas_xzzx(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
