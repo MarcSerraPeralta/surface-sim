@@ -106,20 +106,11 @@ def qec_round_with_log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
