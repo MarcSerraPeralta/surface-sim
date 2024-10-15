@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import networkx as nx
 
-from ..layouts import Layout
+from ..layouts import Layout, check_overlap_layouts
 
 
 def set_trans_s(layout: Layout, data_qubit: str) -> None:
@@ -158,7 +158,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     return
 
 
-def set_trans_cnot(layout_c: Layout, layout_t: Layout):
+def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
     """Adds the required attributes (in place) for the layout to run the
     transversal CNOT gate for the rotated surface code.
 
@@ -181,6 +181,10 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout):
     ):
         raise ValueError("This function requires two surface codes of the same size.")
 
+    gate_label = (
+        f"t-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    )
+
     # Obtain the mapping of qubits of one layout to qubits of the other layout
     gm = nx.isomorphism.DiGraphMatcher(layout_c, layout_t)
     if not gm.is_isomorphic:
@@ -188,6 +192,32 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout):
             "The two given layouts for the t-CNOT are not isomorphic,"
             "meaning that they don't have the same Tanner graph."
         )
-    mapping = gm.mapping # mapping from layout_c to layout_t
+    mapping_c_to_t = gm.mapping  # mapping from layout_c to layout_t
+    mapping_t_to_c = {v: k for k, v in mapping_c_to_t.items()}
+
+    # Store the logical information for the data qubits
+    data_qubits_c = set(layout_c.get_qubits(role="data"))
+    data_qubits_t = set(layout_t.get_qubits(role="data"))
+    for qubit in data_qubits_c:
+        layout_c.set_param(gate_label, qubit, {"cnot": mapping_c_to_t[qubit]})
+    for qubit in data_qubits_t:
+        layout_t.set_param(gate_label, qubit, {"cnot": mapping_t_to_c[qubit]})
+
+    # Compute the new stabilizer generators based on the CNOT connections
+    anc_to_new_stab = {}
+    for anc in layout_c.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc]
+    for anc in layout_c.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc, mapping_c_to_t[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc]
+
+    # Store new stabilizer generators to the ancilla qubits
+    for anc in layout_c.get_qubits(role="anc"):
+        layout_c.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
+    for anc in layout_t.get_qubits(role="anc"):
+        layout_t.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
 
     return
