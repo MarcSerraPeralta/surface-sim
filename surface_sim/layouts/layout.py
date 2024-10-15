@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Iterable
 
 from copy import deepcopy
 from os import path
@@ -190,7 +191,7 @@ class Layout:
 
     def get_neighbors(
         self,
-        qubits: list[str],
+        qubits: Iterable[str],
         direction: str | None = None,
         as_pairs: bool = False,
     ) -> list[str] | list[tuple[str, str]]:
@@ -231,7 +232,7 @@ class Layout:
             return list(zip(start_nodes, end_nodes))
         return end_nodes
 
-    def get_coords(self, qubits: list[str]) -> list[list[float | int]]:
+    def get_coords(self, qubits: Iterable[str]) -> list[list[float | int]]:
         """Returns the coordinates of the given qubits.
 
         Parameters
