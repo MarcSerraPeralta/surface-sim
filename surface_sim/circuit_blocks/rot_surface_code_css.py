@@ -40,8 +40,8 @@ def qec_round(
     detectors
         Detector definitions to use.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
