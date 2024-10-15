@@ -1,12 +1,12 @@
 from .layout import Layout
 
 
-def check_non_overlapping_layout_pair(layout_1: Layout, layout_2: Layout) -> None:
+def check_overlap_layout_pair(layout_1: Layout, layout_2: Layout) -> None:
     """Checks if the two given layouts share any qubits for when doing
     parallel logical computation with both of them.
 
     It checks that there are no shared qubit (1) labels, (2) indices,
-    and (3) coordinates.
+    (3) coordinates, and (4) logical qubit labels.
 
     Parameters
     ----------
@@ -39,12 +39,12 @@ def check_non_overlapping_layout_pair(layout_1: Layout, layout_2: Layout) -> Non
     return
 
 
-def check_non_overlapping_layouts(*layouts: Layout) -> None:
+def check_overlap_layouts(*layouts: Layout) -> None:
     """Checks if the given layouts share any qubits for when doing
     parallel logical computation with them.
 
     It checks that there are no shared qubit (1) labels, (2) indices,
-    and (3) coordinates.
+    (3) coordinates, and (4) logical qubit labels.
 
     Parameters
     ----------
@@ -56,6 +56,6 @@ def check_non_overlapping_layouts(*layouts: Layout) -> None:
 
     for k, layout in enumerate(layouts):
         for other_layout in layouts[k + 1 :]:
-            check_non_overlapping_layout_pair(layout, other_layout)
+            check_overlap_layout_pair(layout, other_layout)
 
     return
