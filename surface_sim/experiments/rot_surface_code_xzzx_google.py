@@ -1,5 +1,3 @@
-import warnings
-
 from stim import Circuit
 
 from ..layouts import Layout

@@ -361,13 +361,13 @@ def plot(
     layout
         The layout to plot.
     add_labels
-        Flag to add qubit labels, by default True.
+        Flag to add qubit labels, by default ``True``.
     add_patches
-        Flag to plot stabilizer patches, by default True.
+        Flag to plot stabilizer patches, by default ``True``.
     add_connections
-        Flag to plot lines indicating the connectivity, by default True.
+        Flag to plot lines indicating the connectivity, by default ``True``.
     pad
-        The padding to the bottom axis, by default 1.
+        The padding to the bottom axis, by default ``1``.
     stim_orientation
         Flag to orient the layout and axis as stim does for ``diagram``.
     label_fontsize

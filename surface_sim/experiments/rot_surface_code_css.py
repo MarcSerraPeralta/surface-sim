@@ -1,5 +1,3 @@
-import warnings
-
 from stim import Circuit
 
 from ..layouts import Layout
@@ -21,7 +19,7 @@ def memory_experiment(
     num_rounds: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
@@ -43,8 +41,8 @@ def memory_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -81,7 +79,7 @@ def repeated_s_experiment(
     num_rounds_per_gate: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S experiment.
@@ -105,8 +103,8 @@ def repeated_s_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.

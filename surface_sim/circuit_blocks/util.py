@@ -24,7 +24,7 @@ def log_meas(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -44,8 +44,8 @@ def log_meas(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -247,7 +247,7 @@ def log_meas_xzzx(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -267,8 +267,8 @@ def log_meas_xzzx(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
