@@ -8,7 +8,9 @@ from ..detectors import Detectors
 
 
 # methods to have in this script
-from .util import qubit_coords, log_x, log_z
+from .util import qubit_coords
+from .util import log_x_xzzx as log_x
+from .util import log_z_xzzx as log_z
 from .util import log_meas_xzzx as log_meas, init_qubits_xzzx as init_qubits
 
 __all__ = ["qubit_coords", "log_meas", "log_x", "log_z", "qec_round", "init_qubits"]
@@ -43,7 +45,7 @@ def qec_round(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}."
         )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")

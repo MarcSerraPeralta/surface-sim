@@ -5,7 +5,6 @@ https://doi.org/10.48550/arXiv.2207.06431
 """
 
 from itertools import chain
-import warnings
 
 from stim import Circuit
 
@@ -14,7 +13,9 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_x, log_z
+from .util import qubit_coords
+from .util import log_x_xzzx as log_x
+from .util import log_z_xzzx as log_z
 from .util import init_qubits_xzzx as init_qubits
 
 __all__ = [
