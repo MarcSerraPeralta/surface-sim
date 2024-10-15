@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import numpy as np
+import networkx as nx
 
 from ..layouts import Layout
 
@@ -161,8 +162,6 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout):
     """Adds the required attributes (in place) for the layout to run the
     transversal CNOT gate for the rotated surface code.
 
-    This implementation assumes that the qubits are placed in a square 2D grid.
-
     Parameters
     ----------
     layout_c
@@ -170,4 +169,25 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout):
     layout_t
         The layout for the target of the CNOT for which to add the attributes.
     """
+    if (layout_c.code != "rotated_surface_code") or (
+        layout_t.code != "rotated_surface_code"
+    ):
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but layouts for {layout_t.code} and {layout_c.code} were given."
+        )
+    if (layout_c.distance_x != layout_t.distance_x) or (
+        layout_c.distance_z != layout_t.distance_z
+    ):
+        raise ValueError("This function requires two surface codes of the same size.")
+
+    # Obtain the mapping of qubits of one layout to qubits of the other layout
+    gm = nx.isomorphism.DiGraphMatcher(layout_c, layout_t)
+    if not gm.is_isomorphic:
+        raise ValueError(
+            "The two given layouts for the t-CNOT are not isomorphic,"
+            "meaning that they don't have the same Tanner graph."
+        )
+    mapping = gm.mapping # mapping from layout_c to layout_t
+
     return
