@@ -146,9 +146,8 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit += model.incoming_noise(data_qubits)
     circuit += model.tick()
 
-    circuit += model.x_gate(log_x_qubits)
-
     idle_qubits = set(qubits) - set(log_x_qubits)
+    circuit += model.x_gate(log_x_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -174,9 +173,8 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit += model.incoming_noise(data_qubits)
     circuit += model.tick()
 
-    circuit += model.z_gate(log_z_qubits)
-
     idle_qubits = set(qubits) - set(log_z_qubits)
+    circuit += model.z_gate(log_z_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -328,6 +326,74 @@ def log_meas_xzzx(
     log_data_qubits = log_qubits_support[log_qubit_label]
     targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+
+    return circuit
+
+
+def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical X gate
+    of the given model.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_x_qubits = layout.log_x[log_qubit_label]
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
+    # apply log X
+    rot_qubits = []
+    stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+    for direction in ("north_west", "south_east"):
+        rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
+    pauli_z = set(d for d in log_x_qubits if d in rot_qubits)
+    pauli_x = set(log_x_qubits) - pauli_z
+
+    circuit += model.x_gate(pauli_x)
+    circuit += model.z_gate(pauli_z)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
+
+    # the stabilizer generators do not change when applying a logical X gate
+
+    return circuit
+
+
+def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical Z gate
+    of the given model.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_z_qubits = layout.log_z[log_qubit_label]
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
+    # apply log Z
+    rot_qubits = []
+    stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+    for direction in ("north_west", "south_east"):
+        rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
+    pauli_x = set(d for d in log_z_qubits if d in rot_qubits)
+    pauli_z = set(log_z_qubits) - pauli_x
+
+    circuit += model.x_gate(pauli_x)
+    circuit += model.z_gate(pauli_z)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
+
+    # the stabilizer generators do not change when applying a logical Z gate
 
     return circuit
 
