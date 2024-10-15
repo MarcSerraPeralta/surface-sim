@@ -1,4 +1,3 @@
-import warnings
 from itertools import chain
 
 from stim import Circuit

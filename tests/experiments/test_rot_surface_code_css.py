@@ -30,7 +30,7 @@ def test_memory_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    circuit.diagram(type="detslice-with-ops")
+    _ = circuit.detector_error_model(allow_gauge_detectors=True)
 
     return
 
@@ -56,7 +56,7 @@ def test_repeated_s_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    circuit.diagram(type="detslice-with-ops")
+    _ = circuit.detector_error_model(allow_gauge_detectors=True)
 
     return
 

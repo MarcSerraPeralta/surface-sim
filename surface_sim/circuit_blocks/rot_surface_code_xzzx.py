@@ -6,21 +6,28 @@ from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
 
-
 # methods to have in this script
 from .util import qubit_coords
 from .util import log_x_xzzx as log_x
 from .util import log_z_xzzx as log_z
-from .util import log_meas_xzzx as log_meas, init_qubits_xzzx as init_qubits
+from .util import log_meas_xzzx as log_meas
+from .util import init_qubits_xzzx as init_qubits
 
-__all__ = ["qubit_coords", "log_meas", "log_x", "log_z", "qec_round", "init_qubits"]
+__all__ = [
+    "qubit_coords",
+    "log_meas",
+    "log_x",
+    "log_z",
+    "qec_round",
+    "init_qubits",
+]
 
 
 def qec_round(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -42,10 +49,16 @@ def qec_round(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
+
+    Notes
+    -----
+    This implementation follows:
+
+    https://doi.org/10.1103/PhysRevApplied.8.034021
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            f"The given layout is not a rotated surface code, but a {layout.code}."
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
         )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
@@ -58,6 +71,7 @@ def qec_round(
 
     int_order = layout.interaction_order
     stab_types = list(int_order.keys())
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
 
     circuit = Circuit()
 
@@ -69,40 +83,111 @@ def qec_round(
         circuit += model.idle(data_qubits)
         circuit += model.tick()
 
-    for ind, stab_type in enumerate(stab_types):
+    # a
+    directions = [int_order["x_type"][0], int_order["x_type"][3]]
+    rot_qubits = set(anc_qubits)
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
+    rot_qubits_xzzx = set()
+    for direction in ("north_west", "south_east"):
+        stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits_xzzx.update(neighbors)
+    rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
+    idle_qubits = qubits - rot_qubits
+
+    circuit += model.hadamard(rot_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # b
+    interacted_qubits = set()
+    for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][0]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-        rot_qubits = set(stab_qubits)
-        for direction in ("north_west", "south_east"):
-            neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-            rot_qubits.update(neighbors)
+        circuit += model.cphase(int_qubits)
 
-        if not ind:
-            idle_qubits = qubits - rot_qubits
-            circuit += model.hadamard(rot_qubits)
-            circuit += model.idle(idle_qubits)
-            circuit += model.tick()
+    idle_qubits = qubits - set(interacted_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
-        for ord_dir in int_order[stab_type]:
-            int_pairs = layout.get_neighbors(
-                stab_qubits, direction=ord_dir, as_pairs=True
-            )
-            int_qubits = list(chain.from_iterable(int_pairs))
-            idle_qubits = qubits - set(int_qubits)
+    # c
+    circuit += model.hadamard(data_qubits)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
 
-            circuit += model.cphase(int_qubits)
-            circuit += model.idle(idle_qubits)
-            circuit += model.tick()
+    # d
+    interacted_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][1]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
 
-        if not ind:
-            circuit += model.hadamard(qubits)
-        else:
-            idle_qubits = qubits - rot_qubits
-            circuit += model.hadamard(rot_qubits)
-            circuit += model.idle(idle_qubits)
+        circuit += model.cphase(int_qubits)
 
-        circuit += model.tick()
+    idle_qubits = qubits - set(interacted_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
 
+    # e
+    interacted_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][2]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
+
+        circuit += model.cphase(int_qubits)
+
+    idle_qubits = qubits - set(interacted_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # f
+    circuit += model.hadamard(data_qubits)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
+
+    # g
+    interacted_qubits = set()
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][3]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
+
+        circuit += model.cphase(int_qubits)
+
+    idle_qubits = qubits - set(interacted_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # h
+    directions = [int_order["x_type"][0], int_order["x_type"][3]]
+    rot_qubits = set(anc_qubits)
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
+    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
+    rot_qubits_xzzx = set()
+    for direction in ("north_west", "south_east"):
+        stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits_xzzx.update(neighbors)
+    rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
+    idle_qubits = qubits - rot_qubits
+
+    circuit += model.hadamard(rot_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # i
     circuit += model.measure(anc_qubits)
     circuit += model.idle(data_qubits)
     circuit += model.tick()
