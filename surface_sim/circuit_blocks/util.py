@@ -1,4 +1,3 @@
-import warnings
 from itertools import chain
 
 from stim import Circuit
@@ -25,7 +24,7 @@ def log_meas(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -45,8 +44,8 @@ def log_meas(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -84,20 +83,11 @@ def log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
@@ -147,25 +137,16 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     data_qubits = layout.get_qubits(role="data")
     qubits = anc_qubits + data_qubits
 
-    if "log_x" not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x in your layout."
-            "Assuming that X on all data qubits is a logical X.",
-            DeprecationWarning,
-        )
-        log_x_qubits = data_qubits
-    else:
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_x_qubits = layout.log_x[log_qubit_label]
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_x_qubits = layout.log_x[log_qubit_label]
 
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
     circuit += model.tick()
 
-    circuit += model.x_gate(log_x_qubits)
-
     idle_qubits = set(qubits) - set(log_x_qubits)
+    circuit += model.x_gate(log_x_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -183,25 +164,16 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     data_qubits = layout.get_qubits(role="data")
     qubits = anc_qubits + data_qubits
 
-    if "log_z" not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_z in your layout."
-            "Assuming that Z on all data qubits is a logical Z.",
-            DeprecationWarning,
-        )
-        log_z_qubits = data_qubits
-    else:
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_z_qubits = layout.log_z[log_qubit_label]
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_z_qubits = layout.log_z[log_qubit_label]
 
     circuit = Circuit()
 
     circuit += model.incoming_noise(data_qubits)
     circuit += model.tick()
 
-    circuit += model.z_gate(log_z_qubits)
-
     idle_qubits = set(qubits) - set(log_z_qubits)
+    circuit += model.z_gate(log_z_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
@@ -216,6 +188,11 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     https://quantum-journal.org/papers/q-2024-04-08-1310/
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
     gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
@@ -270,7 +247,7 @@ def log_meas_xzzx(
     layout: Layout,
     detectors: Detectors,
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -290,13 +267,18 @@ def log_meas_xzzx(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -338,20 +320,79 @@ def log_meas_xzzx(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+
+    return circuit
+
+
+def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical X gate
+    of the given model.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_x_qubits = layout.log_x[log_qubit_label]
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
+    # apply log X
+    rot_qubits = []
+    stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+    for direction in ("north_west", "south_east"):
+        rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
+    pauli_z = set(d for d in log_x_qubits if d in rot_qubits)
+    pauli_x = set(log_x_qubits) - pauli_z
+
+    circuit += model.x_gate(pauli_x)
+    circuit += model.z_gate(pauli_z)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
+
+    # the stabilizer generators do not change when applying a logical X gate
+
+    return circuit
+
+
+def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical Z gate
+    of the given model.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_z_qubits = layout.log_z[log_qubit_label]
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
+    # apply log Z
+    rot_qubits = []
+    stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+    for direction in ("north_west", "south_east"):
+        rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
+    pauli_x = set(d for d in log_z_qubits if d in rot_qubits)
+    pauli_z = set(log_z_qubits) - pauli_x
+
+    circuit += model.x_gate(pauli_x)
+    circuit += model.z_gate(pauli_z)
+    circuit += model.idle(anc_qubits)
+    circuit += model.tick()
+
+    # the stabilizer generators do not change when applying a logical Z gate
 
     return circuit
 
@@ -368,6 +409,11 @@ def init_qubits_xzzx(
     By default, the logical measurement is in the Z basis.
     If rot_basis, the logical measurement is in the X basis.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)

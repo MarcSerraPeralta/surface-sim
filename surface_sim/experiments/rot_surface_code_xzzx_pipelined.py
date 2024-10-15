@@ -1,11 +1,9 @@
-import warnings
-
 from stim import Circuit
 
 from ..layouts import Layout
-from ..circuit_blocks.surface_code_xzzx_google import (
+from ..circuit_blocks.rot_surface_code_xzzx_pipelined import (
     init_qubits,
-    qec_round_with_log_meas,
+    log_meas,
     qec_round,
     qubit_coords,
 )
@@ -19,8 +17,9 @@ def memory_experiment(
     detectors: Detectors,
     num_rounds: int,
     data_init: dict[str, int] | list[int],
-    anc_detectors: list[str] | None = None,
     rot_basis: bool = False,
+    anc_reset: bool = True,
+    anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -40,6 +39,9 @@ def memory_experiment(
         If ``True``, the memory experiment is performed in the X basis.
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -47,11 +49,8 @@ def memory_experiment(
     """
     if not isinstance(num_rounds, int):
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
-    if num_rounds <= 0:
-        raise ValueError("num_rounds needs to be a (strickly) positive integer.")
-    if isinstance(data_init, list) and len(set(data_init)) == 1:
-        data_init = {q: data_init[0] for q in layout.get_qubits(role="data")}
-        warnings.warn("'data_init' should be a dict.", DeprecationWarning)
+    if num_rounds < 0:
+        raise ValueError("num_rounds needs to be a positive integer.")
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
@@ -62,16 +61,10 @@ def memory_experiment(
     experiment += qubit_coords(model, layout)
     experiment += init_qubits(model, layout, data_init, rot_basis)
 
-    if num_rounds == 1:
-        experiment += qec_round_with_log_meas(
-            model, layout, detectors, anc_detectors, rot_basis
-        )
-        return experiment
-
-    for _ in range(num_rounds - 1):
-        experiment += qec_round(model, layout, detectors, anc_detectors)
-    experiment += qec_round_with_log_meas(
-        model, layout, detectors, anc_detectors, rot_basis
+    for _ in range(num_rounds):
+        experiment += qec_round(model, layout, detectors, anc_reset, anc_detectors)
+    experiment += log_meas(
+        model, layout, detectors, rot_basis, anc_reset, anc_detectors
     )
 
     return experiment

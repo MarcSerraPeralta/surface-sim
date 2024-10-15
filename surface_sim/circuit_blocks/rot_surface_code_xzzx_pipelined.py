@@ -7,7 +7,11 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_meas, log_x, log_z, init_qubits, log_trans_s
+from .util import qubit_coords
+from .util import log_x_xzzx as log_x
+from .util import log_z_xzzx as log_z
+from .util import log_meas_xzzx as log_meas
+from .util import init_qubits_xzzx as init_qubits
 
 __all__ = [
     "qubit_coords",
@@ -16,7 +20,6 @@ __all__ = [
     "log_z",
     "qec_round",
     "init_qubits",
-    "log_trans_s",
 ]
 
 
@@ -24,7 +27,7 @@ def qec_round(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
@@ -40,13 +43,17 @@ def qec_round(
     detectors
         Detector definitions to use.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -71,9 +78,11 @@ def qec_round(
 
     for ind, stab_type in enumerate(stab_types):
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
         rot_qubits = set(stab_qubits)
-        if stab_type == "x_type":
-            rot_qubits.update(data_qubits)
+        for direction in ("north_west", "south_east"):
+            neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+            rot_qubits.update(neighbors)
 
         if not ind:
             idle_qubits = qubits - rot_qubits
@@ -94,12 +103,12 @@ def qec_round(
 
         if not ind:
             circuit += model.hadamard(qubits)
+            circuit += model.tick()
         else:
             idle_qubits = qubits - rot_qubits
             circuit += model.hadamard(rot_qubits)
             circuit += model.idle(idle_qubits)
-
-        circuit += model.tick()
+            circuit += model.tick()
 
     circuit += model.measure(anc_qubits)
     circuit += model.idle(data_qubits)

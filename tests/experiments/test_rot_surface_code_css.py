@@ -2,13 +2,13 @@ import stim
 
 from surface_sim.layouts import rot_surf_code, rot_surf_code_rectangle
 
-from surface_sim.experiments.surface_code_css import (
+from surface_sim.experiments.rot_surface_code_css import (
     memory_experiment,
     repeated_s_experiment,
 )
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
-from surface_sim.log_gates.surface_code_css import set_trans_s
+from surface_sim.log_gates.rot_surface_code_css import set_trans_s
 
 
 def test_memory_experiment():
@@ -30,7 +30,7 @@ def test_memory_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    circuit.diagram(type="detslice-with-ops")
+    _ = circuit.detector_error_model(allow_gauge_detectors=True)
 
     return
 
@@ -56,7 +56,7 @@ def test_repeated_s_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    circuit.diagram(type="detslice-with-ops")
+    _ = circuit.detector_error_model(allow_gauge_detectors=True)
 
     return
 

@@ -2,7 +2,7 @@ import stim
 
 from surface_sim.layouts import rot_surf_code
 
-from surface_sim.experiments.surface_code_xzzx_google import memory_experiment
+from surface_sim.experiments.rot_surface_code_xzzx import memory_experiment
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
 
@@ -17,6 +17,7 @@ def test_memory_experiment():
         layout=layout,
         detectors=detectors,
         num_rounds=10,
+        anc_reset=False,
         data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,
     )
@@ -25,7 +26,7 @@ def test_memory_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    circuit.diagram(type="detslice-with-ops")
+    _ = circuit.detector_error_model(allow_gauge_detectors=True)
 
     return
 
@@ -40,6 +41,7 @@ def test_memory_experiment_anc_detectors():
         layout=layout,
         detectors=detectors,
         num_rounds=10,
+        anc_reset=False,
         anc_detectors=["X1"],
         data_init={q: 0 for q in layout.get_qubits(role="data")},
         rot_basis=True,

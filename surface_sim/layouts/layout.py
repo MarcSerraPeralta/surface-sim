@@ -1,17 +1,18 @@
 from __future__ import annotations
+from collections.abc import Iterable
 
 from copy import deepcopy
 from os import path
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
+from collections.abc import Iterable
 
 import networkx as nx
 import numpy as np
 import yaml
 from xarray import DataArray
 
-IntDirections = List[str]
-IntOrder = Union[IntDirections, Dict[str, IntDirections]]
+IntDirections = list[str]
+IntOrder = IntDirections | dict[str, IntDirections]
 
 
 class Layout:
@@ -47,7 +48,7 @@ class Layout:
 
     """
 
-    def __init__(self, setup: Dict[str, Any]) -> None:
+    def __init__(self, setup: dict[str, object]) -> None:
         """Initiailizes the layout for a particular code.
 
         Parameters
@@ -56,7 +57,7 @@ class Layout:
             The layout setup, provided as a dict.
 
             The setup dictionary is expected to have a 'layout' item, containing
-            a list of dictionaries. Each such dictionary (``dict[str, Any]``) must define the
+            a list of dictionaries. Each such dictionary (``dict[str, object]``) must define the
             qubit label (``str``) corresponding the ``'qubit'`` item. In addition, each dictionary
             must also have a ``'neighbors'`` item that defines a dictonary (``dict[str, str]``)
             of ordinal directions and neighbouring qubit labels. Apart from these two items,
@@ -96,7 +97,7 @@ class Layout:
         """Copies the Layout."""
         return Layout(self.to_dict())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Return a setup dictonary for the layout.
 
         Returns
@@ -141,7 +142,7 @@ class Layout:
         setup["layout"] = layout
         return setup
 
-    def get_inds(self, qubits: Iterable[str]) -> List[int]:
+    def get_inds(self, qubits: Iterable[str]) -> list[int]:
         """Returns the indices of the qubits.
 
         Parameters
@@ -155,7 +156,7 @@ class Layout:
         """
         return [self._qubit_inds[qubit] for qubit in qubits]
 
-    def get_qubits(self, **conds: Any) -> List[str]:
+    def get_qubits(self, **conds: object) -> list[str]:
         """Return the qubit labels that meet a set of conditions.
 
         Parameters
@@ -173,7 +174,7 @@ class Layout:
         The order that the qubits appear in is defined during the initialization
         of the layout and remains fixed.
 
-        The conditions conds are the keyward arguments that specify the value (``Any``)
+        The conditions conds are the keyward arguments that specify the value (``object``)
         that each parameter label (``str``) needs to take.
         """
         if conds:
@@ -184,16 +185,16 @@ class Layout:
         nodes = list(self.graph.nodes)
         return nodes
 
-    def get_logical_qubits(self) -> List[str]:
+    def get_logical_qubits(self) -> list[str]:
         """Returns the logical qubit labels."""
         return deepcopy(self._log_qubits)
 
     def get_neighbors(
         self,
-        qubits: List[str],
-        direction: Optional[str] = None,
+        qubits: Iterable[str],
+        direction: str | None = None,
         as_pairs: bool = False,
-    ) -> Union[List[str], List[Tuple[str, str]]]:
+    ) -> list[str] | list[tuple[str, str]]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
 
@@ -215,7 +216,7 @@ class Layout:
         The order that the qubits appear in is defined during the initialization
         of the layout and remains fixed.
 
-        The conditions conds are the keyward arguments that specify the value (``Any``)
+        The conditions conds are the keyward arguments that specify the value (``object``)
         that each parameter label (``str``) needs to take.
         """
         edge_view = self.graph.out_edges(qubits, data=True)
@@ -231,7 +232,7 @@ class Layout:
             return list(zip(start_nodes, end_nodes))
         return end_nodes
 
-    def get_coords(self, qubits: List[str]) -> List[List[float | int]]:
+    def get_coords(self, qubits: Iterable[str]) -> list[list[float | int]]:
         """Returns the coordinates of the given qubits.
 
         Parameters
@@ -385,7 +386,7 @@ class Layout:
         return unitary_mat
 
     @classmethod
-    def from_yaml(cls, filename: Union[str, Path]) -> "Layout":
+    def from_yaml(cls, filename: str | Path) -> "Layout":
         """Loads the layout class from a YAML file.
 
         The file must define the setup dictionary that initializes
@@ -415,7 +416,7 @@ class Layout:
             layout_setup = yaml.safe_load(file)
             return cls(layout_setup)
 
-    def to_yaml(self, filename: Union[str, Path]) -> None:
+    def to_yaml(self, filename: str | Path) -> None:
         """Saves the layout as a YAML file.
 
         Parameters
@@ -428,7 +429,7 @@ class Layout:
         with open(filename, "w") as file:
             yaml.dump(setup, file, default_flow_style=False)
 
-    def param(self, param: str, qubit: str) -> Any:
+    def param(self, param: str, qubit: str) -> object:
         """Returns the parameter value of a given qubit
 
         Parameters
@@ -440,7 +441,7 @@ class Layout:
 
         Returns
         -------
-        Any
+        object
             The value of the parameter if specified for the given qubit,
             else ``None``.
         """
@@ -449,7 +450,7 @@ class Layout:
         else:
             return self.graph.nodes[qubit][param]
 
-    def set_param(self, param: str, qubit: str, value: Any) -> None:
+    def set_param(self, param: str, qubit: str, value: object) -> None:
         """Sets the value of a given qubit parameter
 
         Parameters
@@ -463,7 +464,7 @@ class Layout:
         """
         self.graph.nodes[qubit][param] = value
 
-    def _load_layout(self, setup: Dict[str, Any]) -> None:
+    def _load_layout(self, setup: dict[str, object]) -> None:
         """Internal function that loads the directed graph from the
         setup dictionary that is provided during initialization.
 
@@ -501,10 +502,10 @@ class Layout:
                     self.graph.add_edge(node, nbr_qubit, direction=edge_dir)
 
 
-def valid_attrs(attrs: Dict[str, Any], **conditions: Any) -> bool:
+def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
     """Checks if the items in attrs match each condition in conditions.
     Both attrs and conditions are dictionaries mapping parameter labels (str)
-    to values (Any).
+    to values (object).
 
     Parameters
     ----------
@@ -523,7 +524,7 @@ def valid_attrs(attrs: Dict[str, Any], **conditions: Any) -> bool:
     return True
 
 
-def index_coords(coords: List[int], reverse: bool = False) -> Tuple[List[int], int]:
+def index_coords(coords: list[int], reverse: bool = False) -> tuple[list[int], int]:
     """Indexes a list of coordinates.
 
     Parameters
@@ -535,7 +536,7 @@ def index_coords(coords: List[int], reverse: bool = False) -> Tuple[List[int], i
 
     Returns
     -------
-    Tuple[List[int], int]
+    tuple[list[int], int]
         The list of indexed coordinates and the number of unique coordinates.
     """
     unique_vals = set(coords)

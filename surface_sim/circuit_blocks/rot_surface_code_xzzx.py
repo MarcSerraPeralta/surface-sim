@@ -7,7 +7,11 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_meas, log_x, log_z, init_qubits, log_trans_s
+from .util import qubit_coords
+from .util import log_x_xzzx as log_x
+from .util import log_z_xzzx as log_z
+from .util import log_meas_xzzx as log_meas
+from .util import init_qubits_xzzx as init_qubits
 
 __all__ = [
     "qubit_coords",
@@ -16,7 +20,6 @@ __all__ = [
     "log_z",
     "qec_round",
     "init_qubits",
-    "log_trans_s",
 ]
 
 
@@ -40,8 +43,8 @@ def qec_round(
     detectors
         Detector definitions to use.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -53,6 +56,10 @@ def qec_round(
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -81,6 +88,12 @@ def qec_round(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
+    rot_qubits_xzzx = set()
+    for direction in ("north_west", "south_east"):
+        stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits_xzzx.update(neighbors)
+    rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
     idle_qubits = qubits - rot_qubits
 
     circuit += model.hadamard(rot_qubits)
@@ -162,6 +175,12 @@ def qec_round(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
+    rot_qubits_xzzx = set()
+    for direction in ("north_west", "south_east"):
+        stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits_xzzx.update(neighbors)
+    rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
     idle_qubits = qubits - rot_qubits
 
     circuit += model.hadamard(rot_qubits)

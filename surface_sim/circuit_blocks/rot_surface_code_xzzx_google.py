@@ -5,7 +5,6 @@ https://doi.org/10.48550/arXiv.2207.06431
 """
 
 from itertools import chain
-import warnings
 
 from stim import Circuit
 
@@ -14,7 +13,9 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_x, log_z
+from .util import qubit_coords
+from .util import log_x_xzzx as log_x
+from .util import log_z_xzzx as log_z
 from .util import init_qubits_xzzx as init_qubits
 
 __all__ = [
@@ -56,6 +57,10 @@ def qec_round_with_log_meas(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
     if anc_detectors is None:
         anc_detectors = layout.get_qubits(role="anc")
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
@@ -102,20 +107,11 @@ def qec_round_with_log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    if log_op not in dir(layout):
-        warnings.warn(
-            "Deprecation warning: specify log_x and log_z in your layout."
-            "Assuming that X/Z on all data qubits is a logical X/Z.",
-            DeprecationWarning,
-        )
-        targets = [model.meas_target(qubit, -1) for qubit in data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
-    else:
-        log_qubits_support = getattr(layout, log_op)
-        log_qubit_label = layout.get_logical_qubits()[0]
-        log_data_qubits = log_qubits_support[log_qubit_label]
-        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    log_qubits_support = getattr(layout, log_op)
+    log_qubit_label = layout.get_logical_qubits()[0]
+    log_data_qubits = log_qubits_support[log_qubit_label]
+    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
 
@@ -235,6 +231,11 @@ def qec_round(
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
 

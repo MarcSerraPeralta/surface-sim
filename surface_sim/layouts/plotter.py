@@ -152,21 +152,23 @@ def get_line(coordinates: Iterable[Coordinates], **kwargs) -> Line2D:
     return line
 
 
-def qubit_labels(layout: Layout) -> Iterable[Text]:
+def qubit_labels(layout: Layout, label_fontsize: float | int = 11) -> Iterable[Text]:
     """Draws the qubit labels from a layout.
 
     Parameters
     ----------
     layout
         The layout to draw the connections of.
+    label_fontsize
+        Default value of the font size for the labels.
     """
     default_params = dict(
         color="black",
         verticalalignment="center",
         horizontalalignment="center",
+        fontsize=label_fontsize,
     )
     qubits = layout.get_qubits()
-
     for qubit in qubits:
         coords = layout.param("coords", qubit)
         if len(coords) != 2:
@@ -348,6 +350,7 @@ def plot(
     add_connections: bool = True,
     pad: float = 1,
     stim_orientation: bool = True,
+    label_fontsize: float | int = 11,
 ) -> Axes:
     """Plots a layout.
 
@@ -358,15 +361,20 @@ def plot(
     layout
         The layout to plot.
     add_labels
-        Flag to add qubit labels, by default True.
+        Flag to add qubit labels, by default ``True``.
     add_patches
-        Flag to plot stabilizer patches, by default True.
+        Flag to plot stabilizer patches, by default ``True``.
     add_connections
-        Flag to plot lines indicating the connectivity, by default True.
+        Flag to plot lines indicating the connectivity, by default ``True``.
     pad
-        The padding to the bottom axis, by default 1.
+        The padding to the bottom axis, by default ``1``.
     stim_orientation
         Flag to orient the layout and axis as stim does for ``diagram``.
+    label_fontsize
+        Default font size of the qubit labels. If ``layout`` has information
+        about the font size, then this argument is ignored. The purpose
+        of this argument is to easily scale down the label size for
+        large codes.
 
     Returns
     -------
@@ -385,7 +393,7 @@ def plot(
             ax.add_artist(artist)
 
     if add_labels:
-        for artist in qubit_labels(layout):
+        for artist in qubit_labels(layout, label_fontsize):
             ax.add_artist(artist)
 
     x_range, y_range = get_coord_range(layout)

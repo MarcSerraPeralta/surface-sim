@@ -1,9 +1,7 @@
-import warnings
-
 from stim import Circuit
 
 from ..layouts import Layout
-from ..circuit_blocks.surface_code_css import (
+from ..circuit_blocks.rot_surface_code_css_pipelined import (
     init_qubits,
     log_meas,
     qec_round,
@@ -21,9 +19,8 @@ def memory_experiment(
     num_rounds: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    meas_reset: bool | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -44,8 +41,8 @@ def memory_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -55,14 +52,8 @@ def memory_experiment(
         raise ValueError(f"num_rounds expected as int, got {type(num_rounds)} instead.")
     if num_rounds < 0:
         raise ValueError("num_rounds needs to be a positive integer.")
-    if isinstance(data_init, list) and len(set(data_init)) == 1:
-        data_init = {q: data_init[0] for q in layout.get_qubits(role="data")}
-        warnings.warn("'data_init' should be a dict.", DeprecationWarning)
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
-    if meas_reset is not None:
-        warnings.warn("Use 'anc_reset' instead of 'meas_reset'", DeprecationWarning)
-        anc_reset = meas_reset
 
     model.new_circuit()
     detectors.new_circuit()
@@ -88,9 +79,8 @@ def repeated_s_experiment(
     num_rounds_per_gate: int,
     data_init: dict[str, int] | list[int],
     rot_basis: bool = False,
-    anc_reset: bool = False,
+    anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    meas_reset: bool | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S experiment.
 
@@ -113,8 +103,8 @@ def repeated_s_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If True, ancillas are reset at the beginning of the QEC cycle.
-        By default True.
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
@@ -134,14 +124,8 @@ def repeated_s_experiment(
     if (num_s_gates < 0) or (num_s_gates % 2 == 1):
         raise ValueError("num_s_gates needs to be an even positive integer.")
 
-    if isinstance(data_init, list) and len(set(data_init)) == 1:
-        data_init = {q: data_init[0] for q in layout.get_qubits(role="data")}
-        warnings.warn("'data_init' should be a dict.", DeprecationWarning)
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
-    if meas_reset is not None:
-        warnings.warn("Use 'anc_reset' instead of 'meas_reset'", DeprecationWarning)
-        anc_reset = meas_reset
 
     model.new_circuit()
     detectors.new_circuit()
