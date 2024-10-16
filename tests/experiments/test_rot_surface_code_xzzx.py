@@ -59,3 +59,33 @@ def test_memory_experiment_anc_detectors():
     assert len(non_zero_dets) == 10 + 1
 
     return
+
+
+def test_memory_experiment_gauge_detectors():
+    layout = rot_surf_code(distance=3)
+    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
+    model = NoiselessModel(qubit_ids)
+    detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
+    circuit = memory_experiment(
+        model=model,
+        layout=layout,
+        detectors=detectors,
+        num_rounds=10,
+        anc_reset=False,
+        data_init={q: 0 for q in layout.get_qubits(role="data")},
+        rot_basis=True,
+        gauge_detectors=False,
+    )
+
+    num_anc = len(layout.get_qubits(role="anc"))
+    num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+    assert circuit.num_detectors == 10 * num_anc + num_anc_x
+
+    non_zero_dets = []
+    for instr in circuit.flattened():
+        if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+            non_zero_dets.append(instr)
+
+    assert len(non_zero_dets) == num_anc_x + 9 * num_anc + num_anc_x
+
+    return
