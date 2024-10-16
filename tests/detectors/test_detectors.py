@@ -62,6 +62,7 @@ def test_detectors_update():
             data=np.identity(2),
             coords=dict(from_qubit=["X1", "Z1"], to_qubit=["D1", "D2"]),
         ),
+        reconstructable_stabs=anc_qubits,
     )
     assert (detectors.curr_gen == new_gen).all()
     assert (detectors.prev_gen == new_gen).all()
@@ -270,7 +271,9 @@ def test_detectors_build_from_data_frame_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 0
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -280,7 +283,9 @@ def test_detectors_build_from_data_frame_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -290,7 +295,9 @@ def test_detectors_build_from_data_frame_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -300,7 +307,9 @@ def test_detectors_build_from_data_frame_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
     detectors.num_rounds = 2
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -333,7 +342,9 @@ def test_detectors_build_from_data_frame_r():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 0
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -343,7 +354,9 @@ def test_detectors_build_from_data_frame_r():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -353,7 +366,9 @@ def test_detectors_build_from_data_frame_r():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -363,7 +378,9 @@ def test_detectors_build_from_data_frame_r():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r")
     detectors.num_rounds = 2
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -396,7 +413,9 @@ def test_detectors_build_from_data_frame_r_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
     detectors.num_rounds = 0
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -406,7 +425,9 @@ def test_detectors_build_from_data_frame_r_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=True)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=True, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -416,7 +437,9 @@ def test_detectors_build_from_data_frame_r_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
     detectors.num_rounds = 1
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]
@@ -426,7 +449,9 @@ def test_detectors_build_from_data_frame_r_1():
     detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
     detectors.num_rounds = 2
     detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_data(meas_rec, adj_matrix, anc_reset=False)
+    detectors_stim = detectors.build_from_data(
+        meas_rec, adj_matrix, anc_reset=False, reconstructable_stabs=anc_qubits
+    )
     detector_rec = [
         sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
     ]

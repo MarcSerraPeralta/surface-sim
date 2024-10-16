@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 
 import numpy as np
@@ -11,7 +11,7 @@ GF2 = galois.GF(2)
 
 
 class Detectors:
-    def __init__(self, anc_qubits: list[str], frame: str) -> None:
+    def __init__(self, anc_qubits: Iterable[str], frame: str) -> None:
         """Initalises the ``Detectors`` class.
 
         Parameters
@@ -34,6 +34,13 @@ class Detectors:
         Detector frame ``'r-1'`` build the detectors in the basis given by the
         stabilizer generators of the previous-last-measured QEC round.
         """
+        if not isinstance(anc_qubits, Iterable):
+            raise TypeError(
+                f"'anc_qubits' must be iterable, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(frame, str):
+            raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
+
         self.anc_qubits = anc_qubits
         self.frame = frame
 
@@ -121,7 +128,7 @@ class Detectors:
         self,
         get_rec: Callable,
         anc_reset: bool,
-        anc_qubits: list[str] | None = None,
+        anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the ancilla qubits have been measured.
@@ -143,6 +150,15 @@ class Detectors:
         detectors_stim
             Detectors defined in a ``stim`` circuit.
         """
+        if not (isinstance(anc_qubits, Iterable) or (anc_qubits is None)):
+            raise TypeError(
+                f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(get_rec, Callable):
+            raise TypeError(
+                f"'get_rec' must be callable, but {type(get_rec)} was given."
+            )
+
         if self.frame == "1":
             basis = self.init_gen
         elif self.frame == "r":
@@ -154,6 +170,9 @@ class Detectors:
                 f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
             )
 
+        if anc_qubits is None:
+            anc_qubits = self.curr_gen.stab_gen.values.tolist()
+
         self.num_rounds += 1
 
         detectors = _get_ancilla_meas_for_detectors(
@@ -164,13 +183,15 @@ class Detectors:
             anc_reset_curr=anc_reset,
             anc_reset_prev=anc_reset,
         )
-        if anc_qubits is not None:
-            detectors = {anc: d for anc, d in detectors.items() if anc in anc_qubits}
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
-        for targets in detectors.values():
-            detectors_rec = [get_rec(*t) for t in targets]
+        for anc, targets in detectors.items():
+            if anc in anc_qubits:
+                detectors_rec = [get_rec(*t) for t in targets]
+            else:
+                # create the detector but make it be always 0
+                detectors_rec = []
             detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators
@@ -183,7 +204,8 @@ class Detectors:
         get_rec: Callable,
         adjacency_matrix: xr.DataArray,
         anc_reset: bool,
-        anc_qubits: list[str] | None = None,
+        reconstructable_stabs: Iterable[str],
+        anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
@@ -200,6 +222,8 @@ class Detectors:
             See ``qec_util.Layout.adjacency_matrix`` for more information.
         anc_reset
             Flag for if the ancillas are being reset in every QEC cycle.
+        reconstructable_stabs
+            Stabilizers that can be reconstructed from the data qubit outcomes.
         anc_qubits
             List of the ancilla qubits for which to build the detectors.
             By default, builds all the detectors.
@@ -209,6 +233,20 @@ class Detectors:
         detectors_stim
             Detectors defined in a ``stim`` circuit.
         """
+        if not isinstance(reconstructable_stabs, Iterable):
+            raise TypeError(
+                "'reconstructable_stabs' must be iterable, "
+                f"but {type(reconstructable_stabs)} was given."
+            )
+        if not (isinstance(anc_qubits, Iterable) or (anc_qubits is None)):
+            raise TypeError(
+                f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(get_rec, Callable):
+            raise TypeError(
+                f"'get_rec' must be callable, but {type(get_rec)} was given."
+            )
+
         if self.frame == "1":
             basis = self.init_gen
         elif self.frame == "r":
@@ -220,6 +258,9 @@ class Detectors:
                 f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
             )
 
+        if anc_qubits is None:
+            anc_qubits = self.curr_gen.stab_gen.values.tolist()
+
         self.num_rounds += 1
 
         anc_detectors = _get_ancilla_meas_for_detectors(
@@ -230,10 +271,9 @@ class Detectors:
             anc_reset_curr=True,
             anc_reset_prev=anc_reset,
         )
-        if anc_qubits is not None:
-            anc_detectors = {
-                anc: d for anc, d in anc_detectors.items() if anc in anc_qubits
-            }
+        anc_detectors = {
+            anc: d for anc, d in anc_detectors.items() if anc in reconstructable_stabs
+        }
 
         # udpate the (anc, -1) to a the corresponding set of (data, -1)
         detectors = {}
@@ -257,8 +297,12 @@ class Detectors:
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
-        for targets in detectors.values():
-            detectors_rec = [get_rec(*t) for t in targets]
+        for anc, targets in detectors.items():
+            if anc in anc_qubits:
+                detectors_rec = [get_rec(*t) for t in targets]
+            else:
+                # create the detector but make it be always 0
+                detectors_rec = []
             detectors_stim.append("DETECTOR", detectors_rec, [])
 
         # update generators

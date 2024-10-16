@@ -77,7 +77,16 @@ def test_memory_experiment_anc_detectors():
         rot_basis=True,
     )
 
-    assert circuit.num_detectors == 10 + 1
+    num_anc = len(layout.get_qubits(role="anc"))
+    num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+    assert circuit.num_detectors == 10 * num_anc + num_anc_x
+
+    non_zero_dets = []
+    for instr in circuit.flattened():
+        if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+            non_zero_dets.append(instr)
+
+    assert len(non_zero_dets) == 10 + 1
 
     return
 
@@ -100,6 +109,15 @@ def test_repeated_s_experiment_anc_detectors():
         rot_basis=True,
     )
 
-    assert circuit.num_detectors == 1 + 4 * 2 + 1
+    num_anc = len(layout.get_qubits(role="anc"))
+    num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+    assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+
+    non_zero_dets = []
+    for instr in circuit.flattened():
+        if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+            non_zero_dets.append(instr)
+
+    assert len(non_zero_dets) == 1 + 4 * 2 + 1
 
     return
