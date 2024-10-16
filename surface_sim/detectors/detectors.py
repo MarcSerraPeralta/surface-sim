@@ -204,8 +204,8 @@ class Detectors:
         get_rec: Callable,
         adjacency_matrix: xr.DataArray,
         anc_reset: bool,
-        reconstructable_stabs: list[str],
-        anc_qubits: list[str] | None = None,
+        reconstructable_stabs: Iterable[str],
+        anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
