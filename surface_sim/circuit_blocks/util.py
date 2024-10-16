@@ -76,9 +76,12 @@ def log_meas(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
+        model.meas_target,
+        layout.adjacency_matrix(),
+        anc_reset,
+        reconstructable_stabs=stabs,
+        anc_qubits=anc_detectors,
     )
     circuit += detectors_stim
 
@@ -313,9 +316,12 @@ def log_meas_xzzx(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), anc_reset, anc_qubits=stabs
+        model.meas_target,
+        layout.adjacency_matrix(),
+        anc_reset,
+        reconstructable_stabs=stabs,
+        anc_qubits=anc_detectors,
     )
     circuit += detectors_stim
 
