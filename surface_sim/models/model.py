@@ -135,6 +135,9 @@ class Model(object):
     def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 
+    def cnot(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
     def cphase(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
