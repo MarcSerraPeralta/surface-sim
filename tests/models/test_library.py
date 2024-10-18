@@ -16,6 +16,7 @@ SETUP = {
         "Z": 1,
         "H": 1,
         "CZ": 1,
+        "CNOT": 1,
         "M": 1,
         "R": 1,
     },
@@ -59,6 +60,12 @@ def test_NoiselessModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
 
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
+
     ops = [o.name for o in model.measure(["D1"])]
     assert ops == ["M"]
 
@@ -86,6 +93,12 @@ def test_PhenomenologicalNoiseModel():
 
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
 
     ops = [o.name for o in model.measure(["D1"])]
     assert "M" in ops
@@ -120,6 +133,9 @@ def test_IncomingNoiseModel():
 
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
 
     ops = [o.name for o in model.measure(["D1"])]
     assert ops == ["M"]
@@ -159,6 +175,11 @@ def test_DecoherentNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert "CZ" in ops
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert "CX" in ops
+    assert set(NOISE_GATES + ["CX"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.measure(["D1"])]
@@ -205,6 +226,11 @@ def test_ExperimentalNoiseModel():
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert "CX" in ops
+    assert set(NOISE_GATES + ["CX"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.measure(["D1"])]
     assert "M" in ops
     assert set(NOISE_GATES + ["M"]) >= set(ops)
@@ -247,6 +273,11 @@ def test_CircuitNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert "CZ" in ops
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert "CX" in ops
+    assert set(NOISE_GATES + ["CX"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.measure(["D1"])]
