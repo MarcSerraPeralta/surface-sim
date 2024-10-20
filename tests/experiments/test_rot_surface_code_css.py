@@ -71,7 +71,16 @@ def test_repeated_s_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    _ = circuit.detector_error_model(allow_gauge_detectors=True)
+    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+
+    num_coords = 0
+    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+    for dem_instr in dem:
+        if dem_instr.type == "detector":
+            assert dem_instr.args_copy()[:-1] in anc_coords.values()
+            num_coords += 1
+
+    assert num_coords == dem.num_detectors
 
     return
 
