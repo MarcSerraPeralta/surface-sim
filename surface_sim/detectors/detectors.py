@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Collection
 from copy import deepcopy
 
 import numpy as np
@@ -11,7 +11,12 @@ GF2 = galois.GF(2)
 
 
 class Detectors:
-    def __init__(self, anc_qubits: Iterable[str], frame: str) -> None:
+    def __init__(
+        self,
+        anc_qubits: Collection[str],
+        frame: str,
+        anc_coords: dict[str, Collection[float | int]] | None = None,
+    ) -> None:
         """Initalises the ``Detectors`` class.
 
         Parameters
@@ -22,6 +27,10 @@ class Detectors:
             Detector frame to use when building the detectors.
             Options are ``'1'`` and ``'r'``. For more information,
             check the Notes.
+        anc_coords
+            Ancilla qubit coordinates that are added to the detectors if specified.
+            The coordinates of the detectors will be ``(*ancilla_coords[i], r)``,
+            with ``r`` the number of rounds (starting at 0).
 
         Notes
         -----
@@ -34,15 +43,28 @@ class Detectors:
         Detector frame ``'r-1'`` build the detectors in the basis given by the
         stabilizer generators of the previous-last-measured QEC round.
         """
-        if not isinstance(anc_qubits, Iterable):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
                 f"'anc_qubits' must be iterable, but {type(anc_qubits)} was given."
             )
         if not isinstance(frame, str):
             raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
+        if anc_coords is None:
+            anc_coords = {a: [] for a in anc_qubits}
+        if not isinstance(anc_coords, dict):
+            raise TypeError(
+                f"'anc_coords' must be a dict, but {type(anc_coords)} was given."
+            )
+        if not (set(anc_coords) == set(anc_qubits)):
+            raise ValueError("'anc_coords' must have 'anc_qubits' as its keys.")
+        if any(not isinstance(c, Collection) for c in anc_coords.values()):
+            raise TypeError("Values in 'anc_coords' must be a collection.")
+        if len(set(len(c) for c in anc_coords.values())) != 1:
+            raise ValueError("Values in 'anc_coords' must have the same lenght.")
 
         self.anc_qubits = anc_qubits
         self.frame = frame
+        self.anc_coords = anc_coords
 
         self.new_circuit()
 
@@ -192,7 +214,11 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
-            detectors_stim.append("DETECTOR", detectors_rec, [])
+            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            instr = stim.CircuitInstruction(
+                "DETECTOR", gate_args=coords, targets=detectors_rec
+            )
+            detectors_stim.append(instr)
 
         # update generators
         self.prev_gen = deepcopy(self.curr_gen)
@@ -303,7 +329,11 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
-            detectors_stim.append("DETECTOR", detectors_rec, [])
+            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            instr = stim.CircuitInstruction(
+                "DETECTOR", gate_args=coords, targets=detectors_rec
+            )
+            detectors_stim.append(instr)
 
         # update generators
         self.prev_gen = deepcopy(self.curr_gen)
