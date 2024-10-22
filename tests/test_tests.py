@@ -9,6 +9,7 @@ DIR_EXCEPTIONS = [
 FILE_EXCEPTIONS = [
     "__init__.py",
     "surface_sim/models/util.py",  # functions already tested in surface_sim.models
+    "surface_sim/layouts/library/util.py",  # functions already tested in surface_sim.layouts
 ]
 
 
