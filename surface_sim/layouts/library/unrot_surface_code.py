@@ -89,7 +89,7 @@ def unrot_surf_code_rectangle(
     _check_distance(distance_z)
 
     name = f"Rotated dx-{distance_x} dz-{distance_z} surface code layout."
-    code = "rotated_surface_code"
+    code = "unrotated_surface_code"
     description = None
 
     int_order = dict(
