@@ -55,13 +55,13 @@ def shift_direction(shift: tuple[int, int]) -> str:
         The direction.
     """
     if shift == (0, 1):
-        return "north_east"
-    elif shift == (0, -1):
         return "south_east"
-    elif shift == (1, 0):
+    elif shift == (0, -1):
         return "north_west"
+    elif shift == (1, 0):
+        return "north_east"
     elif shift == (-1, 0):
-        return "sourth_west"
+        return "south_west"
     else:
         raise ValueError("The shift does not correspond to a known direction.")
 
@@ -89,7 +89,7 @@ def unrot_surf_code_rectangle(
     _check_distance(distance_z)
 
     name = f"Rotated dx-{distance_x} dz-{distance_z} surface code layout."
-    code = "rotated_surface_code"
+    code = "unrotated_surface_code"
     description = None
 
     int_order = dict(
@@ -98,7 +98,7 @@ def unrot_surf_code_rectangle(
     )
 
     log_z = [f"D{i+1}" for i in range(distance_z)]
-    log_x = [f"D{i*distance_z+1}" for i in range(distance_x)]
+    log_x = [f"D{i*(2*distance_z - 1)+1}" for i in range(distance_x)]
 
     layout_setup = dict(
         name=name,

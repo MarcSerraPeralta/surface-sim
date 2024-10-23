@@ -190,10 +190,15 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     implemented following:
 
     https://quantum-journal.org/papers/q-2024-04-08-1310/
+
+    and
+
+    https://doi.org/10.1088/1367-2630/17/8/083026
     """
-    if layout.code != "rotated_surface_code":
+    if layout.code not in ["rotated_surface_code", "unrotated_surface_code"]:
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            "The given layout is not a rotated/unrotated surface code, "
+            f"but a {layout.code}"
         )
 
     data_qubits = layout.get_qubits(role="data")
@@ -213,7 +218,8 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
             )
         # Using a set to avoid repetition of the cz gates.
         # Using tuple so that the object is hashable for the set.
-        cz_pairs.add(tuple(sorted([data_qubit, trans_s["cz"]])))
+        if trans_s["cz"] is not None:
+            cz_pairs.add(tuple(sorted([data_qubit, trans_s["cz"]])))
         if trans_s["local"] == "S":
             qubits_s_gate.add(data_qubit)
         elif trans_s["local"] == "S_DAG":
