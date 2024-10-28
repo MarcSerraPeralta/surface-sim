@@ -25,8 +25,7 @@ class Detectors:
             List of ancilla qubits.
         frame
             Detector frame to use when building the detectors.
-            Options are ``'1'`` and ``'r'``. For more information,
-            check the Notes.
+            The options for the detector frames are described in the Notes section.
         anc_coords
             Ancilla qubit coordinates that are added to the detectors if specified.
             The coordinates of the detectors will be ``(*ancilla_coords[i], r)``,
@@ -37,11 +36,14 @@ class Detectors:
         Detector frame ``'1'`` builds the detectors in the basis given by the
         stabilizer generators of the first QEC round.
 
-        Detector frame ``'r'`` build the detectors in the basis given by the
+        Detector frame ``'r'`` builds the detectors in the basis given by the
         stabilizer generators of the last-measured QEC round.
 
-        Detector frame ``'r-1'`` build the detectors in the basis given by the
+        Detector frame ``'r-1'`` builds the detectors in the basis given by the
         stabilizer generators of the previous-last-measured QEC round.
+
+        Detector frame ``'t'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
+        independently of how the stabilizer generators have been transformed.
         """
         if not isinstance(anc_qubits, Collection):
             raise TypeError(
@@ -187,9 +189,11 @@ class Detectors:
             basis = self.curr_gen
         elif self.frame == "r-1":
             basis = self.prev_gen
+        elif self.frame == "t":
+            anc_detector_labels = self.init_gen.stab_gen.values.tolist()
         else:
             raise ValueError(
-                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
             )
 
         if anc_qubits is None:
@@ -197,14 +201,23 @@ class Detectors:
 
         self.num_rounds += 1
 
-        detectors = _get_ancilla_meas_for_detectors(
-            self.curr_gen,
-            self.prev_gen,
-            basis=basis,
-            num_rounds=self.num_rounds,
-            anc_reset_curr=anc_reset,
-            anc_reset_prev=anc_reset,
-        )
+        if self.frame != "t":
+            detectors = _get_ancilla_meas_for_detectors(
+                self.curr_gen,
+                self.prev_gen,
+                basis=basis,
+                num_rounds=self.num_rounds,
+                anc_reset_curr=anc_reset,
+                anc_reset_prev=anc_reset,
+            )
+        else:
+            meas_comp = -2 if anc_reset else -3
+            detectors = {}
+            for anc in anc_detector_labels:
+                dets = [(anc, -1)]
+                if meas_comp + self.num_rounds >= 0:
+                    dets.append((anc, meas_comp))
+                detectors[anc] = dets
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
@@ -279,9 +292,11 @@ class Detectors:
             basis = self.curr_gen
         elif self.frame == "r-1":
             basis = self.prev_gen
+        elif self.frame == "t":
+            anc_detector_labels = self.init_gen.stab_gen.values.tolist()
         else:
             raise ValueError(
-                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
             )
 
         if anc_qubits is None:
@@ -289,14 +304,25 @@ class Detectors:
 
         self.num_rounds += 1
 
-        anc_detectors = _get_ancilla_meas_for_detectors(
-            self.curr_gen,
-            self.prev_gen,
-            basis=basis,
-            num_rounds=self.num_rounds,
-            anc_reset_curr=True,
-            anc_reset_prev=anc_reset,
-        )
+        if self.frame != "t":
+            anc_detectors = _get_ancilla_meas_for_detectors(
+                self.curr_gen,
+                self.prev_gen,
+                basis=basis,
+                num_rounds=self.num_rounds,
+                anc_reset_curr=True,
+                anc_reset_prev=anc_reset,
+            )
+        else:
+            anc_detectors = {}
+            for anc in anc_detector_labels:
+                dets = [(anc, -1)]
+                if self.num_rounds > 1:
+                    dets.append((anc, -2))
+                if (not anc_reset) and (self.num_rounds > 2):
+                    dets.append((anc, -3))
+                anc_detectors[anc] = dets
+
         anc_detectors = {
             anc: d for anc, d in anc_detectors.items() if anc in reconstructable_stabs
         }
