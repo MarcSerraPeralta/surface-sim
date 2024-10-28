@@ -345,6 +345,44 @@ class BiasedCircuitNoiseModel(Model):
 
         return circ
 
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MX", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MX", [ind]))
+
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MX", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MX", [ind]))
+
+        return circ
+
     def reset(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -354,6 +392,28 @@ class BiasedCircuitNoiseModel(Model):
         for qubit, ind in zip(qubits, inds):
             prob = self.param("reset_error_prob", qubit)
             circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+        return circ
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("RX", inds))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("reset_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+        return circ
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("RY", inds))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("reset_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
         return circ
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
@@ -468,8 +528,78 @@ class DecoherenceNoiseModel(Model):
                 circ += self.idle(qubit, duration)
         return circ
 
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        name = "MX"
+        if self._sym_noise:
+            duration = 0.5 * self.gate_duration(name)
+
+            circ += self.idle(qubits, duration)
+            for qubit in qubits:
+                self.add_meas(qubit)
+
+                if self.param("assign_error_flag", qubit):
+                    prob = self.param("assign_error_prob", qubit)
+                    circ.append(
+                        CircuitInstruction(
+                            name, targets=self.get_inds([qubit]), gate_args=[prob]
+                        )
+                    )
+                else:
+                    circ.append(
+                        CircuitInstruction(name, targets=self.get_inds([qubit]))
+                    )
+            circ += self.idle(qubits, duration)
+        else:
+            duration = self.gate_duration(name)
+
+            for qubit in qubits:
+                self.add_meas(qubit)
+
+                circ.append(CircuitInstruction(name, targets=[qubit]))
+                circ += self.idle(qubit, duration)
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        name = "MY"
+        if self._sym_noise:
+            duration = 0.5 * self.gate_duration(name)
+
+            circ += self.idle(qubits, duration)
+            for qubit in qubits:
+                self.add_meas(qubit)
+
+                if self.param("assign_error_flag", qubit):
+                    prob = self.param("assign_error_prob", qubit)
+                    circ.append(
+                        CircuitInstruction(
+                            name, targets=self.get_inds([qubit]), gate_args=[prob]
+                        )
+                    )
+                else:
+                    circ.append(
+                        CircuitInstruction(name, targets=self.get_inds([qubit]))
+                    )
+            circ += self.idle(qubits, duration)
+        else:
+            duration = self.gate_duration(name)
+
+            for qubit in qubits:
+                self.add_meas(qubit)
+
+                circ.append(CircuitInstruction(name, targets=[qubit]))
+                circ += self.idle(qubit, duration)
+        return circ
+
     def reset(self, qubits: Iterable[str]) -> Circuit:
         return self.generic_op("R", qubits)
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        return self.generic_op("RX", qubits)
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        return self.generic_op("RY", qubits)
 
     def idle(self, qubits: Iterable[str], duration: float) -> Circuit:
         """
@@ -598,11 +728,71 @@ class ExperimentalNoiseModel(Model):
 
         return circ
 
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MX", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MX", [ind]))
+
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MY", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MY", [ind]))
+
+        return circ
+
     def reset(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
 
         circ.append(CircuitInstruction("R", inds))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("reset_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+        return circ
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("RX", inds))
+
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("reset_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+        return circ
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("RY", inds))
 
         for qubit, ind in zip(qubits, inds):
             prob = self.param("reset_error_prob", qubit)
@@ -696,9 +886,33 @@ class NoiselessModel(Model):
             circ.append(CircuitInstruction("M", self.get_inds([qubit])))
         return circ
 
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        for qubit in qubits:
+            self.add_meas(qubit)
+            circ.append(CircuitInstruction("MX", self.get_inds([qubit])))
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        for qubit in qubits:
+            self.add_meas(qubit)
+            circ.append(CircuitInstruction("MY", self.get_inds([qubit])))
+        return circ
+
     def reset(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("R", self.get_inds(qubits)))
+        return circ
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("RX", self.get_inds(qubits)))
+        return circ
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("RY", self.get_inds(qubits)))
         return circ
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
@@ -751,5 +965,43 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
                 circ.append(CircuitInstruction("MZ", [ind], [prob]))
             else:
                 circ.append(CircuitInstruction("MZ", [ind]))
+
+        return circ
+
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MX", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MX", [ind]))
+
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MY", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MY", [ind]))
 
         return circ
