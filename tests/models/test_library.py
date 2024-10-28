@@ -285,9 +285,39 @@ def test_CircuitNoiseModel():
     assert set(NOISE_GATES + ["M"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.measure_z(["D1"])]
+    assert "M" in ops
+    assert set(NOISE_GATES + ["M"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_x(["D1"])]
+    assert "MX" in ops
+    assert set(NOISE_GATES + ["MX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_y(["D1"])]
+    assert "MY" in ops
+    assert set(NOISE_GATES + ["MY"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.reset(["D1"])]
     assert "R" in ops
     assert set(NOISE_GATES + ["R"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_z(["D1"])]
+    assert "R" in ops
+    assert set(NOISE_GATES + ["R"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_x(["D1"])]
+    assert "RX" in ops
+    assert set(NOISE_GATES + ["RX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_y(["D1"])]
+    assert "RY" in ops
+    assert set(NOISE_GATES + ["RY"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.idle(["D1"])]
