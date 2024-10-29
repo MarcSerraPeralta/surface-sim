@@ -1,9 +1,9 @@
 from surface_sim.log_gates.rot_surface_code_css import set_trans_s
-from surface_sim.layouts import rot_surf_code_rectangle
+from surface_sim.layouts import rot_surface_code_rectangle
 
 
 def test_set_trans_s():
-    layout = rot_surf_code_rectangle(distance_z=4, distance_x=3)
+    layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_trans_s(layout, "D1")
     gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
 

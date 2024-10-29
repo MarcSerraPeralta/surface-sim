@@ -1,6 +1,6 @@
 import stim
 
-from surface_sim.layouts import unrot_surf_code
+from surface_sim.layouts import unrot_surface_code
 
 from surface_sim.experiments.unrot_surface_code_css import (
     memory_experiment,
@@ -12,7 +12,7 @@ from surface_sim.log_gates.unrot_surface_code_css import set_trans_s
 
 
 def test_memory_experiment():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
     model = NoiselessModel(qubit_ids)
@@ -48,7 +48,7 @@ def test_memory_experiment():
 
 
 def test_repeated_s_experiment():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     set_trans_s(layout, "D1")
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
@@ -86,7 +86,7 @@ def test_repeated_s_experiment():
 
 
 def test_memory_experiment_anc_detectors():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
@@ -116,7 +116,7 @@ def test_memory_experiment_anc_detectors():
 
 
 def test_repeated_s_experiment_anc_detectors():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     set_trans_s(layout, "D1")
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)
@@ -148,7 +148,7 @@ def test_repeated_s_experiment_anc_detectors():
 
 
 def test_memory_experiment_gauge_detectors():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
@@ -178,7 +178,7 @@ def test_memory_experiment_gauge_detectors():
 
 
 def test_repeated_s_experiment_gauge_detectors():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     set_trans_s(layout, "D1")
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)

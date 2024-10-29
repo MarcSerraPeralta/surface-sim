@@ -1,9 +1,9 @@
 from surface_sim.log_gates.unrot_surface_code_css import set_trans_s
-from surface_sim.layouts import unrot_surf_code
+from surface_sim.layouts import unrot_surface_code
 
 
 def test_set_trans_s():
-    layout = unrot_surf_code(distance=3)
+    layout = unrot_surface_code(distance=3)
     print(layout.get_qubits(role="data"))
     set_trans_s(layout, "D1")
     gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
