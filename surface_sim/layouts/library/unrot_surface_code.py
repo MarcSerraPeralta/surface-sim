@@ -55,13 +55,13 @@ def shift_direction(shift: tuple[int, int]) -> str:
         The direction.
     """
     if shift == (0, 1):
-        return "south_east"
+        return "north"
     elif shift == (0, -1):
-        return "north_west"
+        return "south"
     elif shift == (1, 0):
-        return "north_east"
+        return "east"
     elif shift == (-1, 0):
-        return "south_west"
+        return "west"
     else:
         raise ValueError("The shift does not correspond to a known direction.")
 
@@ -93,8 +93,8 @@ def unrot_surf_code_rectangle(
     description = None
 
     int_order = dict(
-        x_type=["north_east", "north_west", "south_east", "south_west"],
-        z_type=["north_east", "south_east", "north_west", "south_west"],
+        x_type=["north", "west", "east", "south"],
+        z_type=["north", "east", "west", "south"],
     )
 
     log_z = [f"D{i+1}" for i in range(distance_z)]
