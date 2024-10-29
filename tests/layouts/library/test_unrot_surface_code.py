@@ -6,7 +6,13 @@ from surface_sim.layouts import plot
 
 
 def test_unrot_surf_code(show_figures):
-    layout = unrot_surf_code(distance=5)
+    layout = unrot_surf_code(
+        distance=5,
+        init_point=(-2, -3),
+        init_data_qubit_id=3,
+        init_zanc_qubit_id=5,
+        init_xanc_qubit_id=4,
+    )
 
     assert isinstance(layout, Layout)
     assert len(layout.get_qubits(role="data")) == 5**2 + 4**2
@@ -25,7 +31,14 @@ def test_unrot_surf_code(show_figures):
 
 
 def test_unrot_surf_code_rectangle(show_figures):
-    layout = unrot_surf_code_rectangle(distance_x=3, distance_z=4)
+    layout = unrot_surf_code_rectangle(
+        distance_x=3,
+        distance_z=4,
+        init_point=(2, 3),
+        init_data_qubit_id=2,
+        init_zanc_qubit_id=4,
+        init_xanc_qubit_id=5,
+    )
 
     assert isinstance(layout, Layout)
     assert len(layout.get_qubits(role="data")) == 4 * 3 + 3 * 2

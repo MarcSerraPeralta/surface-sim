@@ -67,7 +67,13 @@ def shift_direction(shift: tuple[int, int]) -> str:
 
 
 def unrot_surf_code_rectangle(
-    distance_x: int, distance_z: int, logical_qubit_label: str = "L0"
+    distance_x: int,
+    distance_z: int,
+    logical_qubit_label: str = "L0",
+    init_point: tuple[int | float, int | float] = (0, 0),
+    init_data_qubit_id: int = 1,
+    init_zanc_qubit_id: int = 1,
+    init_xanc_qubit_id: int = 1,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -79,6 +85,18 @@ def unrot_surf_code_rectangle(
         The logical Z distance of the code.
     logical_qubit_label
         Label for the logical qubit, by default ``"L0"``.
+    init_point
+        Coordinates for the bottom left (i.e. southest west) data qubit.
+        By default ``(1, 1)``.
+    init_data_qubit_id
+        Index for the bottom left (i.e. southest west) data qubit.
+        By default ``1``, so the label is ``"D1"``.
+    init_zanc_qubit_id
+        Index for the bottom left (i.e. southest west) Z-type ancilla qubit.
+        By default ``1``, so the label is ``"Z1"``.
+    init_xanc_qubit_id
+        Index for the bottom left (i.e. southest west) X-type ancilla qubit.
+        By default ``1``, so the label is ``"X1"``.
 
     Returns
     -------
@@ -87,8 +105,36 @@ def unrot_surf_code_rectangle(
     """
     _check_distance(distance_x)
     _check_distance(distance_z)
+    if not isinstance(init_point, tuple):
+        raise TypeError(
+            f"'init_point' must be a tuple, but {type(init_point)} was given."
+        )
+    if (len(init_point) != 2) or any(
+        not isinstance(p, (float, int)) for p in init_point
+    ):
+        raise TypeError(f"'init_point' must have two elements that are floats or ints.")
+    if not isinstance(logical_qubit_label, str):
+        raise TypeError(
+            "'logical_qubit_label' must be a string, "
+            f"but {type(logical_qubit_label)} was given."
+        )
+    if not isinstance(init_data_qubit_id, int):
+        raise TypeError(
+            "'init_data_qubit_id' must be an int, "
+            f"but {type(init_data_qubit_id)} was given."
+        )
+    if not isinstance(init_zanc_qubit_id, int):
+        raise TypeError(
+            "'init_zanc_qubit_id' must be an int, "
+            f"but {type(init_zanc_qubit_id)} was given."
+        )
+    if not isinstance(init_xanc_qubit_id, int):
+        raise TypeError(
+            "'init_xanc_qubit_id' must be an int, "
+            f"but {type(init_xanc_qubit_id)} was given."
+        )
 
-    name = f"Rotated dx-{distance_x} dz-{distance_z} surface code layout."
+    name = f"Unrotated dx-{distance_x} dz-{distance_z} surface code layout."
     code = "unrotated_surface_code"
     description = None
 
@@ -97,8 +143,10 @@ def unrot_surf_code_rectangle(
         z_type=["north", "east", "west", "south"],
     )
 
-    log_z = [f"D{i+1}" for i in range(distance_z)]
-    log_x = [f"D{i*(2*distance_z - 1)+1}" for i in range(distance_x)]
+    log_z = [f"D{i+1 + init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [
+        f"D{i*(2*distance_z - 1)+1 + init_data_qubit_id}" for i in range(distance_x)
+    ]
 
     layout_setup = dict(
         name=name,
@@ -116,7 +164,9 @@ def unrot_surf_code_rectangle(
 
     col_size = 2 * distance_z - 1
     row_size = 2 * distance_x - 1
-    data_indexer = partial(get_data_index, col_size=col_size, start_ind=1)
+    data_indexer = partial(
+        get_data_index, col_size=col_size, start_ind=init_data_qubit_id
+    )
     valid_coord = partial(is_valid, max_size_col=col_size, max_size_row=row_size)
 
     nbr_shifts = [(0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -124,8 +174,8 @@ def unrot_surf_code_rectangle(
     layout_data = []
     neighbor_data = defaultdict(dict)
 
-    x_index = count(start=1)
-    z_index = count(start=1)
+    x_index = count(start=init_xanc_qubit_id)
+    z_index = count(start=init_zanc_qubit_id)
     for row in range(row_size):
         for col in range(col_size):
             role = "data" if (row + col) % 2 == 0 else "anc"
@@ -136,7 +186,7 @@ def unrot_surf_code_rectangle(
                 qubit_info = dict(
                     qubit=f"D{index}",
                     role="data",
-                    coords=(row, col),
+                    coords=(row + init_point[0], col + init_point[1]),
                     stab_type=None,
                 )
                 layout_data.append(qubit_info)
@@ -151,7 +201,7 @@ def unrot_surf_code_rectangle(
                 qubit_info = dict(
                     qubit=anc_qubit,
                     role="anc",
-                    coords=(row, col),
+                    coords=(row + init_point[0], col + init_point[1]),
                     stab_type=stab_type,
                 )
                 layout_data.append(qubit_info)
@@ -179,17 +229,46 @@ def unrot_surf_code_rectangle(
     return layout
 
 
-def unrot_surf_code(distance: int) -> Layout:
+def unrot_surf_code(
+    distance: int,
+    logical_qubit_label: str = "L0",
+    init_point: tuple[int | float, int | float] = (0, 0),
+    init_data_qubit_id: int = 1,
+    init_zanc_qubit_id: int = 1,
+    init_xanc_qubit_id: int = 1,
+) -> Layout:
     """Generates an unrotated surface code layout.
 
     Parameters
     ----------
     distance
         The distance of the code.
+    logical_qubit_label
+        Label for the logical qubit, by default ``"L0"``.
+    init_point
+        Coordinates for the bottom left (i.e. southest west) data qubit.
+        By default ``(1, 1)``.
+    init_data_qubit_id
+        Index for the bottom left (i.e. southest west) data qubit.
+        By default ``1``, so the label is ``"D1"``.
+    init_zanc_qubit_id
+        Index for the bottom left (i.e. southest west) Z-type ancilla qubit.
+        By default ``1``, so the label is ``"Z1"``.
+    init_xanc_qubit_id
+        Index for the bottom left (i.e. southest west) X-type ancilla qubit.
+        By default ``1``, so the label is ``"X1"``.
 
     Returns
     -------
     Layout
         The layout of the code.
     """
-    return unrot_surf_code_rectangle(distance_x=distance, distance_z=distance)
+    return unrot_surf_code_rectangle(
+        distance_x=distance,
+        distance_z=distance,
+        logical_qubit_label=logical_qubit_label,
+        init_point=init_point,
+        init_data_qubit_id=init_data_qubit_id,
+        init_zanc_qubit_id=init_zanc_qubit_id,
+        init_xanc_qubit_id=init_xanc_qubit_id,
+    )
