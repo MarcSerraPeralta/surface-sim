@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from copy import deepcopy
 from os import path
 from pathlib import Path
-from collections.abc import Iterable
 
 import networkx as nx
 import numpy as np
@@ -30,6 +29,8 @@ class Layout:
     ---------------
     - ``param``
     - ``get_inds``
+    - ``get_max_ind``
+    - ``get_min_ind``
     - ``get_qubits``
     - ``get_logical_qubits``
     - ``get_neighbors``
@@ -76,7 +77,7 @@ class Layout:
         if not isinstance(setup, dict):
             raise ValueError(f"'setup' must be a dict, instead got {type(setup)}.")
 
-        self.name = setup.get("name")
+        self.name = setup.get("name", "")
         self.code = setup.get("code", "")
         self._log_qubits = setup.get("logical_qubit_labels", [])
         self.distance = setup.get("distance", -1)
@@ -90,8 +91,7 @@ class Layout:
         self.graph = nx.DiGraph()
         self._load_layout(setup)
 
-        qubits = list(self.graph.nodes)
-        self._qubit_inds = dict(zip(qubits, range(len(qubits))))
+        return
 
     def __copy__(self) -> Layout:
         """Copies the Layout."""
@@ -155,6 +155,14 @@ class Layout:
         The list of qubit indices.
         """
         return [self._qubit_inds[qubit] for qubit in qubits]
+
+    def get_max_ind(self) -> int:
+        """Returns the largest qubit index in the layout."""
+        return max(self._qubit_inds.values())
+
+    def get_min_ind(self) -> int:
+        """Returns the smallest qubit index in the layout."""
+        return min(self._qubit_inds.values())
 
     def get_qubits(self, **conds: object) -> list[str]:
         """Return the qubit labels that meet a set of conditions.
@@ -485,6 +493,8 @@ class Layout:
         if layout is None:
             raise ValueError("'setup' does not contain a 'layout' key.")
 
+        self._qubit_inds = {}
+
         for qubit_info in layout:
             qubit = qubit_info.pop("qubit", None)
             if qubit is None:
@@ -493,13 +503,32 @@ class Layout:
             if qubit in self.graph:
                 raise ValueError("Qubit label repeated, ensure labels are unique.")
 
+            self._qubit_inds[qubit] = qubit_info.get("ind", None)
+
             self.graph.add_node(qubit, **qubit_info)
 
         for node, attrs in self.graph.nodes(data=True):
             nbr_dict = attrs.get("neighbors", None)
+            if nbr_dict is None:
+                raise ValueError(
+                    "All elements in 'setup' must have the 'neighbors' attribute."
+                )
+
             for edge_dir, nbr_qubit in nbr_dict.items():
                 if nbr_qubit is not None:
                     self.graph.add_edge(node, nbr_qubit, direction=edge_dir)
+
+        if all((i is None) for i in self._qubit_inds.values()):
+            qubits = list(self.graph.nodes)
+            self._qubit_inds = dict(zip(qubits, range(len(qubits))))
+
+        if any((i is None) for i in self._qubit_inds.values()):
+            raise ValueError("Either all qubits have indicies or none of them.")
+
+        if len(self._qubit_inds) != len(set(self._qubit_inds.values())):
+            raise ValueError("Qubit index repeated, ensure indices are unique.")
+
+        return
 
 
 def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
