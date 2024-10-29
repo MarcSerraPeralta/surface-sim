@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Collection
 from copy import deepcopy
 
 import numpy as np
@@ -11,7 +11,12 @@ GF2 = galois.GF(2)
 
 
 class Detectors:
-    def __init__(self, anc_qubits: list[str], frame: str) -> None:
+    def __init__(
+        self,
+        anc_qubits: Collection[str],
+        frame: str,
+        anc_coords: dict[str, Collection[float | int]] | None = None,
+    ) -> None:
         """Initalises the ``Detectors`` class.
 
         Parameters
@@ -20,22 +25,48 @@ class Detectors:
             List of ancilla qubits.
         frame
             Detector frame to use when building the detectors.
-            Options are ``'1'`` and ``'r'``. For more information,
-            check the Notes.
+            The options for the detector frames are described in the Notes section.
+        anc_coords
+            Ancilla qubit coordinates that are added to the detectors if specified.
+            The coordinates of the detectors will be ``(*ancilla_coords[i], r)``,
+            with ``r`` the number of rounds (starting at 0).
 
         Notes
         -----
         Detector frame ``'1'`` builds the detectors in the basis given by the
         stabilizer generators of the first QEC round.
 
-        Detector frame ``'r'`` build the detectors in the basis given by the
+        Detector frame ``'r'`` builds the detectors in the basis given by the
         stabilizer generators of the last-measured QEC round.
 
-        Detector frame ``'r-1'`` build the detectors in the basis given by the
+        Detector frame ``'r-1'`` builds the detectors in the basis given by the
         stabilizer generators of the previous-last-measured QEC round.
+
+        Detector frame ``'t'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
+        independently of how the stabilizer generators have been transformed.
         """
+        if not isinstance(anc_qubits, Collection):
+            raise TypeError(
+                f"'anc_qubits' must be iterable, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(frame, str):
+            raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
+        if anc_coords is None:
+            anc_coords = {a: [] for a in anc_qubits}
+        if not isinstance(anc_coords, dict):
+            raise TypeError(
+                f"'anc_coords' must be a dict, but {type(anc_coords)} was given."
+            )
+        if not (set(anc_coords) == set(anc_qubits)):
+            raise ValueError("'anc_coords' must have 'anc_qubits' as its keys.")
+        if any(not isinstance(c, Collection) for c in anc_coords.values()):
+            raise TypeError("Values in 'anc_coords' must be a collection.")
+        if len(set(len(c) for c in anc_coords.values())) != 1:
+            raise ValueError("Values in 'anc_coords' must have the same lenght.")
+
         self.anc_qubits = anc_qubits
         self.frame = frame
+        self.anc_coords = anc_coords
 
         self.new_circuit()
 
@@ -121,7 +152,7 @@ class Detectors:
         self,
         get_rec: Callable,
         anc_reset: bool,
-        anc_qubits: list[str] | None = None,
+        anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the ancilla qubits have been measured.
@@ -143,35 +174,64 @@ class Detectors:
         detectors_stim
             Detectors defined in a ``stim`` circuit.
         """
+        if not (isinstance(anc_qubits, Iterable) or (anc_qubits is None)):
+            raise TypeError(
+                f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(get_rec, Callable):
+            raise TypeError(
+                f"'get_rec' must be callable, but {type(get_rec)} was given."
+            )
+
         if self.frame == "1":
             basis = self.init_gen
         elif self.frame == "r":
             basis = self.curr_gen
         elif self.frame == "r-1":
             basis = self.prev_gen
+        elif self.frame == "t":
+            anc_detector_labels = self.init_gen.stab_gen.values.tolist()
         else:
             raise ValueError(
-                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
             )
+
+        if anc_qubits is None:
+            anc_qubits = self.curr_gen.stab_gen.values.tolist()
 
         self.num_rounds += 1
 
-        detectors = _get_ancilla_meas_for_detectors(
-            self.curr_gen,
-            self.prev_gen,
-            basis=basis,
-            num_rounds=self.num_rounds,
-            anc_reset_curr=anc_reset,
-            anc_reset_prev=anc_reset,
-        )
-        if anc_qubits is not None:
-            detectors = {anc: d for anc, d in detectors.items() if anc in anc_qubits}
+        if self.frame != "t":
+            detectors = _get_ancilla_meas_for_detectors(
+                self.curr_gen,
+                self.prev_gen,
+                basis=basis,
+                num_rounds=self.num_rounds,
+                anc_reset_curr=anc_reset,
+                anc_reset_prev=anc_reset,
+            )
+        else:
+            meas_comp = -2 if anc_reset else -3
+            detectors = {}
+            for anc in anc_detector_labels:
+                dets = [(anc, -1)]
+                if meas_comp + self.num_rounds >= 0:
+                    dets.append((anc, meas_comp))
+                detectors[anc] = dets
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
-        for targets in detectors.values():
-            detectors_rec = [get_rec(*t) for t in targets]
-            detectors_stim.append("DETECTOR", detectors_rec, [])
+        for anc, targets in detectors.items():
+            if anc in anc_qubits:
+                detectors_rec = [get_rec(*t) for t in targets]
+            else:
+                # create the detector but make it be always 0
+                detectors_rec = []
+            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            instr = stim.CircuitInstruction(
+                "DETECTOR", gate_args=coords, targets=detectors_rec
+            )
+            detectors_stim.append(instr)
 
         # update generators
         self.prev_gen = deepcopy(self.curr_gen)
@@ -183,7 +243,8 @@ class Detectors:
         get_rec: Callable,
         adjacency_matrix: xr.DataArray,
         anc_reset: bool,
-        anc_qubits: list[str] | None = None,
+        reconstructable_stabs: Iterable[str],
+        anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
@@ -200,6 +261,8 @@ class Detectors:
             See ``qec_util.Layout.adjacency_matrix`` for more information.
         anc_reset
             Flag for if the ancillas are being reset in every QEC cycle.
+        reconstructable_stabs
+            Stabilizers that can be reconstructed from the data qubit outcomes.
         anc_qubits
             List of the ancilla qubits for which to build the detectors.
             By default, builds all the detectors.
@@ -209,31 +272,60 @@ class Detectors:
         detectors_stim
             Detectors defined in a ``stim`` circuit.
         """
+        if not isinstance(reconstructable_stabs, Iterable):
+            raise TypeError(
+                "'reconstructable_stabs' must be iterable, "
+                f"but {type(reconstructable_stabs)} was given."
+            )
+        if not (isinstance(anc_qubits, Iterable) or (anc_qubits is None)):
+            raise TypeError(
+                f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
+            )
+        if not isinstance(get_rec, Callable):
+            raise TypeError(
+                f"'get_rec' must be callable, but {type(get_rec)} was given."
+            )
+
         if self.frame == "1":
             basis = self.init_gen
         elif self.frame == "r":
             basis = self.curr_gen
         elif self.frame == "r-1":
             basis = self.prev_gen
+        elif self.frame == "t":
+            anc_detector_labels = self.init_gen.stab_gen.values.tolist()
         else:
             raise ValueError(
-                f"'frame' must be '1', 'r-1', or 'r', but {self.frame} was given."
+                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
             )
+
+        if anc_qubits is None:
+            anc_qubits = self.curr_gen.stab_gen.values.tolist()
 
         self.num_rounds += 1
 
-        anc_detectors = _get_ancilla_meas_for_detectors(
-            self.curr_gen,
-            self.prev_gen,
-            basis=basis,
-            num_rounds=self.num_rounds,
-            anc_reset_curr=True,
-            anc_reset_prev=anc_reset,
-        )
-        if anc_qubits is not None:
-            anc_detectors = {
-                anc: d for anc, d in anc_detectors.items() if anc in anc_qubits
-            }
+        if self.frame != "t":
+            anc_detectors = _get_ancilla_meas_for_detectors(
+                self.curr_gen,
+                self.prev_gen,
+                basis=basis,
+                num_rounds=self.num_rounds,
+                anc_reset_curr=True,
+                anc_reset_prev=anc_reset,
+            )
+        else:
+            anc_detectors = {}
+            for anc in anc_detector_labels:
+                dets = [(anc, -1)]
+                if self.num_rounds > 1:
+                    dets.append((anc, -2))
+                if (not anc_reset) and (self.num_rounds > 2):
+                    dets.append((anc, -3))
+                anc_detectors[anc] = dets
+
+        anc_detectors = {
+            anc: d for anc, d in anc_detectors.items() if anc in reconstructable_stabs
+        }
 
         # udpate the (anc, -1) to a the corresponding set of (data, -1)
         detectors = {}
@@ -257,9 +349,17 @@ class Detectors:
 
         # build the stim circuit
         detectors_stim = stim.Circuit()
-        for targets in detectors.values():
-            detectors_rec = [get_rec(*t) for t in targets]
-            detectors_stim.append("DETECTOR", detectors_rec, [])
+        for anc, targets in detectors.items():
+            if anc in anc_qubits:
+                detectors_rec = [get_rec(*t) for t in targets]
+            else:
+                # create the detector but make it be always 0
+                detectors_rec = []
+            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            instr = stim.CircuitInstruction(
+                "DETECTOR", gate_args=coords, targets=detectors_rec
+            )
+            detectors_stim.append(instr)
 
         # update generators
         self.prev_gen = deepcopy(self.curr_gen)

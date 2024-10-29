@@ -135,14 +135,35 @@ class Model(object):
     def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 
+    def cnot(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
     def cphase(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure_z(self, qubits: Iterable[str]) -> Circuit:
+        return self.measure(qubits)
+
     def reset(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
+    def reset_z(self, qubits: Iterable[str]) -> Circuit:
+        return self.reset(qubits)
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError

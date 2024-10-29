@@ -100,9 +100,12 @@ def qec_round_with_log_meas(
 
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-    stabs = [s for s in stabs if s in anc_detectors]
     detectors_stim = detectors.build_from_data(
-        model.meas_target, layout.adjacency_matrix(), anc_reset=True, anc_qubits=stabs
+        model.meas_target,
+        layout.adjacency_matrix(),
+        anc_reset=True,
+        reconstructable_stabs=stabs,
+        anc_qubits=anc_detectors,
     )
     circuit += detectors_stim
 
