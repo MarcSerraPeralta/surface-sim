@@ -18,7 +18,7 @@ def test_rot_surf_code(show_figures):
 
     if show_figures:
         _, ax = plt.subplots()
-        plot(ax, layout)
+        plot(ax, layout, stim_orientation=False)
         plt.show()
 
     return
@@ -37,7 +37,7 @@ def test_rot_surf_code_rectangle(show_figures):
 
     if show_figures:
         _, ax = plt.subplots()
-        plot(ax, layout)
+        plot(ax, layout, stim_orientation=False)
         plt.show()
 
     return
