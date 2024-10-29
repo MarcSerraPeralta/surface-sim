@@ -1,4 +1,4 @@
-from surface_sim.layouts import rot_surf_code
+from surface_sim.layouts import rot_surface_code
 from surface_sim.models import CircuitNoiseModel
 from surface_sim.setup import CircuitNoiseSetup
 from surface_sim import Detectors
@@ -7,7 +7,7 @@ from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
 def test_README_example():
     # prepare the layout, model, and detectors objects
-    layout = rot_surf_code(distance=3)
+    layout = rot_surface_code(distance=3)
 
     qubit_inds = {q: layout.get_inds([q])[0] for q in layout.get_qubits()}
     anc_qubits = layout.get_qubits(role="anc")

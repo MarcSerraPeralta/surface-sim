@@ -1,6 +1,6 @@
 import stim
 
-from surface_sim.layouts import rot_surf_code
+from surface_sim.layouts import rot_surface_code
 
 from surface_sim.experiments.rot_surface_code_xzzx_pipelined import memory_experiment
 from surface_sim.models import NoiselessModel
@@ -8,7 +8,7 @@ from surface_sim import Detectors
 
 
 def test_memory_experiment():
-    layout = rot_surf_code(distance=3)
+    layout = rot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
     model = NoiselessModel(qubit_ids)
@@ -44,7 +44,7 @@ def test_memory_experiment():
 
 
 def test_memory_experiment_anc_detectors():
-    layout = rot_surf_code(distance=3)
+    layout = rot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
@@ -74,7 +74,7 @@ def test_memory_experiment_anc_detectors():
 
 
 def test_memory_experiment_gauge_detectors():
-    layout = rot_surf_code(distance=3)
+    layout = rot_surface_code(distance=3)
     qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
     model = NoiselessModel(qubit_ids)
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")

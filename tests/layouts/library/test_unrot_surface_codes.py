@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 
 from surface_sim import Layout
-from surface_sim.layouts import unrot_surf_code, unrot_surf_code_rectangle
+from surface_sim.layouts import unrot_surface_code, unrot_surface_code_rectangle
 from surface_sim.layouts import plot
 
 
-def test_unrot_surf_code(show_figures):
-    layout = unrot_surf_code(
+def test_unrot_surface_code(show_figures):
+    layout = unrot_surface_code(
         distance=5,
         init_point=(-2, -3),
         init_data_qubit_id=3,
@@ -32,8 +32,8 @@ def test_unrot_surf_code(show_figures):
     return
 
 
-def test_unrot_surf_code_rectangle(show_figures):
-    layout = unrot_surf_code_rectangle(
+def test_unrot_surface_code_rectangle(show_figures):
+    layout = unrot_surface_code_rectangle(
         distance_x=3,
         distance_z=4,
         init_point=(2, 3),

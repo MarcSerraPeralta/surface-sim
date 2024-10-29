@@ -2,12 +2,12 @@ import pytest
 import networkx as nx
 
 from surface_sim.layouts.operations import check_overlap_layouts
-from surface_sim.layouts import rot_surf_code
+from surface_sim.layouts import rot_surface_code
 
 
 def test_check_non_overlapping_layouts():
-    layout_1 = rot_surf_code(1)
-    layout_2 = rot_surf_code(2)
+    layout_1 = rot_surface_code(1)
+    layout_2 = rot_surface_code(2)
     layout_2._log_qubits = ["L1"]
     layout_2._qubit_inds = {"D2": 10}
     graph = nx.DiGraph()

@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 
-from surface_sim.layouts import rot_surf_code
+from surface_sim.layouts import rot_surface_code
 from surface_sim.layouts import plot
 
 
 def test_plot(show_figures):
     _, ax = plt.subplots()
-    layout = rot_surf_code(3)
+    layout = rot_surface_code(3)
 
     plot(ax, layout)
 
@@ -19,7 +19,7 @@ def test_plot(show_figures):
 
 def test_plot_large_code(show_figures):
     _, ax = plt.subplots()
-    layout = rot_surf_code(7)
+    layout = rot_surface_code(7)
 
     plot(ax, layout, label_fontsize=5)
 
