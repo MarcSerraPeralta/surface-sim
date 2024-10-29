@@ -30,6 +30,8 @@ class Layout:
     ---------------
     - ``param``
     - ``get_inds``
+    - ``get_max_ind``
+    - ``get_min_ind``
     - ``get_qubits``
     - ``get_logical_qubits``
     - ``get_neighbors``
@@ -155,6 +157,14 @@ class Layout:
         The list of qubit indices.
         """
         return [self._qubit_inds[qubit] for qubit in qubits]
+
+    def get_max_ind(self) -> int:
+        """Returns the largest qubit index in the layout."""
+        return max(self._qubit_inds.values())
+
+    def get_min_ind(self) -> int:
+        """Returns the smallest qubit index in the layout."""
+        return min(self._qubit_inds.values())
 
     def get_qubits(self, **conds: object) -> list[str]:
         """Return the qubit labels that meet a set of conditions.
