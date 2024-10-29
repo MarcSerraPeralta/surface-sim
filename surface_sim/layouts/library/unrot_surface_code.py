@@ -74,6 +74,7 @@ def unrot_surf_code_rectangle(
     init_data_qubit_id: int = 1,
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -97,6 +98,8 @@ def unrot_surf_code_rectangle(
     init_xanc_qubit_id
         Index for the bottom left (i.e. southest west) X-type ancilla qubit.
         By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
 
     Returns
     -------
@@ -173,6 +176,7 @@ def unrot_surf_code_rectangle(
 
     layout_data = []
     neighbor_data = defaultdict(dict)
+    ind = init_ind
 
     x_index = count(start=init_xanc_qubit_id)
     z_index = count(start=init_zanc_qubit_id)
@@ -188,8 +192,11 @@ def unrot_surf_code_rectangle(
                     role="data",
                     coords=(row + init_point[0], col + init_point[1]),
                     stab_type=None,
+                    ind=ind,
                 )
                 layout_data.append(qubit_info)
+
+                ind += 1
 
             else:
                 stab_type = "x_type" if row % 2 == 0 else "z_type"
@@ -203,8 +210,11 @@ def unrot_surf_code_rectangle(
                     role="anc",
                     coords=(row + init_point[0], col + init_point[1]),
                     stab_type=stab_type,
+                    ind=ind,
                 )
                 layout_data.append(qubit_info)
+
+                ind += 1
 
                 for row_shift, col_shift in nbr_shifts:
                     data_row, data_col = row + row_shift, col + col_shift
@@ -236,6 +246,7 @@ def unrot_surf_code(
     init_data_qubit_id: int = 1,
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
 ) -> Layout:
     """Generates an unrotated surface code layout.
 
@@ -257,6 +268,8 @@ def unrot_surf_code(
     init_xanc_qubit_id
         Index for the bottom left (i.e. southest west) X-type ancilla qubit.
         By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
 
     Returns
     -------
@@ -271,4 +284,5 @@ def unrot_surf_code(
         init_data_qubit_id=init_data_qubit_id,
         init_zanc_qubit_id=init_zanc_qubit_id,
         init_xanc_qubit_id=init_xanc_qubit_id,
+        init_ind=init_ind,
     )

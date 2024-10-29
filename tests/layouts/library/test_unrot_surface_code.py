@@ -12,6 +12,7 @@ def test_unrot_surf_code(show_figures):
         init_data_qubit_id=3,
         init_zanc_qubit_id=5,
         init_xanc_qubit_id=4,
+        init_ind=10,
     )
 
     assert isinstance(layout, Layout)
@@ -21,6 +22,7 @@ def test_unrot_surf_code(show_figures):
     log_label = layout.get_logical_qubits()[0]
     assert len(layout.log_z[log_label]) == 5
     assert len(layout.log_x[log_label]) == 5
+    assert min(layout.get_inds(layout.get_qubits())) == 10
 
     if show_figures:
         _, ax = plt.subplots()
@@ -38,6 +40,7 @@ def test_unrot_surf_code_rectangle(show_figures):
         init_data_qubit_id=2,
         init_zanc_qubit_id=4,
         init_xanc_qubit_id=5,
+        init_ind=11,
     )
 
     assert isinstance(layout, Layout)
@@ -47,6 +50,7 @@ def test_unrot_surf_code_rectangle(show_figures):
     log_label = layout.get_logical_qubits()[0]
     assert len(layout.log_z[log_label]) == 4
     assert len(layout.log_x[log_label]) == 3
+    assert min(layout.get_inds(layout.get_qubits())) == 11
 
     if show_figures:
         _, ax = plt.subplots()

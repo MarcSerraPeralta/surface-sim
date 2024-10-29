@@ -83,6 +83,7 @@ def rot_surf_code_rectangle(
     init_data_qubit_id: int = 1,
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -106,6 +107,8 @@ def rot_surf_code_rectangle(
     init_xanc_qubit_id
         Index for the bottom left (i.e. southest west) X-type ancilla qubit.
         By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
 
     Returns
     -------
@@ -184,8 +187,8 @@ def rot_surf_code_rectangle(
 
     layout_data = []
     neighbor_data = defaultdict(dict)
-
     freq_seq = cycle(("low", "high"))
+    ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
     # in the (1,1) point.
@@ -202,8 +205,11 @@ def rot_surf_code_rectangle(
                 coords=(row + init_point[0], col + init_point[1]),
                 freq_group=freq_group,
                 stab_type=None,
+                ind=ind,
             )
             layout_data.append(qubit_info)
+
+            ind += 1
 
     x_index = count(start=init_xanc_qubit_id)
     for row in range(0, row_size, 2):
@@ -215,8 +221,11 @@ def rot_surf_code_rectangle(
                 coords=(row + init_point[0], col + init_point[1]),
                 freq_group="mid",
                 stab_type="x_type",
+                ind=ind,
             )
             layout_data.append(qubit_info)
+
+            ind += 1
 
             for row_shift, col_shift in nbr_shifts:
                 data_row, data_col = row + row_shift, col + col_shift
@@ -242,8 +251,11 @@ def rot_surf_code_rectangle(
                 coords=(row + init_point[0], col + init_point[1]),
                 freq_group="mid",
                 stab_type="z_type",
+                ind=ind,
             )
             layout_data.append(qubit_info)
+
+            ind += 1
 
             for row_shift, col_shift in nbr_shifts:
                 data_row, data_col = row + row_shift, col + col_shift
@@ -277,6 +289,7 @@ def rot_surf_code(
     init_data_qubit_id: int = 1,
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -298,6 +311,8 @@ def rot_surf_code(
     init_xanc_qubit_id
         Index for the bottom left (i.e. southest west) X-type ancilla qubit.
         By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
 
     Returns
     -------
@@ -312,4 +327,5 @@ def rot_surf_code(
         init_data_qubit_id=init_data_qubit_id,
         init_zanc_qubit_id=init_zanc_qubit_id,
         init_xanc_qubit_id=init_xanc_qubit_id,
+        init_ind=init_ind,
     )
