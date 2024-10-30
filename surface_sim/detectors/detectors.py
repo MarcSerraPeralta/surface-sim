@@ -6,6 +6,8 @@ import xarray as xr
 import galois
 import stim
 
+from ..layouts import Layout
+
 
 GF2 = galois.GF(2)
 
@@ -88,6 +90,53 @@ class Detectors:
         self.curr_gen = deepcopy(generators)
         self.init_gen = deepcopy(generators)
         self.num_rounds = 0
+        return
+
+    def update_from_dict(self, new_stab_gens: dict[str, list[str]]) -> None:
+        """Update the current stabilizer generators with the dictionary
+        descriving the effect of the logical gate.
+
+        See module ``surface_sim.log_gates`` to see how to prepare
+        the layout to run logical gates.
+
+        Parameters
+        ---------
+        new_stab_gens
+            Dictionary that maps ancilla qubits (representing stabilizer
+            generators) to a list of ancilla qubits (representing the new
+            stabilizer generators).
+            If the dictionary is missing ancillas, their stabilizer generators
+            are assumed to not be transformed by the logical gate.
+            See ``get_dict_from_layout`` for more information.
+        """
+        if not isinstance(new_stab_gens, dict):
+            raise TypeError(
+                "'new_stab_gens' must be a dict, "
+                f"but {type(new_stab_gens)} was given."
+            )
+        if any(not isinstance(s, Iterable) for s in new_stab_gens.values()):
+            raise TypeError("Elements in 'new_stab_gens' must be lists.")
+        if set(new_stab_gens) > set(self.anc_qubits):
+            raise ValueError(
+                "Elements in 'new_stab_gens' are not ancilla qubits in this Detectors class."
+            )
+
+        unitary_mat = xr.DataArray(
+            data=np.identity(len(self.anc_qubits)),
+            coords=dict(new_stab_gen=self.anc_qubits, stab_gen=self.anc_qubits),
+        )
+
+        for anc_qubit, new_stabs in new_stab_gens.items():
+            unitary_mat.loc[dict(stab_gen=anc_qubit)] = 0  # reset the vector
+            for new_anc in new_stabs:
+                unitary_mat.loc[dict(stab_gen=anc_qubit, new_stab_gen=new_anc)] = 1
+
+        # galois requires that the arrays are integers, not floats.
+        unitary_mat = unitary_mat.astype(int)
+        print(unitary_mat)
+
+        self.update(unitary_mat)
+
         return
 
     def update(self, unitary_mat: xr.DataArray):
@@ -431,3 +480,43 @@ def _get_ancilla_meas_for_detectors(
         detectors[anc_qubit] = targets
 
     return detectors
+
+
+def get_new_stab_dict_from_layout(
+    layout: Layout, log_gate: str
+) -> dict[str, list[str]]:
+    """Returns a dictionary that maps the stabilizers generators (represented by ancilla
+    qubits) to the new stabilizers generators after the given logical gate.
+
+    Parameters
+    ----------
+    layout
+        Layout that has information about the ``log_gate``.
+    log_gate
+        Name of the logical gate.
+
+    Returns
+    -------
+    new_stab_gens
+        Dictionary mapping the ancilla qubits to lists of ancilla qubits,
+        representing the mapping of the stabilizer generators to new
+        stabilizer generators.
+    """
+    if not isinstance(layout, Layout):
+        raise TypeError(f"'layout' must be a Layout, but {type(layout)} was given.")
+    if not isinstance(log_gate, str):
+        raise TypeError(f"'log_gate' must be a str, but {type(log_gate)} was given.")
+
+    anc_qubits = layout.get_qubits(role="anc")
+    new_stab_gens = {}
+    for anc_qubit in anc_qubits:
+        log_gate_attrs = layout.param(log_gate, anc_qubit)
+        if log_gate_attrs is None:
+            raise ValueError(
+                f"New stabilizer generators for {log_gate} "
+                f"are not specified for qubit {anc_qubit}."
+                "They should be setted with 'surface_sim.log_gates'."
+            )
+        new_stab_gens[anc_qubit] = log_gate_attrs["new_stab_gen"]
+
+    return new_stab_gens

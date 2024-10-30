@@ -70,6 +70,26 @@ def test_detectors_update():
     return
 
 
+def test_detectors_update_from_dict():
+    anc_qubits = ["X1", "Z1"]
+    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    new_stabs = {"Z1": ["X1", "Z1"], "X1": ["X1"]}
+
+    detectors.update_from_dict(new_stabs)
+
+    new_gen = xr.DataArray(
+        data=[[1, 1], [0, 1]],
+        coords=dict(
+            stab_gen=anc_qubits,
+            basis=range(len(anc_qubits)),
+        ),
+    )
+
+    assert (detectors.curr_gen == new_gen).all()
+
+    return
+
+
 def test_detectors_new_circuit():
     anc_qubits = ["X1", "Z1"]
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")

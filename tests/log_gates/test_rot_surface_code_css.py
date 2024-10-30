@@ -1,5 +1,6 @@
 from surface_sim.log_gates.rot_surface_code_css import set_trans_s
 from surface_sim.layouts import rot_surface_code_rectangle
+from surface_sim.detectors import get_new_stab_dict_from_layout
 
 
 def test_set_trans_s():
@@ -55,12 +56,12 @@ def test_set_trans_s():
         "I",
     ]
 
-    stab_gen_matrix = layout.stab_gen_matrix(gate_label)
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
     for z in z_stab:
-        assert stab_gen_matrix.sel(new_stab_gen=z).sum() == 1
+        assert len(new_stabs[z]) == 1
     for x in x_stab:
         if x == "X1":
-            assert stab_gen_matrix.sel(new_stab_gen=x).sum() == 1
+            assert len(new_stabs[x]) == 1
         else:
-            assert stab_gen_matrix.sel(new_stab_gen=x).sum() == 2
+            assert len(new_stabs[x]) == 2
     return
