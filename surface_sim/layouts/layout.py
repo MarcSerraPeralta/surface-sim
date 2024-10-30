@@ -45,7 +45,6 @@ class Layout:
     - ``adjacency_matrix``
     - ``expansion_matrix``
     - ``projection_matrix``
-    - ``stab_gen_matrix``
 
     """
 
@@ -348,50 +347,6 @@ class Layout:
 
         proj_mat = adj_mat.sel(from_qubit=data_qubits, to_qubit=anc_qubits)
         return proj_mat.rename(from_qubit="data_qubit", to_qubit="anc_qubit")
-
-    def stab_gen_matrix(self, log_gate: str) -> DataArray:
-        """Returns the unitary matrix that specified how the stabilizer
-        generators are transformed in the specified logical gate.
-
-        See module ``surface_sim.log_gates`` to see how to prepare
-        the layout to run logical gates.
-
-        Parameters
-        ---------
-        log_gate
-            Logical gate.
-
-        Returns
-        -------
-        unitary_mat
-            Unitary matrix specifying the transformation of the stabilizer
-            generators. Its coordinates are ``stab_gen`` and ``new_stab_gen``.
-        """
-        anc_qubits = self.get_qubits(role="anc")
-        new_stab_gens = []
-        for anc_qubit in anc_qubits:
-            log_gate_attrs = self.param(log_gate, anc_qubit)
-            if log_gate_attrs is None:
-                raise ValueError(
-                    f"New stabilizer generators for {log_gate} "
-                    f"are not specified for qubit {anc_qubit}."
-                    "They should be setted with 'surface_sim.log_gates'."
-                )
-            new_stab_gen = log_gate_attrs["new_stab_gen"]
-            new_stab_gen_inds = [anc_qubits.index(q) for q in new_stab_gen]
-
-            new_stab_gen_array = np.zeros(len(anc_qubits))
-            new_stab_gen_array[new_stab_gen_inds] = 1
-            new_stab_gens.append(new_stab_gen_array)
-
-        unitary_mat = DataArray(
-            data=new_stab_gens,
-            coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits),
-        )
-        # galois requires that the arrays are integers, not floats.
-        unitary_mat = unitary_mat.astype(int)
-
-        return unitary_mat
 
     @classmethod
     def from_yaml(cls, filename: str | Path) -> "Layout":

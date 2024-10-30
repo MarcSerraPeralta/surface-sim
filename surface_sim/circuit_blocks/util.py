@@ -4,7 +4,7 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
-from ..detectors import Detectors
+from ..detectors import Detectors, get_new_stab_dict_from_layout
 
 
 def qubit_coords(model: Model, layout: Layout) -> Circuit:
@@ -245,8 +245,8 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit += model.tick()
 
     # update the stabilizer generators
-    unitary_mat = layout.stab_gen_matrix(gate_label)
-    detectors.update(unitary_mat)
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update_from_dict(new_stabs)
 
     return circuit
 
