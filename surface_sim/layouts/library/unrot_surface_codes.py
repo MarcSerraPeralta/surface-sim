@@ -66,7 +66,7 @@ def shift_direction(shift: tuple[int, int]) -> str:
         raise ValueError("The shift does not correspond to a known direction.")
 
 
-def unrot_surf_code_rectangle(
+def unrot_surface_code_rectangle(
     distance_x: int,
     distance_z: int,
     logical_qubit_label: str = "L0",
@@ -239,7 +239,11 @@ def unrot_surf_code_rectangle(
     return layout
 
 
+<<<<<<< HEAD:surface_sim/layouts/library/unrot_surface_code.py
 def unrot_surf_code(
+=======
+def unrot_surface_code(
+>>>>>>> main:surface_sim/layouts/library/unrot_surface_codes.py
     distance: int,
     logical_qubit_label: str = "L0",
     init_point: tuple[int | float, int | float] = (0, 0),
@@ -276,7 +280,11 @@ def unrot_surf_code(
     Layout
         The layout of the code.
     """
+<<<<<<< HEAD:surface_sim/layouts/library/unrot_surface_code.py
     return unrot_surf_code_rectangle(
+=======
+    return unrot_surface_code_rectangle(
+>>>>>>> main:surface_sim/layouts/library/unrot_surface_codes.py
         distance_x=distance,
         distance_z=distance,
         logical_qubit_label=logical_qubit_label,

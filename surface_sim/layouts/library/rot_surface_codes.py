@@ -75,7 +75,7 @@ def add_missing_neighbours(neighbor_data: dict) -> None:
     return None
 
 
-def rot_surf_code_rectangle(
+def rot_surface_code_rectangle(
     distance_x: int,
     distance_z: int,
     logical_qubit_label: str = "L0",
@@ -282,7 +282,11 @@ def rot_surf_code_rectangle(
     return layout
 
 
+<<<<<<< HEAD:surface_sim/layouts/library/rot_surface_code.py
 def rot_surf_code(
+=======
+def rot_surface_code(
+>>>>>>> main:surface_sim/layouts/library/rot_surface_codes.py
     distance: int,
     logical_qubit_label: str = "L0",
     init_point: tuple[int | float, int | float] = (1, 1),
@@ -319,7 +323,11 @@ def rot_surf_code(
     Layout
         The layout of the code.
     """
+<<<<<<< HEAD:surface_sim/layouts/library/rot_surface_code.py
     return rot_surf_code_rectangle(
+=======
+    return rot_surface_code_rectangle(
+>>>>>>> main:surface_sim/layouts/library/rot_surface_codes.py
         distance_x=distance,
         distance_z=distance,
         logical_qubit_label=logical_qubit_label,

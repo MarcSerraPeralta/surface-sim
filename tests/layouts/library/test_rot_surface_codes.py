@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 
 from surface_sim import Layout
-from surface_sim.layouts import rot_surf_code, rot_surf_code_rectangle
+from surface_sim.layouts import rot_surface_code, rot_surface_code_rectangle
 from surface_sim.layouts import plot
 
 
-def test_rot_surf_code(show_figures):
-    layout = rot_surf_code(
+def test_rot_surface_code(show_figures):
+    layout = rot_surface_code(
         distance=5,
         init_point=(3, 4),
         init_data_qubit_id=2,
@@ -32,8 +32,8 @@ def test_rot_surf_code(show_figures):
     return
 
 
-def test_rot_surf_code_rectangle(show_figures):
-    layout = rot_surf_code_rectangle(
+def test_rot_surface_code_rectangle(show_figures):
+    layout = rot_surface_code_rectangle(
         distance_x=3,
         distance_z=4,
         init_point=(2, 3),
