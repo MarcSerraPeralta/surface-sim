@@ -146,10 +146,8 @@ def unrot_surface_code_rectangle(
         z_type=["north", "east", "west", "south"],
     )
 
-    log_z = [f"D{i+1 + init_data_qubit_id}" for i in range(distance_z)]
-    log_x = [
-        f"D{i*(2*distance_z - 1)+1 + init_data_qubit_id}" for i in range(distance_x)
-    ]
+    log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [f"D{i*(2*distance_z - 1)+init_data_qubit_id}" for i in range(distance_x)]
 
     layout_setup = dict(
         name=name,
