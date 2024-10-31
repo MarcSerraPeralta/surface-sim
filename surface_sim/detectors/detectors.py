@@ -102,12 +102,14 @@ class Detectors:
         Parameters
         ---------
         new_stab_gens
-            Dictionary that maps ancilla qubits (representing stabilizer
-            generators) to a list of ancilla qubits (representing the new
+            Dictionary that maps ancilla qubits (representing the new stabilizer
+            generators) to a list of ancilla qubits (representing the old
             stabilizer generators).
             If the dictionary is missing ancillas, their stabilizer generators
             are assumed to not be transformed by the logical gate.
-            See ``get_dict_from_layout`` for more information.
+            See ``get_new_stab_dict_from_layout`` for more information.
+            For example, ``{"X1": ["X1", "Z1"]}`` is interpreted as that the
+            logical gate has transformed X1 to X1*Z1.
         """
         if not isinstance(new_stab_gens, dict):
             raise TypeError(
@@ -126,14 +128,14 @@ class Detectors:
             coords=dict(new_stab_gen=self.anc_qubits, stab_gen=self.anc_qubits),
         )
 
-        for anc_qubit, new_stabs in new_stab_gens.items():
-            unitary_mat.loc[dict(stab_gen=anc_qubit)] = 0  # reset the vector
-            for new_anc in new_stabs:
-                unitary_mat.loc[dict(stab_gen=anc_qubit, new_stab_gen=new_anc)] = 1
+        for new_stab, support_old_stabs in new_stab_gens.items():
+            # remove '1' entry due to np.identity
+            unitary_mat.loc[dict(stab_gen=new_stab, new_stab_gen=new_stab)] = 0
+            for old_stab in support_old_stabs:
+                unitary_mat.loc[dict(new_stab_gen=new_stab, stab_gen=old_stab)] = 1
 
         # galois requires that the arrays are integers, not floats.
         unitary_mat = unitary_mat.astype(int)
-        print(unitary_mat)
 
         self.update(unitary_mat)
 
@@ -485,8 +487,11 @@ def _get_ancilla_meas_for_detectors(
 def get_new_stab_dict_from_layout(
     layout: Layout, log_gate: str
 ) -> dict[str, list[str]]:
-    """Returns a dictionary that maps the stabilizers generators (represented by ancilla
-    qubits) to the new stabilizers generators after the given logical gate.
+    """Returns a dictionary that describes the stabilizer generator transformation
+    due to the given logical gate.
+
+    For example, the output ``{"X1": ["X1", "Z1"]}`` is interpreted as that the
+    logical gate has transformed X1 to X1*Z1.
 
     Parameters
     ----------
@@ -498,9 +503,11 @@ def get_new_stab_dict_from_layout(
     Returns
     -------
     new_stab_gens
-        Dictionary mapping the ancilla qubits to lists of ancilla qubits,
-        representing the mapping of the stabilizer generators to new
-        stabilizer generators.
+        Dictionary that maps ancilla qubits (representing the new stabilizer
+        generators) to a list of ancilla qubits (representing the old
+        stabilizer generators).
+        If the dictionary is missing ancillas, their stabilizer generators
+        are assumed to not be transformed by the logical gate.
     """
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a Layout, but {type(layout)} was given.")

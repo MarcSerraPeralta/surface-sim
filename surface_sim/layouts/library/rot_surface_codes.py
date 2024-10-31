@@ -157,8 +157,8 @@ def rot_surface_code_rectangle(
         z_type=["north_east", "south_east", "north_west", "south_west"],
     )
 
-    log_z = [f"D{i+1 + init_data_qubit_id}" for i in range(distance_z)]
-    log_x = [f"D{i*distance_z+1 + init_data_qubit_id}" for i in range(distance_x)]
+    log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [f"D{i*distance_z+init_data_qubit_id}" for i in range(distance_x)]
 
     layout_setup = dict(
         name=name,

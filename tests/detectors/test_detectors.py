@@ -73,7 +73,7 @@ def test_detectors_update():
 def test_detectors_update_from_dict():
     anc_qubits = ["X1", "Z1"]
     detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    new_stabs = {"Z1": ["X1", "Z1"], "X1": ["X1"]}
+    new_stabs = {"X1": ["X1", "Z1"], "Z1": ["Z1"]}
 
     detectors.update_from_dict(new_stabs)
 
