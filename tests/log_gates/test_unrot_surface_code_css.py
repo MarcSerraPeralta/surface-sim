@@ -5,7 +5,6 @@ from surface_sim.detectors import get_new_stab_dict_from_layout
 
 def test_set_trans_s():
     layout = unrot_surface_code(distance=3)
-    print(layout.get_qubits(role="data"))
     set_trans_s(layout, "D1")
     gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
 
