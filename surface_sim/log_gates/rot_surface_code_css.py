@@ -180,19 +180,53 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         layout_c.distance_z != layout_t.distance_z
     ):
         raise ValueError("This function requires two surface codes of the same size.")
+    check_overlap_layouts(layout_c, layout_t)
 
     gate_label = (
-        f"t-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+        f"trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
     )
 
     # Obtain the mapping of qubits of one layout to qubits of the other layout
-    gm = nx.isomorphism.DiGraphMatcher(layout_c, layout_t)
+    gm = nx.isomorphism.DiGraphMatcher(layout_c.graph, layout_t.graph)
     if not gm.is_isomorphic:
         raise ValueError(
             "The two given layouts for the t-CNOT are not isomorphic,"
             "meaning that they don't have the same Tanner graph."
         )
-    mapping_c_to_t = gm.mapping  # mapping from layout_c to layout_t
+
+    # https://stackoverflow.com/questions/60820193/networkx-digraphmatcher-returns-no-results-on-directed-graphs
+    # The solution to the problem described above is to use 'subgraph_monomorphisms_iter'.
+    # We find 4 monomorphisms as the graphs are equal up to 90 degree rotations
+    monomorphisms = list(gm.subgraph_monomorphisms_iter())
+    if len(monomorphisms) != 4:
+        raise ValueError(
+            "More than one monomorphism has been found. "
+            "Check that the layouts have the appropiate graphs."
+        )
+    # The monomorphism we want is the one in which all the physical CNOTs
+    # are parallel between each other.
+    mapping_c_to_t = None
+    for monomorphism in monomorphisms:
+        correct = True
+
+        c, t = next(iter(monomorphism.items()))
+        coords1 = np.array(layout_c.get_coords([c])[0])
+        coords2 = np.array(layout_t.get_coords([t])[0])
+        base_vector = coords2 - coords1
+        for c, t in monomorphism.items():
+            coords1 = np.array(layout_c.get_coords([c])[0])
+            coords2 = np.array(layout_t.get_coords([t])[0])
+            vector = coords2 - coords1
+            if not np.allclose(vector, base_vector):
+                correct = False
+                break
+
+        if correct:
+            mapping_c_to_t = monomorphism
+
+    if mapping_c_to_t is None:
+        raise ValueError("No mapping between layouts could be found.")
+
     mapping_t_to_c = {v: k for k, v in mapping_c_to_t.items()}
 
     # Store the logical information for the data qubits
