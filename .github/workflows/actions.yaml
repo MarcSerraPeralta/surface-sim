@@ -24,4 +24,4 @@ jobs:
           pip install .[dev]
           
       - name: execute pytest
-        run: pytest surface-sim/ tests/
+        run: pytest surface_sim/ tests/
