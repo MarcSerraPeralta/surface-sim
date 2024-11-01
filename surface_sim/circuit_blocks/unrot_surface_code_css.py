@@ -1,3 +1,4 @@
+from collections.abc import Iterator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -15,6 +16,7 @@ __all__ = [
     "log_x",
     "log_z",
     "qec_round",
+    "qec_round_iterator",
     "init_qubits",
     "log_trans_s",
 ]
@@ -25,7 +27,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
@@ -38,7 +40,7 @@ def qec_round(
     layout
         Code layout.
     detectors
-        Detector definitions to use.
+        Detector object to use for their definition.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
         By default ``True``.
@@ -53,14 +55,54 @@ def qec_round(
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
     """
+    circuit = sum(
+        qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
+        start=Circuit(),
+    )
+
+    # add detectors
+    anc_qubits = layout.get_qubits(role="anc")
+    if anc_detectors is None:
+        anc_detectors = anc_qubits
+    if set(anc_detectors) > set(anc_qubits):
+        raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    circuit += detectors.build_from_anc(
+        model.meas_target, anc_reset, anc_qubits=anc_detectors
+    )
+
+    return circuit
+
+
+def qec_round_iterator(
+    model: Model,
+    layout: Layout,
+    anc_reset: bool = True,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to a QEC cycle
+    of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
+
+    Notes
+    -----
+    This implementation follows:
+
+    https://doi.org/10.1103/PhysRevApplied.8.034021
+    """
     if layout.code != "unrotated_surface_code":
         raise TypeError(
             "The given layout is not an unrotated surface code, " f"but a {layout.code}"
         )
-    if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
-    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
-        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
 
     data_qubits = layout.get_qubits(role="data")
     anc_qubits = layout.get_qubits(role="anc")
@@ -70,15 +112,13 @@ def qec_round(
     stab_types = list(int_order.keys())
     x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     if anc_reset:
-        circuit += model.reset(anc_qubits)
-        circuit += model.idle(data_qubits)
-        circuit += model.tick()
+        yield model.reset(anc_qubits)
+        yield model.idle(data_qubits)
+        yield model.tick()
 
     # a
     directions = [int_order["x_type"][0], int_order["x_type"][3]]
@@ -87,9 +127,9 @@ def qec_round(
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
     idle_qubits = qubits - rot_qubits
 
-    circuit += model.hadamard(rot_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.hadamard(rot_qubits)
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # b
     interacted_qubits = set()
@@ -100,16 +140,16 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        circuit += model.cphase(int_qubits)
+        yield model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # c
-    circuit += model.hadamard(data_qubits)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
+    yield model.hadamard(data_qubits)
+    yield model.idle(anc_qubits)
+    yield model.tick()
 
     # d
     interacted_qubits = set()
@@ -120,11 +160,11 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        circuit += model.cphase(int_qubits)
+        yield model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # e
     interacted_qubits = set()
@@ -135,16 +175,16 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        circuit += model.cphase(int_qubits)
+        yield model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # f
-    circuit += model.hadamard(data_qubits)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
+    yield model.hadamard(data_qubits)
+    yield model.idle(anc_qubits)
+    yield model.tick()
 
     # g
     interacted_qubits = set()
@@ -155,11 +195,11 @@ def qec_round(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        circuit += model.cphase(int_qubits)
+        yield model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # h
     directions = [int_order["x_type"][0], int_order["x_type"][3]]
@@ -168,19 +208,11 @@ def qec_round(
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
     idle_qubits = qubits - rot_qubits
 
-    circuit += model.hadamard(rot_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.hadamard(rot_qubits)
+    yield model.idle(idle_qubits)
+    yield model.tick()
 
     # i
-    circuit += model.measure(anc_qubits)
-    circuit += model.idle(data_qubits)
-    circuit += model.tick()
-
-    # add detectors
-    detectors_stim = detectors.build_from_anc(
-        model.meas_target, anc_reset, anc_qubits=anc_detectors
-    )
-    circuit += detectors_stim
-
-    return circuit
+    yield model.measure(anc_qubits)
+    yield model.idle(data_qubits)
+    yield model.tick()
