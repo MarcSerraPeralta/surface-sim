@@ -133,7 +133,6 @@ class Detectors:
 
         # galois requires that the arrays are integers, not floats.
         unitary_mat = unitary_mat.astype(int)
-        print(unitary_mat)
 
         self.update(unitary_mat)
 

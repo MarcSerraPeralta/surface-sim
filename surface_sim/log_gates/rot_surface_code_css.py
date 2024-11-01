@@ -182,9 +182,7 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         raise ValueError("This function requires two surface codes of the same size.")
     check_overlap_layouts(layout_c, layout_t)
 
-    gate_label = (
-        f"trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
-    )
+    gate_label = f"trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     # Obtain the mapping of qubits of one layout to qubits of the other layout
     gm = nx.isomorphism.DiGraphMatcher(layout_c.graph, layout_t.graph)

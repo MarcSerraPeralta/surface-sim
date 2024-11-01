@@ -17,7 +17,6 @@ def check_overlap_layout_pair(layout_1: Layout, layout_2: Layout) -> None:
     """
     qubits_1 = set(layout_1.get_qubits())
     qubits_2 = set(layout_2.get_qubits())
-    print(qubits_1, qubits_2)
     if qubits_1.intersection(qubits_2) != set():
         raise ValueError("The layouts have qubits with the same label.")
 
