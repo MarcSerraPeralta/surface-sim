@@ -251,6 +251,70 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return circuit
 
 
+def log_trans_cnot(
+    model: Model, layout_c: Layout, layout_t: Layout, detectors: Detectors
+) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical CNOT gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CNOT.
+    layout_t
+        Code layout for the target of the logical CNOT.
+    detectors
+        Detector definitions to use.
+    """
+    if layout_c.code not in ["rotated_surface_code", "unrotated_surface_code"]:
+        raise TypeError(
+            "The given layout is not a rotated/unrotated surface code, "
+            f"but a {layout_c.code}"
+        )
+    if layout_t.code not in ["rotated_surface_code", "unrotated_surface_code"]:
+        raise TypeError(
+            "The given layout is not a rotated/unrotated surface code, "
+            f"but a {layout_t.code}"
+        )
+
+    data_qubits_c = layout_c.get_qubits(role="data")
+    data_qubits_t = layout_t.get_qubits(role="data")
+    qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
+    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+
+    cnot_pairs = set()
+    for data_qubit in data_qubits_c:
+        trans_cnot = layout_c.param(gate_label, data_qubit)
+        if trans_cnot is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        cnot_pairs.add((data_qubit, trans_cnot["cnot"]))
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits_c)
+    circuit += model.incoming_noise(data_qubits_t)
+    circuit += model.tick()
+
+    # long-range CNOT gates
+    int_qubits = list(chain.from_iterable(cnot_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    circuit += model.cphase(int_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # update the stabilizer generators
+    new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
+    new_stabs.update(get_new_stab_dict_from_layout(layout_t, gate_label))
+    detectors.update_from_dict(new_stabs)
+
+    return circuit
+
+
 def log_meas_xzzx(
     model: Model,
     layout: Layout,
