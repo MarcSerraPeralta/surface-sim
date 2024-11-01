@@ -23,7 +23,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     The circuit implementation follows from https://doi.org/10.1088/1367-2630/17/8/083026
     The circuit is shown in https://arxiv.org/pdf/2406.17653
     The information about the logical transversal S gate is stored in the layout
-    as the parameter ``"trans_s_{log_qubit_label}"`` for each of the qubits,
+    as the parameter ``"trans-s_{log_qubit_label}"`` for each of the qubits,
     where for the case of data qubits it is the information about which gates
     to perform and for the case of the ancilla qubits it corresponds to
     how the stabilizers generators are transformed.
@@ -49,7 +49,7 @@ def set_trans_s(layout: Layout, data_qubit: str) -> None:
     anc_qubits = layout.get_qubits(role="anc")
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)

@@ -203,7 +203,7 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
-    gate_label = f"trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
     qubits_s_gate = set()
