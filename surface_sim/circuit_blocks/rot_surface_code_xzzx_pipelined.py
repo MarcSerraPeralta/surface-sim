@@ -108,8 +108,6 @@ def qec_round_iterator(
     int_order = layout.interaction_order
     stab_types = list(int_order.keys())
 
-    circuit = Circuit()
-
     yield model.incoming_noise(data_qubits)
     yield model.tick()
 
