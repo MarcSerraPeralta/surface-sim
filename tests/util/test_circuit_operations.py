@@ -1,7 +1,11 @@
 import pytest
 import stim
 
-from surface_sim.util.circuit_operations import merge_circuits
+from surface_sim.util.circuit_operations import merge_circuits, merge_qec_rounds
+from surface_sim.circuit_blocks.unrot_surface_code_css import qec_round_iterator
+from surface_sim.models import NoiselessModel
+from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_code
+from surface_sim import Detectors
 
 
 def test_merge_circuits():
@@ -43,5 +47,40 @@ def test_merge_circuits():
 
     with pytest.raises(ValueError):
         _ = merge_circuits(circuit_1, circuit_2)
+
+    circuit_1 = stim.Circuit(
+        """
+        M 0
+        TICK
+        M 1
+        """
+    )
+
+    with pytest.raises(ValueError):
+        _ = merge_circuits(circuit_1, circuit_2)
+
+    with pytest.raises(ValueError):
+        _ = merge_circuits(circuit_1, circuit_1)
+
+    return
+
+
+def test_merge_qec_rounds():
+    layout = unrot_surface_code(distance=3)
+    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
+    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
+    model = NoiselessModel(qubit_ids)
+    detectors = Detectors(
+        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+    )
+
+    circuit = merge_qec_rounds(
+        qec_round_iterator,
+        model,
+        [layout, layout],
+        detectors,
+    )
+
+    assert isinstance(circuit, stim.Circuit)
 
     return
