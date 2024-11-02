@@ -12,11 +12,13 @@ from .util import qubit_coords
 from .util import log_x_xzzx as log_x
 from .util import log_z_xzzx as log_z
 from .util import log_meas_xzzx as log_meas
+from .util import log_meas_xzzx_iterator as log_meas_iterator
 from .util import init_qubits_xzzx as init_qubits
 
 __all__ = [
     "qubit_coords",
     "log_meas",
+    "log_meas_iterator",
     "log_x",
     "log_z",
     "qec_round",
