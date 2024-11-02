@@ -5,7 +5,11 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
-from ..detectors import Detectors, get_new_stab_dict_from_layout
+from ..detectors import (
+    Detectors,
+    get_new_stab_dict_from_layout,
+    get_support_from_adj_matrix,
+)
 
 
 def qubit_coords(model: Model, layout: Layout) -> Circuit:
@@ -66,9 +70,10 @@ def log_meas(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
-        layout.adjacency_matrix(),
+        anc_support,
         anc_reset,
         reconstructable_stabs=stabs,
         anc_qubits=anc_detectors,
@@ -327,9 +332,10 @@ def log_meas_xzzx(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
-        layout.adjacency_matrix(),
+        anc_support,
         anc_reset,
         reconstructable_stabs=stabs,
         anc_qubits=anc_detectors,

@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Iterator, Sequence
 from itertools import chain
 
 from stim import Circuit
@@ -36,7 +36,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Collection[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle
