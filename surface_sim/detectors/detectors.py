@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Collection
+from collections.abc import Callable, Iterable, Sequence
 from copy import deepcopy
 
 import numpy as np
@@ -15,9 +15,9 @@ GF2 = galois.GF(2)
 class Detectors:
     def __init__(
         self,
-        anc_qubits: Collection[str],
+        anc_qubits: Sequence[str],
         frame: str,
-        anc_coords: dict[str, Collection[float | int]] | None = None,
+        anc_coords: dict[str, Sequence[float | int]] | None = None,
     ) -> None:
         """Initalises the ``Detectors`` class.
 
@@ -47,7 +47,7 @@ class Detectors:
         Detector frame ``'t'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
         independently of how the stabilizer generators have been transformed.
         """
-        if not isinstance(anc_qubits, Collection):
+        if not isinstance(anc_qubits, Sequence):
             raise TypeError(
                 f"'anc_qubits' must be iterable, but {type(anc_qubits)} was given."
             )
@@ -61,7 +61,7 @@ class Detectors:
             )
         if not (set(anc_coords) == set(anc_qubits)):
             raise ValueError("'anc_coords' must have 'anc_qubits' as its keys.")
-        if any(not isinstance(c, Collection) for c in anc_coords.values()):
+        if any(not isinstance(c, Sequence) for c in anc_coords.values()):
             raise TypeError("Values in 'anc_coords' must be a collection.")
         if len(set(len(c) for c in anc_coords.values())) != 1:
             raise ValueError("Values in 'anc_coords' must have the same lenght.")
@@ -292,7 +292,7 @@ class Detectors:
     def build_from_data(
         self,
         get_rec: Callable,
-        adjacency_matrix: xr.DataArray,
+        anc_support: dict[str, Sequence[str]],
         anc_reset: bool,
         reconstructable_stabs: Iterable[str],
         anc_qubits: Iterable[str] | None = None,
@@ -306,10 +306,12 @@ class Detectors:
             Function that given ``qubit_label, rel_meas_id`` returns the
             ``target_rec`` integer. The intention is to give the
             ``Model.meas_target`` method.
-        adjacency_matrix
-            Matrix descriving the data qubit support on the stabilizers.
-            Its coordinates are ``from_qubit`` and ``to_qubit``.
-            See ``qec_util.Layout.adjacency_matrix`` for more information.
+        anc_support
+            Dictionary descriving the data qubit support on the stabilizers.
+            The keys are the ancilla qubits and the values are the collection
+            of data qubits.
+            See ``surface_sim.Layout.adjacency_matrix`` and
+            ``surface_sim.detectors.get_support_from_adj_matrix`` for more information.
         anc_reset
             Flag for if the ancillas are being reset in every QEC cycle.
         reconstructable_stabs
@@ -335,6 +337,14 @@ class Detectors:
         if not isinstance(get_rec, Callable):
             raise TypeError(
                 f"'get_rec' must be callable, but {type(get_rec)} was given."
+            )
+        if not isinstance(anc_support, dict):
+            raise TypeError(
+                f"'anc_support' must be a dict, but {type(anc_support)} was given."
+            )
+        if set(anc_support) < set(reconstructable_stabs):
+            raise ValueError(
+                "Elements in 'reconstructable_stabs' must be present in 'anc_support'."
             )
 
         if self.frame == "1":
@@ -391,11 +401,8 @@ class Detectors:
                     new_dets.append(det)
                     continue
 
-                support = adjacency_matrix.sel(from_qubit=det[0])
-                data_qubits = [
-                    q for q, sup in zip(support.to_qubit.values, support) if sup
-                ]
-                new_dets += [(q, -1) for q in data_qubits]
+                new_dets += [(q, -1) for q in anc_support[det[0]]]
+
             detectors[anc_qubit] = new_dets
 
         # build the stim circuit
@@ -527,3 +534,45 @@ def get_new_stab_dict_from_layout(
         new_stab_gens[anc_qubit] = log_gate_attrs["new_stab_gen"]
 
     return new_stab_gens
+
+
+def get_support_from_adj_matrix(
+    adjacency_matrix: xr.DataArray, anc_qubits: Sequence[str]
+) -> dict[str, list[str]]:
+    """Returns a dictionary that maps ancilla qubits to the data qubits
+    they have support on.
+
+    Parameters
+    ----------
+    adjacency_matrix
+        Adjacency matrix of the qubits in the layout.
+        It must have ``to_qubit`` and ``from_qubit`` coordinates.
+        It can be built using ``surface_sim.Layout.adjacency_matrix``.
+    anc_qubits
+        Sequence of ancilla qubits for which to compute they data-qubit
+        support.
+
+    Returns
+    -------
+    support
+        Dictionary with ancilla qubits as keys, whose values are a list
+        of the data qubits they have support on.
+    """
+    if not isinstance(adjacency_matrix, xr.DataArray):
+        raise TypeError(
+            f"'adjacency_matrix' must be a xr.DataArray, but {type(adjacency_matrix)} was given."
+        )
+    if not isinstance(anc_qubits, Sequence):
+        raise TypeError(
+            f"'anc_qubits' must be a collection, but {type(anc_qubits)} was given."
+        )
+
+    support = {}
+    for anc_qubit in anc_qubits:
+        support_vec = adjacency_matrix.sel(from_qubit=anc_qubit)
+        data_qubits = [
+            q for q, sup in zip(support_vec.to_qubit.values, support_vec) if sup
+        ]
+        support[anc_qubit] = data_qubits
+
+    return support

@@ -1,9 +1,9 @@
-from collections.abc import Collection, Callable
+from collections.abc import Sequence, Callable
 
 import stim
 
 from ..layouts import Layout
-from ..detectors import Detectors
+from ..detectors import Detectors, get_support_from_adj_matrix
 from ..models import Model
 
 
@@ -89,10 +89,10 @@ def merge_circuits(*circuits: stim.Circuit, check_meas: bool = True) -> stim.Cir
 def merge_qec_rounds(
     qec_round_iterator: Callable,
     model: Model,
-    layouts: Collection[Layout],
+    layouts: Sequence[Layout],
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Collection[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
     **kargs,
 ) -> stim.Circuit:
     """
@@ -109,7 +109,7 @@ def merge_qec_rounds(
     model
         Noise model for the gates.
     layouts
-        Collection of code layouts.
+        Sequence of code layouts.
     detectors
         Object to build the detectors.
     anc_reset
@@ -129,7 +129,7 @@ def merge_qec_rounds(
         Circuit corrresponding to the joing of all the merged individual/yielded circuits,
         including the detector definitions.
     """
-    if not isinstance(layouts, Collection):
+    if not isinstance(layouts, Sequence):
         raise TypeError(
             f"'layouts' must be a collection, but {type(layouts)} was given."
         )
@@ -164,5 +164,131 @@ def merge_qec_rounds(
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
+
+    return circuit
+
+
+def merge_log_meas(
+    log_meas_iterator: Callable,
+    model: Model,
+    layouts: Sequence[Layout],
+    detectors: Detectors,
+    rot_bases: Sequence[dict[str, bool]],
+    anc_reset: bool = True,
+    anc_detectors: Sequence[str] | None = None,
+    **kargs,
+) -> stim.Circuit:
+    """
+    Merges the yielded circuits of the logical measurement iterator for each
+    of the layouts and returns the circuit corresponding to the join of all
+    these merges and the detector and observable definitions.
+
+    Parameters
+    ----------
+    log_meas_iterator
+        Callable that yields the circuits to be merged of the logigual
+        measuremenet without the detectors.
+        Its inputs must include ``model``, ``layout``, and ``rot_basis``.
+    model
+        Noise model for the gates.
+    layouts
+        Sequence of code layouts.
+    detectors
+        Object to build the detectors.
+    rot_bases
+        Sequence of flags for each code layout specifying the bases
+        for the logical measurements.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
+    kargs
+        Extra arguments for ``circuit_iterator`` apart from ``layout``,
+        ``model``, ``rot_basis`` and ``anc_reset``.
+
+    Returns
+    -------
+    circuit
+        Circuit corrresponding to the joing of all the merged individual/yielded circuits,
+        including the detector definitions.
+    """
+    if not isinstance(layouts, Sequence):
+        raise TypeError(
+            f"'layouts' must be a collection, but {type(layouts)} was given."
+        )
+    if any(not isinstance(l, Layout) for l in layouts):
+        raise TypeError("Elements in 'layouts' must be Layout objects.")
+
+    if not isinstance(log_meas_iterator, Callable):
+        raise TypeError(
+            f"'log_meas_iterator' must be callable, but {type(log_meas_iterator)} was given."
+        )
+
+    if not isinstance(rot_bases, Sequence):
+        raise TypeError(
+            f"'rot_bases' must be a collection, but {type(rot_bases)} was given."
+        )
+    if len(rot_bases) != len(layouts):
+        raise ValueError("'rot_bases' and 'layouts' must be of same lenght.")
+    for k, (layout, rot_basis) in enumerate(zip(layouts, rot_bases)):
+        if isinstance(rot_basis, dict):
+            continue
+        elif isinstance(rot_basis, bool):
+            if len(layout.get_logical_qubits()) != 1:
+                raise ValueError(
+                    "The layout does not have one logical qubit, specify the 'rot_bases' with a dict."
+                )
+            rot_bases[k] = {layout.get_logical_qubits()[0]: rot_basis}
+
+    if anc_detectors is not None:
+        anc_qubits = [l.get_qubits(role="anc") for l in layouts]
+        if set(anc_detectors) > set(sum(anc_qubits, start=[])):
+            raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
+
+    circuit = stim.Circuit()
+    for blocks in zip(
+        *[
+            log_meas_iterator(model=model, layout=l, rot_basis=r, **kargs)
+            for l, r in zip(layouts, rot_bases)
+        ]
+    ):
+        merged_block = merge_circuits(*blocks)
+
+        if (len(merged_block) != 0) and (merged_block[0].name == "TICK"):
+            # avoid multiple 'TICK's in a single block
+            circuit.append(merged_block[0])
+            continue
+
+        circuit += merged_block
+
+    # add detectors
+    all_stabs = []
+    all_anc_support = {}
+    for layout, rot_basis in zip(layouts, rot_bases):
+        stab_type = "x_type" if rot_basis else "z_type"
+        stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+        anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
+        all_stabs += stabs
+        all_anc_support.update(anc_support)
+
+    circuit += detectors.build_from_data(
+        model.meas_target,
+        all_anc_support,
+        anc_reset=anc_reset,
+        reconstructable_stabs=all_stabs,
+        anc_qubits=anc_detectors,
+    )
+
+    # add logicals
+    for layout, rot_basis in zip(layouts, rot_bases):
+        for log_qubit_label, r in rot_basis.items():
+            log_op = "log_x" if r else "log_z"
+            log_qubits_support = getattr(layout, log_op)
+            log_data_qubits = log_qubits_support[log_qubit_label]
+            targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+            circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit

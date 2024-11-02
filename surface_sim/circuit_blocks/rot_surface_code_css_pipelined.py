@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Iterator, Sequence
 from itertools import chain
 
 from stim import Circuit
@@ -8,11 +8,20 @@ from ..models import Model
 from ..detectors import Detectors
 
 # methods to have in this script
-from .util import qubit_coords, log_meas, log_x, log_z, init_qubits, log_trans_s
+from .util import (
+    qubit_coords,
+    log_meas,
+    log_x,
+    log_z,
+    init_qubits,
+    log_trans_s,
+    log_meas_iterator,
+)
 
 __all__ = [
     "qubit_coords",
     "log_meas",
+    "log_meas_iterator",
     "log_x",
     "log_z",
     "qec_round",
@@ -27,7 +36,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Collection[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC cycle

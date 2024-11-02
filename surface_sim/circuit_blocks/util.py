@@ -1,10 +1,15 @@
+from collections.abc import Iterator
 from itertools import chain
 
 from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
-from ..detectors import Detectors, get_new_stab_dict_from_layout
+from ..detectors import (
+    Detectors,
+    get_new_stab_dict_from_layout,
+    get_support_from_adj_matrix,
+)
 
 
 def qubit_coords(model: Model, layout: Layout) -> Circuit:
@@ -51,34 +56,24 @@ def log_meas(
         If ``None``, adds all detectors.
         By default ``None``.
     """
+    anc_qubits = layout.get_qubits(role="anc")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
-    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        anc_detectors = anc_qubits
+    if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
 
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
-
-    if rot_basis:
-        circuit += model.hadamard(data_qubits)
-        circuit += model.idle(anc_qubits)
-        circuit += model.tick()
-
-    circuit += model.measure(data_qubits)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
+    circuit = sum(
+        log_meas_iterator(model=model, layout=layout, rot_basis=rot_basis),
+        start=Circuit(),
+    )
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
-        layout.adjacency_matrix(),
+        anc_support,
         anc_reset,
         reconstructable_stabs=stabs,
         anc_qubits=anc_detectors,
@@ -93,6 +88,42 @@ def log_meas(
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
+
+
+def log_meas_iterator(
+    model: Model,
+    layout: Layout,
+    rot_basis: bool = False,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical measurement
+    of the given model without the definition of the detectors and observables.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    rot_basis
+        If ``True``, the memory experiment is performed in the X basis.
+        If ``False``, the memory experiment is performed in the Z basis.
+        By deafult ``False``.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    if rot_basis:
+        yield model.hadamard(data_qubits)
+        yield model.idle(anc_qubits)
+        yield model.tick()
+
+    yield model.measure(data_qubits)
+    yield model.idle(anc_qubits)
+    yield model.tick()
 
 
 def init_qubits(
@@ -293,38 +324,18 @@ def log_meas_xzzx(
     if set(anc_detectors) > set(layout.get_qubits(role="anc")):
         raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
 
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(data_qubits + anc_qubits)
-
-    stab_type = "x_type" if rot_basis else "z_type"
-    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
-
-    rot_qubits = set()
-    for direction in ("north_west", "south_east"):
-        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-        rot_qubits.update(neighbors)
-    idle_qubits = qubits - rot_qubits
-
-    circuit += model.hadamard(rot_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    circuit += model.measure(data_qubits)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
+    circuit = sum(
+        log_meas_xzzx_iterator(model=model, layout=layout, rot_basis=rot_basis),
+        start=Circuit(),
+    )
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
-        layout.adjacency_matrix(),
+        anc_support,
         anc_reset,
         reconstructable_stabs=stabs,
         anc_qubits=anc_detectors,
@@ -339,6 +350,51 @@ def log_meas_xzzx(
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     return circuit
+
+
+def log_meas_xzzx_iterator(
+    model: Model,
+    layout: Layout,
+    rot_basis: bool = False,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical measurement
+    of the given model without the definition of the detectors and observables.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    rot_basis
+        If ``True``, the memory experiment is performed in the X basis.
+        If ``False``, the memory experiment is performed in the Z basis.
+        By deafult ``False``.
+    """
+    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.get_qubits(role="data")
+    qubits = set(data_qubits + anc_qubits)
+
+    stab_type = "x_type" if rot_basis else "z_type"
+    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    rot_qubits = set()
+    for direction in ("north_west", "south_east"):
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits.update(neighbors)
+    idle_qubits = qubits - rot_qubits
+
+    yield model.hadamard(rot_qubits)
+    yield model.idle(idle_qubits)
+    yield model.tick()
+
+    yield model.measure(data_qubits)
+    yield model.idle(anc_qubits)
+    yield model.tick()
 
 
 def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:

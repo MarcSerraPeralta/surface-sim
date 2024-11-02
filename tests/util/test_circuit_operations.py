@@ -1,8 +1,15 @@
 import pytest
 import stim
 
-from surface_sim.util.circuit_operations import merge_circuits, merge_qec_rounds
-from surface_sim.circuit_blocks.unrot_surface_code_css import qec_round_iterator
+from surface_sim.util.circuit_operations import (
+    merge_circuits,
+    merge_qec_rounds,
+    merge_log_meas,
+)
+from surface_sim.circuit_blocks.unrot_surface_code_css import (
+    qec_round_iterator,
+    log_meas_iterator,
+)
 from surface_sim.models import NoiselessModel
 from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_code
 from surface_sim import Detectors
@@ -79,6 +86,30 @@ def test_merge_qec_rounds():
         model,
         [layout, layout],
         detectors,
+    )
+
+    assert isinstance(circuit, stim.Circuit)
+
+    return
+
+
+def test_merge_log_meas():
+    layout = unrot_surface_code(distance=3, logical_qubit_label="L0")
+    other_layout = unrot_surface_code(distance=3, logical_qubit_label="L1")
+    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
+    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
+    model = NoiselessModel(qubit_ids)
+    detectors = Detectors(
+        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+    )
+
+    circuit = merge_log_meas(
+        log_meas_iterator,
+        model,
+        [layout, other_layout],
+        detectors,
+        rot_bases=[{"L0": True}, {"L1": True}],
+        anc_reset=True,
     )
 
     assert isinstance(circuit, stim.Circuit)
