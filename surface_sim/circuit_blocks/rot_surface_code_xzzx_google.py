@@ -10,7 +10,7 @@ from stim import Circuit
 
 from ..layouts import Layout
 from ..models import Model
-from ..detectors import Detectors
+from ..detectors import Detectors, get_support_from_adj_matrix
 
 # methods to have in this script
 from .util import qubit_coords
@@ -100,9 +100,10 @@ def qec_round_with_log_meas(
 
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
-        layout.adjacency_matrix(),
+        anc_support,
         anc_reset=True,
         reconstructable_stabs=stabs,
         anc_qubits=anc_detectors,
