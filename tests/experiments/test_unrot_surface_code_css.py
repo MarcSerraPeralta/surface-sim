@@ -5,10 +5,11 @@ from surface_sim.layouts import unrot_surface_code
 from surface_sim.experiments.unrot_surface_code_css import (
     memory_experiment,
     repeated_s_experiment,
+    repeated_cnot_experiment,
 )
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
-from surface_sim.log_gates.unrot_surface_code_css import set_trans_s
+from surface_sim.log_gates.unrot_surface_code_css import set_trans_s, set_trans_cnot
 
 
 def test_memory_experiment():
