@@ -16,7 +16,7 @@ def qubit_coords(model: Model, layout: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates
     of the qubits.
     """
-    coord_dict = {q: layout.get_coords([q])[0] for q in layout.get_qubits()}
+    coord_dict = layout.qubit_coords()
     circuit = Circuit()
 
     circuit += model.qubit_coords(coord_dict)

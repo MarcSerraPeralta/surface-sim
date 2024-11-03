@@ -13,11 +13,9 @@ from surface_sim.log_gates.rot_surface_code_css import set_trans_s
 
 def test_memory_experiment():
     layout = rot_surface_code(distance=3)
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
-        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+        layout.get_qubits(role="anc"), frame="1", anc_coords=layout.anc_coords()
     )
     circuit = memory_experiment(
         model=model,
@@ -36,7 +34,7 @@ def test_memory_experiment():
     dem = circuit.detector_error_model(allow_gauge_detectors=True)
 
     num_coords = 0
-    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+    anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords().items()}
     for dem_instr in dem:
         if dem_instr.type == "detector":
             assert dem_instr.args_copy()[:-1] in anc_coords.values()
@@ -50,11 +48,9 @@ def test_memory_experiment():
 def test_repeated_s_experiment():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_trans_s(layout, "D1")
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
-        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+        layout.get_qubits(role="anc"), frame="1", anc_coords=layout.anc_coords()
     )
     circuit = repeated_s_experiment(
         model=model,
@@ -74,7 +70,7 @@ def test_repeated_s_experiment():
     dem = circuit.detector_error_model(allow_gauge_detectors=True)
 
     num_coords = 0
-    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+    anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords().items()}
     for dem_instr in dem:
         if dem_instr.type == "detector":
             assert dem_instr.args_copy()[:-1] in anc_coords.values()
@@ -87,8 +83,7 @@ def test_repeated_s_experiment():
 
 def test_memory_experiment_anc_detectors():
     layout = rot_surface_code(distance=3)
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
     circuit = memory_experiment(
         model=model,
@@ -118,8 +113,7 @@ def test_memory_experiment_anc_detectors():
 def test_repeated_s_experiment_anc_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_trans_s(layout, "D1")
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
     circuit = repeated_s_experiment(
         model=model,
@@ -149,8 +143,7 @@ def test_repeated_s_experiment_anc_detectors():
 
 def test_memory_experiment_gauge_detectors():
     layout = rot_surface_code(distance=3)
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
     circuit = memory_experiment(
         model=model,
@@ -180,8 +173,7 @@ def test_memory_experiment_gauge_detectors():
 def test_repeated_s_experiment_gauge_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_trans_s(layout, "D1")
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
     circuit = repeated_s_experiment(
         model=model,

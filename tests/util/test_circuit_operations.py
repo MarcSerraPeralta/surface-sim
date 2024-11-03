@@ -74,11 +74,9 @@ def test_merge_circuits():
 
 def test_merge_qec_rounds():
     layout = unrot_surface_code(distance=3)
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
-        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+        layout.get_qubits(role="anc"), frame="1", anc_coords=layout.anc_coords()
     )
 
     circuit = merge_qec_rounds(
@@ -96,11 +94,9 @@ def test_merge_qec_rounds():
 def test_merge_log_meas():
     layout = unrot_surface_code(distance=3, logical_qubit_label="L0")
     other_layout = unrot_surface_code(distance=3, logical_qubit_label="L1")
-    qubit_ids = {q: i for i, q in enumerate(layout.get_qubits())}
-    anc_coords = {q: layout.get_coords([q])[0] for q in layout.get_qubits(role="anc")}
-    model = NoiselessModel(qubit_ids)
+    model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
-        layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
+        layout.get_qubits(role="anc"), frame="1", anc_coords=layout.anc_coords()
     )
 
     circuit = merge_log_meas(

@@ -9,7 +9,7 @@ def test_README_example():
     # prepare the layout, model, and detectors objects
     layout = rot_surface_code(distance=3)
 
-    qubit_inds = {q: layout.get_inds([q])[0] for q in layout.get_qubits()}
+    qubit_inds = layout.qubit_inds()
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 
