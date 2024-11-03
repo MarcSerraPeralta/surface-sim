@@ -1,2 +1,2 @@
 [flake8]
-select = T201, T203, T204  # T002 is the specific code for print statements in flake8-print
+select = T201, T203, T204, F401
