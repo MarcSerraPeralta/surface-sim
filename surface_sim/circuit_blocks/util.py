@@ -334,7 +334,7 @@ def log_trans_cnot(
     # long-range CNOT gates
     int_qubits = list(chain.from_iterable(cnot_pairs))
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.cphase(int_qubits)
+    circuit += model.cnot(int_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 

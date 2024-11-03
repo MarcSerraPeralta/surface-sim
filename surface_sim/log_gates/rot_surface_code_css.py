@@ -196,9 +196,9 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
     # The solution to the problem described above is to use 'subgraph_monomorphisms_iter'.
     # We find 4 monomorphisms as the graphs are equal up to 90 degree rotations
     monomorphisms = list(gm.subgraph_monomorphisms_iter())
-    if len(monomorphisms) != 4:
+    if len(monomorphisms) == 0:
         raise ValueError(
-            "More than one monomorphism has been found. "
+            "No monomorphism for the layouts has been found. "
             "Check that the layouts have the appropiate graphs."
         )
     # The monomorphism we want is the one in which all the physical CNOTs

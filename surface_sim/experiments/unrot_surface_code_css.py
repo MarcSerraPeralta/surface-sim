@@ -5,6 +5,7 @@ from ..layouts import Layout
 from ..circuit_blocks.unrot_surface_code_css import (
     init_qubits,
     log_meas,
+    log_meas_iterator,
     qec_round,
     qec_round_iterator,
     qubit_coords,
@@ -13,7 +14,7 @@ from ..circuit_blocks.unrot_surface_code_css import (
 )
 from ..models import Model
 from ..detectors import Detectors
-from ..util import merge_circuits, merge_qec_rounds
+from ..util import merge_circuits, merge_qec_rounds, merge_log_meas
 
 
 def memory_experiment(
@@ -121,8 +122,8 @@ def repeated_s_experiment(
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
-        If ``True``, the memory experiment is performed in the X basis.
-        If ``False``, the memory experiment is performed in the Z basis.
+        If ``True``, the repeated-S experiment is performed in the X basis.
+        If ``False``, the repeated-S experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
@@ -223,8 +224,8 @@ def repeated_cnot_experiment(
         The options are ``"constant"`` and ``"alternating"``.
         By default ``"alternating"``.
     rot_basis
-        If ``True``, the memory experiment is performed in the X basis.
-        If ``False``, the memory experiment is performed in the Z basis.
+        If ``True``, the repeated-CNOT experiment is performed in the X basis.
+        If ``False``, the repeated-CNOT experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
@@ -318,12 +319,17 @@ def repeated_cnot_experiment(
                 anc_detectors=anc_detectors,
             )
 
-    # missing merge strategy for log_measurements (they have detectors)
-    experiment += log_meas(
-        model, layout_c, detectors, rot_basis, anc_reset, anc_detectors
-    )
-    experiment += log_meas(
-        model, layout_t, detectors, rot_basis, anc_reset, anc_detectors
+    experiment += merge_log_meas(
+        log_meas_iterator,
+        model,
+        [layout_c, layout_t],
+        detectors,
+        rot_bases=[
+            {layout_c.get_logical_qubits()[0]: rot_basis},
+            {layout_t.get_logical_qubits()[0]: rot_basis},
+        ],
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     return experiment
