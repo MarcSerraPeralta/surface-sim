@@ -282,8 +282,8 @@ def repeated_cnot_experiment(
         qubit_coords(model, layout_t),
     )
     experiment += merge_circuits(
-        init_qubits(model, layout_c, data_init_c, rot_basis),
-        init_qubits(model, layout_t, data_init_t, rot_basis),
+        init_qubits(model, layout_c, data_init=data_init_c, rot_basis=rot_basis),
+        init_qubits(model, layout_t, data_init=data_init_t, rot_basis=rot_basis),
     )
 
     first_dets = deepcopy(anc_detectors)
@@ -324,10 +324,7 @@ def repeated_cnot_experiment(
         model,
         [layout_c, layout_t],
         detectors,
-        rot_bases=[
-            {layout_c.get_logical_qubits()[0]: rot_basis},
-            {layout_t.get_logical_qubits()[0]: rot_basis},
-        ],
+        rot_bases=[rot_basis, rot_basis],
         anc_reset=anc_reset,
         anc_detectors=anc_detectors,
     )

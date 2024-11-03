@@ -173,7 +173,7 @@ def merge_log_meas(
     model: Model,
     layouts: Sequence[Layout],
     detectors: Detectors,
-    rot_bases: Sequence[dict[str, bool]],
+    rot_bases: Sequence[bool],
     anc_reset: bool = True,
     anc_detectors: Sequence[str] | None = None,
     **kargs,
@@ -196,7 +196,7 @@ def merge_log_meas(
     detectors
         Object to build the detectors.
     rot_bases
-        Sequence of flags for each code layout specifying the bases
+        Sequence of flags for each code layout specifying the basis
         for the logical measurements.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
@@ -233,15 +233,6 @@ def merge_log_meas(
         )
     if len(rot_bases) != len(layouts):
         raise ValueError("'rot_bases' and 'layouts' must be of same lenght.")
-    for k, (layout, rot_basis) in enumerate(zip(layouts, rot_bases)):
-        if isinstance(rot_basis, dict):
-            continue
-        elif isinstance(rot_basis, bool):
-            if len(layout.get_logical_qubits()) != 1:
-                raise ValueError(
-                    "The layout does not have one logical qubit, specify the 'rot_bases' with a dict."
-                )
-            rot_bases[k] = {layout.get_logical_qubits()[0]: rot_basis}
 
     if anc_detectors is not None:
         anc_qubits = [l.get_qubits(role="anc") for l in layouts]
@@ -283,12 +274,16 @@ def merge_log_meas(
     )
 
     # add logicals
-    for layout, rot_basis in zip(layouts, rot_bases):
-        for log_qubit_label, r in rot_basis.items():
-            log_op = "log_x" if r else "log_z"
+    for k, (layout, rot_basis) in enumerate(zip(layouts, rot_bases)):
+        num_logs = len(layout.get_logical_qubits())
+        for l, log_qubit_label in enumerate(layout.get_logical_qubits()):
+            log_op = "log_x" if rot_basis else "log_z"
             log_qubits_support = getattr(layout, log_op)
             log_data_qubits = log_qubits_support[log_qubit_label]
             targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-            circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+            instr = stim.CircuitInstruction(
+                "OBSERVABLE_INCLUDE", targets=targets, gate_args=[k * num_logs + l]
+            )
+            circuit.append(instr)
 
     return circuit
