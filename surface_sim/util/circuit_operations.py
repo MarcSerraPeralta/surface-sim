@@ -197,7 +197,7 @@ def merge_log_meas(
         Object to build the detectors.
     rot_bases
         Sequence of flags for each code layout specifying the basis
-        for the logical measurements.
+        for the logical measurements. See Notes for more information.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
         By default ``True``.
@@ -214,6 +214,15 @@ def merge_log_meas(
     circuit
         Circuit corrresponding to the joing of all the merged individual/yielded circuits,
         including the detector definitions.
+
+    Notes
+    -----
+    This function assumes that the QEC codes are CSS codes, so that the stabilizers
+    are either Z-type or X-type Pauli strings. This means that for a code that has
+    more than one logical qubit, one cannot measure some qubits in the logical X
+    basis and some others in the logical Z basis. Therefore, the ``rot_bases``
+    arguments is just a sequence specifying the logical basis in which each layout code
+    has been measured on.
     """
     if not isinstance(layouts, Sequence):
         raise TypeError(
