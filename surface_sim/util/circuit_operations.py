@@ -173,7 +173,7 @@ def merge_log_meas(
     model: Model,
     layouts: Sequence[Layout],
     detectors: Detectors,
-    rot_bases: Sequence[dict[str, bool]],
+    rot_bases: Sequence[bool],
     anc_reset: bool = True,
     anc_detectors: Sequence[str] | None = None,
     **kargs,
@@ -196,8 +196,8 @@ def merge_log_meas(
     detectors
         Object to build the detectors.
     rot_bases
-        Sequence of flags for each code layout specifying the bases
-        for the logical measurements.
+        Sequence of flags for each code layout specifying the basis
+        for the logical measurements. See Notes for more information.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
         By default ``True``.
@@ -214,6 +214,15 @@ def merge_log_meas(
     circuit
         Circuit corrresponding to the joing of all the merged individual/yielded circuits,
         including the detector definitions.
+
+    Notes
+    -----
+    This function assumes that the QEC codes are CSS codes, so that the stabilizers
+    are either Z-type or X-type Pauli strings. This means that for a code that has
+    more than one logical qubit, one cannot measure some qubits in the logical X
+    basis and some others in the logical Z basis. Therefore, the ``rot_bases``
+    arguments is just a sequence specifying the logical basis in which each layout code
+    has been measured on.
     """
     if not isinstance(layouts, Sequence):
         raise TypeError(
@@ -233,15 +242,6 @@ def merge_log_meas(
         )
     if len(rot_bases) != len(layouts):
         raise ValueError("'rot_bases' and 'layouts' must be of same lenght.")
-    for k, (layout, rot_basis) in enumerate(zip(layouts, rot_bases)):
-        if isinstance(rot_basis, dict):
-            continue
-        elif isinstance(rot_basis, bool):
-            if len(layout.get_logical_qubits()) != 1:
-                raise ValueError(
-                    "The layout does not have one logical qubit, specify the 'rot_bases' with a dict."
-                )
-            rot_bases[k] = {layout.get_logical_qubits()[0]: rot_basis}
 
     if anc_detectors is not None:
         anc_qubits = [l.get_qubits(role="anc") for l in layouts]
@@ -283,12 +283,16 @@ def merge_log_meas(
     )
 
     # add logicals
-    for layout, rot_basis in zip(layouts, rot_bases):
-        for log_qubit_label, r in rot_basis.items():
-            log_op = "log_x" if r else "log_z"
+    for k, (layout, rot_basis) in enumerate(zip(layouts, rot_bases)):
+        num_logs = len(layout.get_logical_qubits())
+        for l, log_qubit_label in enumerate(layout.get_logical_qubits()):
+            log_op = "log_x" if rot_basis else "log_z"
             log_qubits_support = getattr(layout, log_op)
             log_data_qubits = log_qubits_support[log_qubit_label]
             targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-            circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+            instr = stim.CircuitInstruction(
+                "OBSERVABLE_INCLUDE", targets=targets, gate_args=[k * num_logs + l]
+            )
+            circuit.append(instr)
 
     return circuit
