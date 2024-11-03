@@ -117,6 +117,7 @@ def test_repeated_cnot_experiment():
         frame="r",
         anc_coords=anc_coords,
     )
+
     for rot_basis in [True, False]:
         circuit = repeated_cnot_experiment(
             model=model,

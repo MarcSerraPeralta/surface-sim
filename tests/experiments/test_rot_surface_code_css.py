@@ -20,30 +20,32 @@ def test_memory_experiment():
     detectors = Detectors(
         layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
     )
-    circuit = memory_experiment(
-        model=model,
-        layout=layout,
-        detectors=detectors,
-        num_rounds=10,
-        anc_reset=False,
-        data_init={q: 0 for q in layout.get_qubits(role="data")},
-        rot_basis=True,
-    )
 
-    assert isinstance(circuit, stim.Circuit)
+    for rot_basis in [True, False]:
+        circuit = memory_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_rounds=10,
+            anc_reset=False,
+            data_init={q: 0 for q in layout.get_qubits(role="data")},
+            rot_basis=rot_basis,
+        )
 
-    # check that the detectors and logicals fulfill their
-    # conditions by building the stim diagram
-    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        assert isinstance(circuit, stim.Circuit)
 
-    num_coords = 0
-    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
-    for dem_instr in dem:
-        if dem_instr.type == "detector":
-            assert dem_instr.args_copy()[:-1] in anc_coords.values()
-            num_coords += 1
+        # check that the detectors and logicals fulfill their
+        # conditions by building the stim diagram
+        dem = circuit.detector_error_model(allow_gauge_detectors=True)
 
-    assert num_coords == dem.num_detectors
+        num_coords = 0
+        anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+        for dem_instr in dem:
+            if dem_instr.type == "detector":
+                assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                num_coords += 1
+
+        assert num_coords == dem.num_detectors
 
     return
 
@@ -57,31 +59,33 @@ def test_repeated_s_experiment():
     detectors = Detectors(
         layout.get_qubits(role="anc"), frame="1", anc_coords=anc_coords
     )
-    circuit = repeated_s_experiment(
-        model=model,
-        layout=layout,
-        detectors=detectors,
-        num_s_gates=4,
-        num_rounds_per_gate=2,
-        anc_reset=False,
-        data_init={q: 0 for q in layout.get_qubits(role="data")},
-        rot_basis=True,
-    )
 
-    assert isinstance(circuit, stim.Circuit)
+    for rot_basis in [True, False]:
+        circuit = repeated_s_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_s_gates=4,
+            num_rounds_per_gate=2,
+            anc_reset=False,
+            data_init={q: 0 for q in layout.get_qubits(role="data")},
+            rot_basis=rot_basis,
+        )
 
-    # check that the detectors and logicals fulfill their
-    # conditions by building the stim diagram
-    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        assert isinstance(circuit, stim.Circuit)
 
-    num_coords = 0
-    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
-    for dem_instr in dem:
-        if dem_instr.type == "detector":
-            assert dem_instr.args_copy()[:-1] in anc_coords.values()
-            num_coords += 1
+        # check that the detectors and logicals fulfill their
+        # conditions by building the stim diagram
+        dem = circuit.detector_error_model(allow_gauge_detectors=True)
 
-    assert num_coords == dem.num_detectors
+        num_coords = 0
+        anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+        for dem_instr in dem:
+            if dem_instr.type == "detector":
+                assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                num_coords += 1
+
+        assert num_coords == dem.num_detectors
 
     return
 
@@ -113,6 +117,7 @@ def test_repeated_cnot_experiment():
         frame="r",
         anc_coords=anc_coords,
     )
+
     for rot_basis in [True, False]:
         circuit = repeated_cnot_experiment(
             model=model,
