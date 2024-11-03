@@ -29,12 +29,15 @@ class Layout:
     ---------------
     - ``param``
     - ``get_inds``
+    - ``qubit_inds``
     - ``get_max_ind``
     - ``get_min_ind``
     - ``get_qubits``
     - ``get_logical_qubits``
     - ``get_neighbors``
     - ``get_coords``
+    - ``qubit_coords``
+    - ``anc_coords``
 
     Set information
     ---------------
@@ -86,6 +89,7 @@ class Layout:
         self.log_x = setup.get("log_x", {})
         self.description = setup.get("description")
         self.interaction_order = setup.get("interaction_order", {})
+        self._qubit_inds = {}
 
         self.graph = nx.DiGraph()
         self._load_layout(setup)
@@ -154,6 +158,10 @@ class Layout:
         The list of qubit indices.
         """
         return [self._qubit_inds[qubit] for qubit in qubits]
+
+    def qubit_inds(self) -> dict[str, int]:
+        """Returns a dictionary mapping all the qubits to their indices."""
+        return {k: v for k, v in self._qubit_inds.items()}
 
     def get_max_ind(self) -> int:
         """Returns the largest qubit index in the layout."""
@@ -257,6 +265,16 @@ class Layout:
             raise ValueError("Some of the given qubits do not have coordinates.")
 
         return [all_coords[q] for q in qubits]
+
+    def qubit_coords(self) -> dict[str, list[float | int]]:
+        """Returns a dictionary mapping all the qubits to their coordinates."""
+        return nx.get_node_attributes(self.graph, "coords")
+
+    def anc_coords(self) -> dict[str, list[float | int]]:
+        """Returns a dictionary mapping all ancilla qubits to their coordinates."""
+        anc_qubits = self.get_qubits(role="anc")
+        anc_coords = self.get_coords(anc_qubits)
+        return {q: c for q, c in zip(anc_qubits, anc_coords)}
 
     def adjacency_matrix(self) -> DataArray:
         """Returns the adjaceny matrix corresponding to the layout.
