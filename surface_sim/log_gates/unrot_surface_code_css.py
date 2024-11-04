@@ -244,3 +244,99 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         layout_t.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
 
     return
+
+
+def set_trans_h(layout: Layout, data_qubit: str) -> None:
+    """Adds the required attributes (in place) for the layout to run the transversal H
+    gate for the unrotated surface code.
+
+    This implementation assumes that the qubits are placed in a square 2D grid,
+    and the separation between qubits is larger than ``1e-5`` units.
+
+    Parameters
+    ----------
+    layout
+        The layout in which to add the attributes.
+    data_qubit
+        The data qubit in a corner through which the folding of the surface
+        code runs.
+
+    Notes
+    -----
+    The circuit is shown in https://arxiv.org/pdf/2406.17653
+    The information about the logical transversal H gate is stored in the layout
+    as the parameter ``"trans-h_{log_qubit_label}"`` for each of the qubits,
+    where for the case of data qubits it is the information about which gates
+    to perform and for the case of the ancilla qubits it corresponds to
+    how the stabilizers generators are transformed.
+    """
+    if layout.code != "unrotated_surface_code":
+        raise ValueError(
+            "This function is for unrotated surface codes, "
+            f"but a layout for the code {layout.code} was given."
+        )
+    if layout.distance_z != layout.distance_x:
+        raise ValueError("The transversal H gate requires d_z = d_x.")
+    if data_qubit not in layout.get_qubits(role="data"):
+        raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
+    if set(map(len, layout.get_coords(layout.get_qubits()))) != {2}:
+        raise ValueError("The qubit coordinates must be 2D.")
+    if len(layout.get_logical_qubits()) != 1:
+        raise ValueError(
+            "The given surface code does not have a logical qubit, "
+            f"it has {len(layout.get_logical_qubits())}."
+        )
+
+    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.get_qubits(role="anc")
+    stab_x = layout.get_qubits(role="anc", stab_type="x_type")
+    stab_z = layout.get_qubits(role="anc", stab_type="z_type")
+    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+
+    # get the reflection function
+    neighbors = layout.param("neighbors", data_qubit)
+    dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
+    dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
+
+    data_qubit_diag = layout.get_neighbors(anc_qubit_x, direction=dir_z)[0]
+    sym_vector = np.array(layout.param("coords", data_qubit_diag)) - np.array(
+        layout.param("coords", data_qubit)
+    )
+    point = np.array(layout.param("coords", data_qubit))
+    fold_reflection = lambda x: reflection(x, point, sym_vector)
+
+    coords_to_label_dict = {}
+    for node, attr in layout.graph.nodes.items():
+        coords = attr["coords"]
+        coords = np.round(coords, decimals=5)  # to avoid numerical issues
+        coords_to_label_dict[tuple(coords)] = node
+
+    # get the SWAPs from the data qubit positions
+    swap_gates = {}
+    data_qubit_coords = layout.get_coords(data_qubits)
+    for data_qubit, coords in zip(data_qubits, data_qubit_coords):
+        pair_coords = fold_reflection(coords)
+        pair_coords = np.round(pair_coords, decimals=5)
+        data_pair = coords_to_label_dict[tuple(pair_coords)]
+        swap_gates[data_qubit] = data_pair if data_pair != data_qubit else None
+
+    # Store logical gate information to the data qubits
+    for qubit in data_qubits:
+        layout.set_param(gate_label, qubit, {"swap": swap_gates[qubit], "local": "H"})
+
+    # Compute the new stabilizer generators
+    anc_to_new_stab = {}
+    anc_qubit_coords = layout.get_coords(anc_qubits)
+    for anc_qubit, coords in zip(anc_qubits, anc_qubit_coords):
+        pair_coords = fold_reflection(coords)
+        pair_coords = np.round(pair_coords, decimals=5)
+        anc_pair = coords_to_label_dict[tuple(pair_coords)]
+        anc_to_new_stab[anc_qubit] = [anc_pair]
+
+    # Store new stabilizer generators to the ancilla qubits
+    for anc_qubit in anc_qubits:
+        layout.set_param(
+            gate_label, anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
+        )
+
+    return
