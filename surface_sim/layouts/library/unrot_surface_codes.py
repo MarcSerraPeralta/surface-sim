@@ -188,7 +188,7 @@ def unrot_surface_code_rectangle(
                 qubit_info = dict(
                     qubit=f"D{index}",
                     role="data",
-                    coords=(row + init_point[0], col + init_point[1]),
+                    coords=[row + init_point[0], col + init_point[1]],
                     stab_type=None,
                     ind=ind,
                 )
@@ -206,7 +206,7 @@ def unrot_surface_code_rectangle(
                 qubit_info = dict(
                     qubit=anc_qubit,
                     role="anc",
-                    coords=(row + init_point[0], col + init_point[1]),
+                    coords=[row + init_point[0], col + init_point[1]],
                     stab_type=stab_type,
                     ind=ind,
                 )

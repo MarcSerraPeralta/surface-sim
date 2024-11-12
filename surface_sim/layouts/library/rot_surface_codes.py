@@ -202,7 +202,7 @@ def rot_surface_code_rectangle(
             qubit_info = dict(
                 qubit=f"D{index}",
                 role="data",
-                coords=(row + init_point[0], col + init_point[1]),
+                coords=[row + init_point[0], col + init_point[1]],
                 freq_group=freq_group,
                 stab_type=None,
                 ind=ind,
@@ -218,7 +218,7 @@ def rot_surface_code_rectangle(
             qubit_info = dict(
                 qubit=anc_qubit,
                 role="anc",
-                coords=(row + init_point[0], col + init_point[1]),
+                coords=[row + init_point[0], col + init_point[1]],
                 freq_group="mid",
                 stab_type="x_type",
                 ind=ind,
@@ -248,7 +248,7 @@ def rot_surface_code_rectangle(
             qubit_info = dict(
                 qubit=anc_qubit,
                 role="anc",
-                coords=(row + init_point[0], col + init_point[1]),
+                coords=[row + init_point[0], col + init_point[1]],
                 freq_group="mid",
                 stab_type="z_type",
                 ind=ind,
