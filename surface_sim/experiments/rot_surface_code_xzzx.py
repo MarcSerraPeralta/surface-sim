@@ -68,7 +68,7 @@ def memory_experiment(
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, data_init, rot_basis)
+    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
 
     for r in range(num_rounds):
         if r == 0 and (not gauge_detectors):

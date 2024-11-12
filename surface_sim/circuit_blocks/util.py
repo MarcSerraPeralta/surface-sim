@@ -87,6 +87,9 @@ def log_meas(
     targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
+    # deactivate detectors
+    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+
     return circuit
 
 
@@ -129,6 +132,7 @@ def log_meas_iterator(
 def init_qubits(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     data_init: dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
@@ -158,6 +162,9 @@ def init_qubits(
         circuit += model.hadamard(data_qubits)
         circuit += model.idle(anc_qubits)
         circuit += model.tick()
+
+    # activate detectors
+    detectors.activate_detectors(anc_qubits)
 
     return circuit
 
@@ -413,6 +420,8 @@ def log_meas_xzzx(
     targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
+    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+
     return circuit
 
 
@@ -532,6 +541,7 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 def init_qubits_xzzx(
     model: Model,
     layout: Layout,
+    detectors: Detectors,
     data_init: dict[str, int],
     rot_basis: bool = False,
 ) -> Circuit:
@@ -576,5 +586,8 @@ def init_qubits_xzzx(
 
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
+
+    # activate detectors
+    detectors.activate_detectors(anc_qubits)
 
     return circuit
