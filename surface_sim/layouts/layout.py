@@ -91,6 +91,13 @@ class Layout:
         self.interaction_order = setup.get("interaction_order", {})
         self._qubit_inds = {}
 
+        if (set(self._log_qubits) != set(self.log_z)) or (
+            set(self._log_qubits) != set(self.log_x)
+        ):
+            raise ValueError(
+                "'logical_qubit_labels' does not match 'log_x' and/or 'log_z'."
+            )
+
         self.graph = nx.DiGraph()
         self._load_layout(setup)
 
@@ -116,6 +123,7 @@ class Layout:
         setup["distance"] = self.distance
         setup["distance_z"] = self.distance_z
         setup["distance_x"] = self.distance_x
+        setup["logical_qubit_labels"] = self._log_qubits
         setup["log_z"] = self.log_z
         setup["log_x"] = self.log_x
         setup["description"] = self.description
