@@ -117,6 +117,8 @@ def qec_round_with_log_meas(
     targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
     circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
+    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+
     return circuit
 
 

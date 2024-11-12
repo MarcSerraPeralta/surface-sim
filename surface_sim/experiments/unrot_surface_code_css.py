@@ -76,7 +76,7 @@ def memory_experiment(
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, data_init, rot_basis)
+    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
 
     for r in range(num_rounds):
         if r == 0 and (not gauge_detectors):
@@ -166,7 +166,7 @@ def repeated_s_experiment(
 
     experiment = Circuit()
     experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, data_init, rot_basis)
+    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
 
     first_dets = deepcopy(anc_detectors)
     if not gauge_detectors:
@@ -284,8 +284,12 @@ def repeated_cnot_experiment(
         qubit_coords(model, layout_t),
     )
     experiment += merge_circuits(
-        init_qubits(model, layout_c, data_init=data_init_c, rot_basis=rot_basis),
-        init_qubits(model, layout_t, data_init=data_init_t, rot_basis=rot_basis),
+        init_qubits(
+            model, layout_c, detectors, data_init=data_init_c, rot_basis=rot_basis
+        ),
+        init_qubits(
+            model, layout_t, detectors, data_init=data_init_t, rot_basis=rot_basis
+        ),
     )
 
     first_dets = deepcopy(anc_detectors)

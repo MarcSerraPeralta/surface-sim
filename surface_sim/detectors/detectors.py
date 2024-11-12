@@ -49,7 +49,7 @@ class Detectors:
         """
         if not isinstance(anc_qubits, Sequence):
             raise TypeError(
-                f"'anc_qubits' must be iterable, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be a Sequence, but {type(anc_qubits)} was given."
             )
         if not isinstance(frame, str):
             raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
@@ -66,7 +66,7 @@ class Detectors:
         if len(set(len(c) for c in anc_coords.values())) != 1:
             raise ValueError("Values in 'anc_coords' must have the same lenght.")
 
-        self.anc_qubits = anc_qubits
+        self.anc_qubit_labels = anc_qubits
         self.frame = frame
         self.anc_coords = anc_coords
 
@@ -79,17 +79,58 @@ class Detectors:
         to create a different circuit.
         """
         generators = xr.DataArray(
-            data=np.identity(len(self.anc_qubits), dtype=np.int64),
+            data=np.identity(len(self.anc_qubit_labels), dtype=np.int64),
             coords=dict(
-                stab_gen=self.anc_qubits,
-                basis=range(len(self.anc_qubits)),
+                stab_gen=self.anc_qubit_labels,
+                basis=range(len(self.anc_qubit_labels)),
             ),
         )
 
         self.prev_gen = deepcopy(generators)
         self.curr_gen = deepcopy(generators)
         self.init_gen = deepcopy(generators)
-        self.num_rounds = 0
+        self.anc_qubits = {a: False for a in self.anc_qubit_labels}
+        self.num_rounds = {a: 0 for a in self.anc_qubit_labels}
+        self.total_num_rounds = 0
+
+        return
+
+    def activate_detectors(self, anc_qubits: Iterable[str]):
+        """Activates the given ancilla detectors."""
+        if not isinstance(anc_qubits, Iterable):
+            raise TypeError(
+                f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
+            )
+        if set(anc_qubits) > set(self.anc_qubits):
+            raise ValueError(
+                "Elements in 'anc_qubits' are not ancilla qubits in this object."
+            )
+
+        for anc in anc_qubits:
+            if self.anc_qubits[anc]:
+                raise ValueError(f"Ancilla {anc} was already active.")
+
+            self.anc_qubits[anc] = True
+
+        return
+
+    def deactivate_detectors(self, anc_qubits: Iterable[str]):
+        """Deactivates the given ancilla detectors."""
+        if not isinstance(anc_qubits, Iterable):
+            raise TypeError(
+                f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
+            )
+        if set(anc_qubits) > set(self.anc_qubits):
+            raise ValueError(
+                "Elements in 'anc_qubits' are not ancilla qubits in this object."
+            )
+
+        for anc in anc_qubits:
+            if not self.anc_qubits[anc]:
+                raise ValueError(f"Ancilla {anc} was already active.")
+
+            self.anc_qubits[anc] = False
+
         return
 
     def update_from_dict(self, new_stab_gens: dict[str, list[str]]) -> None:
@@ -118,14 +159,16 @@ class Detectors:
             )
         if any(not isinstance(s, Iterable) for s in new_stab_gens.values()):
             raise TypeError("Elements in 'new_stab_gens' must be lists.")
-        if set(new_stab_gens) > set(self.anc_qubits):
+        if set(new_stab_gens) > set(self.anc_qubit_labels):
             raise ValueError(
                 "Elements in 'new_stab_gens' are not ancilla qubits in this Detectors class."
             )
 
         unitary_mat = xr.DataArray(
-            data=np.identity(len(self.anc_qubits)),
-            coords=dict(new_stab_gen=self.anc_qubits, stab_gen=self.anc_qubits),
+            data=np.identity(len(self.anc_qubit_labels)),
+            coords=dict(
+                new_stab_gen=self.anc_qubit_labels, stab_gen=self.anc_qubit_labels
+            ),
         )
 
         for new_stab, support_old_stabs in new_stab_gens.items():
@@ -227,7 +270,7 @@ class Detectors:
         """
         if not (isinstance(anc_qubits, Iterable) or (anc_qubits is None)):
             raise TypeError(
-                f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be an Iterable or None, but {type(anc_qubits)} was given."
             )
         if not isinstance(get_rec, Callable):
             raise TypeError(
@@ -249,9 +292,16 @@ class Detectors:
 
         if anc_qubits is None:
             anc_qubits = self.curr_gen.stab_gen.values.tolist()
+        anc_qubits = [a for a in anc_qubits if self.anc_qubits[a]]
 
-        self.num_rounds += 1
+        self.total_num_rounds += 1
+        self.num_rounds = {
+            anc: self.num_rounds[anc] + 1 if active else self.num_rounds[anc]
+            for anc, active in self.anc_qubits.items()
+        }
 
+        # generate detectors for all ancillas, then remove the ones
+        # that are not needed
         if self.frame != "t":
             detectors = _get_ancilla_meas_for_detectors(
                 self.curr_gen,
@@ -266,7 +316,7 @@ class Detectors:
             detectors = {}
             for anc in anc_detector_labels:
                 dets = [(anc, -1)]
-                if meas_comp + self.num_rounds >= 0:
+                if meas_comp + self.num_rounds[anc] >= 0:
                     dets.append((anc, meas_comp))
                 detectors[anc] = dets
 
@@ -278,7 +328,7 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
-            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            coords = [*self.anc_coords[anc], self.total_num_rounds - 1]
             instr = stim.CircuitInstruction(
                 "DETECTOR", gate_args=coords, targets=detectors_rec
             )
@@ -362,15 +412,25 @@ class Detectors:
 
         if anc_qubits is None:
             anc_qubits = self.curr_gen.stab_gen.values.tolist()
+        anc_qubits = [a for a in anc_qubits if self.anc_qubits[a]]
 
-        self.num_rounds += 1
+        # Logical measurement is not considered a QEC cycle but a logical operation.
+        # therefore, it does not increase the number of rounds.
+        # However, the way building the detectors is implemented relies on
+        # faking that ancilla qubits have been measured instead of the data qubits.
+        fake_num_rounds = {
+            anc: self.num_rounds[anc] + 1 if active else self.num_rounds[anc]
+            for anc, active in self.anc_qubits.items()
+        }
 
+        # generate detectors for all ancillas, then remove the ones
+        # that are not needed.
         if self.frame != "t":
             anc_detectors = _get_ancilla_meas_for_detectors(
                 self.curr_gen,
                 self.prev_gen,
                 basis=basis,
-                num_rounds=self.num_rounds,
+                num_rounds=fake_num_rounds,
                 anc_reset_curr=True,
                 anc_reset_prev=anc_reset,
             )
@@ -378,9 +438,9 @@ class Detectors:
             anc_detectors = {}
             for anc in anc_detector_labels:
                 dets = [(anc, -1)]
-                if self.num_rounds > 1:
+                if fake_num_rounds[anc] > 1:
                     dets.append((anc, -2))
-                if (not anc_reset) and (self.num_rounds > 2):
+                if (not anc_reset) and (fake_num_rounds[anc] > 2):
                     dets.append((anc, -3))
                 anc_detectors[anc] = dets
 
@@ -405,7 +465,10 @@ class Detectors:
 
             detectors[anc_qubit] = new_dets
 
-        # build the stim circuit
+        # Build the stim circuit.
+        # the coordinates of the detectors from the logical measurement are
+        # set to half a timestep unit (instead of a full unit as in the QEC cycle),
+        # because they are considered logical operations, not QEC cycles.
         detectors_stim = stim.Circuit()
         for anc, targets in detectors.items():
             if anc in anc_qubits:
@@ -413,7 +476,7 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
-            coords = [*self.anc_coords[anc], self.num_rounds - 1]
+            coords = [*self.anc_coords[anc], fake_num_rounds[anc] - 1.5]
             instr = stim.CircuitInstruction(
                 "DETECTOR", gate_args=coords, targets=detectors_rec
             )
@@ -429,7 +492,7 @@ def _get_ancilla_meas_for_detectors(
     curr_gen: xr.DataArray,
     prev_gen: xr.DataArray,
     basis: xr.DataArray,
-    num_rounds: int,
+    num_rounds: dict[str, int],
     anc_reset_curr: bool,
     anc_reset_prev: bool,
 ) -> dict[str, list[tuple[str, int]]]:
@@ -478,12 +541,12 @@ def _get_ancilla_meas_for_detectors(
         p_gen_inds = np.where(p_gen)[0]
 
         targets = [(anc_qubits[ind], -1) for ind in c_gen_inds]
-        if num_rounds >= 2:
+        if num_rounds[anc_qubit] >= 2:
             targets += [(anc_qubits[ind], -2) for ind in p_gen_inds]
 
-        if not anc_reset_curr and num_rounds >= 2:
+        if not anc_reset_curr and num_rounds[anc_qubit] >= 2:
             targets += [(anc_qubits[ind], -2) for ind in c_gen_inds]
-        if not anc_reset_prev and num_rounds >= 3:
+        if not anc_reset_prev and num_rounds[anc_qubit] >= 3:
             targets += [(anc_qubits[ind], -3) for ind in p_gen_inds]
 
         detectors[anc_qubit] = targets
