@@ -70,14 +70,7 @@ def log_meas(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-    anc_support = get_support_from_adj_matrix(
-        layout.adjacency_matrix(), layout.get_qubits(role="anc", stab_type="z_type")
-    )
-    anc_support.update(
-        get_support_from_adj_matrix(
-            layout.adjacency_matrix(), layout.get_qubits(role="anc", stab_type="x_type")
-        )
-    )
+    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
     detectors_stim = detectors.build_from_data(
         model.meas_target,
         anc_support,
