@@ -94,6 +94,20 @@ class CircuitNoiseModel(Model):
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("SWAP", inds))
+
+        for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+            prob = self.param("cz_error_prob", *qubit_pair)
+            circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
+        return circ
+
     def measure(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -326,6 +340,26 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs))
         return circ
 
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("SWAP", inds))
+
+        for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+            prob = self.param("cz_error_prob", *qubit_pair)
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli", *qubit_pair),
+                biased_factor=self.param("biased_factor", *qubit_pair),
+                num_qubits=2,
+            )
+            probs = prob * prefactors
+            circ.append(CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs))
+        return circ
+
     def measure(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -495,6 +529,9 @@ class DecoherenceNoiseModel(Model):
 
     def cnot(self, qubits: Iterable[str]) -> Circuit:
         return self.generic_op("CNOT", qubits)
+
+    def swap(self, qubits: Iterable[str]) -> Circuit:
+        return self.generic_op("SWAP", qubits)
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
@@ -709,6 +746,20 @@ class ExperimentalNoiseModel(Model):
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("SWAP", inds))
+
+        for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+            prob = self.param("cz_error_prob", *qubit_pair)
+            circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
+        return circ
+
     def measure(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -877,6 +928,11 @@ class NoiselessModel(Model):
     def cnot(self, qubits: Sequence[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("CNOT", self.get_inds(qubits)))
+        return circ
+
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("SWAP", self.get_inds(qubits)))
         return circ
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
