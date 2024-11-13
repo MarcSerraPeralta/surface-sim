@@ -332,7 +332,7 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 
-    # long-range CZ gates
+    # long-range SWAP gates
     int_qubits = list(chain.from_iterable(swap_pairs))
     idle_qubits = qubits - set(int_qubits)
     circuit += model.swap(int_qubits)
