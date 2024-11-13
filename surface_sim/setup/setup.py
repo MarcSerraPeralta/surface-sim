@@ -6,6 +6,20 @@ import yaml
 
 
 class Setup:
+    PARENTS = {
+        "cz_error_prob": "tq_error_prob",
+        "cnot_error_prob": "tq_error_prob",
+        "swap_error_prob": "tq_error_prob",
+        "h_error_prob": "sq_error_prob",
+        "s_error_prob": "sq_error_prob",
+        "sdag_error_prob": "sq_error_prob",
+        "x_error_prob": "sq_error_prob",
+        "z_error_prob": "sq_error_prob",
+        "reset_error_prob": "sq_error_prob",
+        "meas_error_prob": "sq_error_prob",
+        "idle_error_prob": "sq_error_prob",
+    }
+
     def __init__(self, setup: dict[str, object]) -> None:
         """Initialises teh ``Setup`` class.
 
@@ -14,6 +28,7 @@ class Setup:
         setup
             Dictionary with the configuration.
             Must have the key ``"setup"`` containing the information.
+            The information must not have ``None`` as value.
             It can also include ``"name"``, ``"description"`` and
             ``"gate_durations"`` keys with the corresponding information.
         """
@@ -129,10 +144,13 @@ class Setup:
         -------
         Value of the specified ``var_param``.
         """
-        try:
-            return self._var_params[var_param]
-        except KeyError:
-            raise ValueError(f"Variable param {var_param} not in setup.free_params.")
+        val = self._var_params.get(var_param)
+        if (val is None) and (var_param in self.PARENTS):
+            return self.var_param(self.PARENTS[var_param])
+
+        if val is None:
+            raise ValueError(f"Variable param {var_param} not in 'Setup.free_params'.")
+        return val
 
     def set_var_param(self, var_param: str, val: float) -> None:
         """Sets the given value to the given variable parameter.
@@ -144,12 +162,16 @@ class Setup:
         val
             Value to set to ``var_param``.
         """
-        try:
-            self._var_params[var_param] = val
-        except KeyError:
-            raise ValueError(f"Variable param {var_param} not in setup.")
+        if not isinstance(var_param, str):
+            raise TypeError(
+                f"'var_param' must be a str, but {type(var_param)} was given."
+            )
+        self._var_params[var_param] = val
+        return
 
-    def set_param(self, param: str, param_val: float, *qubits: str) -> None:
+    def set_param(
+        self, param: str, param_val: float | int | bool | str, *qubits: str
+    ) -> None:
         """Sets the given value to the given parameter of the given qubit(s).
 
         Parameters
@@ -161,9 +183,19 @@ class Setup:
         *qubits
             Qubit or qubit pairs of which to set the parameter.
         """
+        if not isinstance(param, str):
+            raise TypeError(f"'param' must be a str, but {type(param)} was given.")
+        if not isinstance(param_val, (float, int, bool, str)):
+            raise TypeError(
+                "'param_val' must be a float, int, bool, or str, "
+                f"but {type(param_val)} was given."
+            )
+
         if not qubits:
             self._global_params[param] = param_val
         else:
+            if any(not isinstance(q, str) for q in qubits):
+                raise TypeError("All qubits must be str.")
             self._qubit_params[qubits][param] = param_val
 
     def param(self, param: str, *qubits: str) -> float:
@@ -174,13 +206,18 @@ class Setup:
         param
             Name of the parameter.
         *qubits
-            Qubit or qubit pairs of which to set the parameter.
+            Qubit or qubit pairs of which to get the parameter.
 
         Returns
         -------
         val
             Value of the parameter.
         """
+        if not isinstance(param, str):
+            raise TypeError(f"'param' must be a str, but {type(param)} was given.")
+        if any(not isinstance(q, str) for q in qubits):
+            raise TypeError("All qubits must be str.")
+
         if qubits in self._qubit_params and param in self._qubit_params[qubits]:
             val = self._qubit_params[qubits][param]
             return self._eval_param_val(val)
@@ -188,12 +225,16 @@ class Setup:
             val = self._global_params[param]
             return self._eval_param_val(val)
 
+        if param in self.PARENTS:
+            return self.param(self.PARENTS[param])
+
         if qubits:
             qubit_str = ", ".join(qubits)
             raise KeyError(f"Parameter {param} not defined for qubit(s) {qubit_str}")
         raise KeyError(f"Global parameter {param} not defined")
 
     def _eval_param_val(self, val):
+        # Parameter values can refer to another parameter (i.e. a variable parameter)
         if val in self._var_params:
             param = deepcopy(val)
             val = self._var_params[param]

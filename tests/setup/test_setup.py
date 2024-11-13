@@ -14,6 +14,7 @@ SETUP = {
     "setup": [
         {
             "sq_error_prob": "free",
+            "tq_error_prob": 0.33,
             "cz_error_prob": 0.1,
             "meas_error_prob": "free2",
             "assign_error_flag": True,
@@ -57,4 +58,11 @@ def test_to_dict():
 def test_gate_duration():
     setup = Setup(SETUP)
     assert setup.gate_duration("X") == 3.2
+    return
+
+
+def test_parents():
+    setup = Setup(SETUP)
+    assert "swap_error_prob" not in SETUP["setup"]
+    assert setup.param("swap_error_prob", "D1") == 0.33
     return

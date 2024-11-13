@@ -28,7 +28,7 @@ SETUP = {
     "setup": [
         {
             "sq_error_prob": 0.1,
-            "cz_error_prob": 0.1,
+            "tq_error_prob": 0.1,
             "meas_error_prob": 0.1,
             "assign_error_flag": True,
             "assign_error_prob": 0.1,
