@@ -314,7 +314,7 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
                 f"transversal H gate on qubit {data_qubit}. "
                 "Use the 'log_gates' module to set it up."
             )
-        # Using a set to avoid repetition of the cz gates.
+        # Using a set to avoid repetition of the swap gates.
         # Using tuple so that the object is hashable for the set.
         if trans_h["swap"] is not None:
             swap_pairs.add(tuple(sorted([data_qubit, trans_h["swap"]])))
