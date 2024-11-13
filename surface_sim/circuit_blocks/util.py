@@ -70,7 +70,14 @@ def log_meas(
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-    anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
+    anc_support = get_support_from_adj_matrix(
+        layout.adjacency_matrix(), layout.get_qubits(role="anc", stab_type="z_type")
+    )
+    anc_support.update(
+        get_support_from_adj_matrix(
+            layout.adjacency_matrix(), layout.get_qubits(role="anc", stab_type="x_type")
+        )
+    )
     detectors_stim = detectors.build_from_data(
         model.meas_target,
         anc_support,
@@ -279,6 +286,63 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     int_qubits = list(chain.from_iterable(cz_pairs))
     idle_qubits = qubits - set(int_qubits)
     circuit += model.cphase(int_qubits)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # update the stabilizer generators
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update_from_dict(new_stabs)
+
+    return circuit
+
+
+def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical H gate
+    implemented following the circuit show in:
+
+    https://arxiv.org/pdf/2406.17653
+    """
+    if layout.code not in ["unrotated_surface_code"]:
+        raise TypeError(
+            "The given layout is not an unrotated surface code, " f"but a {layout.code}"
+        )
+
+    data_qubits = layout.get_qubits(role="data")
+    qubits = set(layout.get_qubits())
+    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+
+    swap_pairs = set()
+    qubits_h_gate = set()
+    for data_qubit in data_qubits:
+        trans_h = layout.param(gate_label, data_qubit)
+        if trans_h is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal H gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the cz gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_h["swap"] is not None:
+            swap_pairs.add(tuple(sorted([data_qubit, trans_h["swap"]])))
+        if trans_h["local"] == "H":
+            qubits_h_gate.add(data_qubit)
+
+    circuit = Circuit()
+
+    circuit += model.incoming_noise(data_qubits)
+    circuit += model.tick()
+
+    # H gates
+    idle_qubits = qubits - qubits_h_gate
+    circuit += model.hadamard(qubits_h_gate)
+    circuit += model.idle(idle_qubits)
+    circuit += model.tick()
+
+    # long-range CZ gates
+    int_qubits = list(chain.from_iterable(swap_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    circuit += model.swap(int_qubits)
     circuit += model.idle(idle_qubits)
     circuit += model.tick()
 

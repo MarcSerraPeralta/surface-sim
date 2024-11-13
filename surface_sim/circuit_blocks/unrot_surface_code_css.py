@@ -15,6 +15,7 @@ from .util import (
     log_z,
     init_qubits,
     log_trans_s,
+    log_trans_h,
     log_trans_cnot,
     log_meas_iterator,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "qec_round_iterator",
     "init_qubits",
     "log_trans_s",
+    "log_trans_h",
     "log_trans_cnot",
 ]
 
