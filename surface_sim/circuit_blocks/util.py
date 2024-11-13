@@ -297,7 +297,7 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     if layout.code not in ["unrotated_surface_code"]:
         raise TypeError(
-            "The given layout is not an unrotated surface code, " f"but a {layout.code}"
+            f"The given layout is not an unrotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.get_qubits(role="data")
@@ -444,7 +444,7 @@ def log_meas_xzzx(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     if anc_detectors is None:
@@ -610,7 +610,7 @@ def init_qubits_xzzx(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     anc_qubits = layout.get_qubits(role="anc")
