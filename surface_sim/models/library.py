@@ -18,7 +18,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("X", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("x_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -29,7 +29,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("Z", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("z_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -40,7 +40,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("H", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("h_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -51,7 +51,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("S", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("s_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -62,7 +62,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("S_DAG", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("sdag_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -90,7 +90,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("CNOT", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("cnot_error_prob", *qubit_pair)
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
@@ -104,7 +104,7 @@ class CircuitNoiseModel(Model):
         circ.append(CircuitInstruction("SWAP", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("swap_error_prob", *qubit_pair)
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
@@ -222,7 +222,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("X", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("x_error_prob", qubit)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", qubit),
                 biased_factor=self.param("biased_factor", qubit),
@@ -239,7 +239,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("Z", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("z_error_prob", qubit)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", qubit),
                 biased_factor=self.param("biased_factor", qubit),
@@ -256,7 +256,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("H", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("h_error_prob", qubit)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", qubit),
                 biased_factor=self.param("biased_factor", qubit),
@@ -273,7 +273,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("S", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("s_error_prob", qubit)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", qubit),
                 biased_factor=self.param("biased_factor", qubit),
@@ -290,7 +290,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("S_DAG", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("sdag_error_prob", qubit)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", qubit),
                 biased_factor=self.param("biased_factor", qubit),
@@ -330,7 +330,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("CNOT", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("cnot_error_prob", *qubit_pair)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", *qubit_pair),
                 biased_factor=self.param("biased_factor", *qubit_pair),
@@ -350,7 +350,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("SWAP", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("swap_error_prob", *qubit_pair)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli", *qubit_pair),
                 biased_factor=self.param("biased_factor", *qubit_pair),
@@ -690,7 +690,7 @@ class ExperimentalNoiseModel(Model):
         circ.append(CircuitInstruction("X", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("x_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
 
         return circ
@@ -702,7 +702,7 @@ class ExperimentalNoiseModel(Model):
         circ.append(CircuitInstruction("Z", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("z_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
 
         return circ
@@ -714,7 +714,7 @@ class ExperimentalNoiseModel(Model):
         circ.append(CircuitInstruction("H", inds))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("h_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -742,7 +742,7 @@ class ExperimentalNoiseModel(Model):
         circ.append(CircuitInstruction("CNOT", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("cnot_error_prob", *qubit_pair)
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
@@ -756,7 +756,7 @@ class ExperimentalNoiseModel(Model):
         circ.append(CircuitInstruction("SWAP", inds))
 
         for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-            prob = self.param("cz_error_prob", *qubit_pair)
+            prob = self.param("swap_error_prob", *qubit_pair)
             circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
@@ -994,11 +994,11 @@ class IncomingNoiseModel(NoiselessModel):
 
         # Split the 'for' loop in two so that the stim diagram looks better
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("idle_error_prob", qubit)
             circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
 
         for qubit, ind in zip(qubits, inds):
-            prob = self.param("sq_error_prob", qubit)
+            prob = self.param("idle_error_prob", qubit)
             circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
 
         return circ

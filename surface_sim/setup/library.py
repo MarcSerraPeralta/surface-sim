@@ -14,7 +14,7 @@ class CircuitNoiseSetup(Setup):
             setup=[
                 dict(
                     sq_error_prob="prob",
-                    cz_error_prob="prob",
+                    tq_error_prob="prob",
                     meas_error_prob="prob",
                     reset_error_prob="prob",
                     idle_error_prob="prob",
