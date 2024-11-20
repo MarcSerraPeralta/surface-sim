@@ -17,6 +17,7 @@ SETUP = {
         "H": 1,
         "CZ": 1,
         "CNOT": 1,
+        "SWAP": 1,
         "M": 1,
         "MX": 1,
         "MY": 1,
@@ -27,7 +28,7 @@ SETUP = {
     "setup": [
         {
             "sq_error_prob": 0.1,
-            "cz_error_prob": 0.1,
+            "tq_error_prob": 0.1,
             "meas_error_prob": 0.1,
             "assign_error_flag": True,
             "assign_error_prob": 0.1,
@@ -67,8 +68,8 @@ def test_NoiselessModel():
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert ops == ["CX"]
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert ops == ["SWAP"]
 
     ops = [o.name for o in model.measure(["D1"])]
     assert ops == ["M"]
@@ -119,8 +120,8 @@ def test_PhenomenologicalNoiseModel():
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert ops == ["CX"]
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert ops == ["SWAP"]
 
     ops = [o.name for o in model.measure(["D1"])]
     assert "M" in ops
@@ -183,6 +184,9 @@ def test_IncomingNoiseModel():
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert ops == ["SWAP"]
+
     ops = [o.name for o in model.measure(["D1"])]
     assert ops == ["M"]
 
@@ -244,6 +248,11 @@ def test_DecoherentNoiseModel():
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert "CX" in ops
     assert set(NOISE_GATES + ["CX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert "SWAP" in ops
+    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.measure(["D1"])]
@@ -325,6 +334,11 @@ def test_ExperimentalNoiseModel():
     assert set(NOISE_GATES + ["CX"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert "SWAP" in ops
+    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.measure(["D1"])]
     assert "M" in ops
     assert set(NOISE_GATES + ["M"]) >= set(ops)
@@ -402,6 +416,11 @@ def test_CircuitNoiseModel():
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert "CX" in ops
     assert set(NOISE_GATES + ["CX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert "SWAP" in ops
+    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.measure(["D1"])]

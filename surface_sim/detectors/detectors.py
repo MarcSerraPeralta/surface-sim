@@ -397,12 +397,17 @@ class Detectors:
                 "Elements in 'reconstructable_stabs' must be present in 'anc_support'."
             )
 
+        # for a logical measurement, one always needs to build the Z- or X-type
+        # detectors (depending on the logical measurement basis). One should not
+        # try to build any other type of detectors as it is not possible (because
+        # we have only measured the data qubits in an specific basis), so we
+        # do not have access to all stabilizers.
         if self.frame == "1":
-            basis = self.init_gen
+            basis = self.curr_gen
         elif self.frame == "r":
             basis = self.curr_gen
         elif self.frame == "r-1":
-            basis = self.prev_gen
+            basis = self.curr_gen
         elif self.frame == "t":
             anc_detector_labels = self.init_gen.stab_gen.values.tolist()
         else:
@@ -525,7 +530,7 @@ def _get_ancilla_meas_for_detectors(
     """
     # matrix inversion is not possible in xarray,
     # thus go to np.ndarrays with correct order of columns and rows.
-    anc_qubits = curr_gen.stab_gen.values
+    anc_qubits = curr_gen.stab_gen.values.tolist()
     curr_gen_arr = curr_gen.sel(stab_gen=anc_qubits).values
     basis_arr = basis.sel(stab_gen=anc_qubits).values
     prev_gen_arr = prev_gen.sel(stab_gen=anc_qubits).values
@@ -634,7 +639,9 @@ def get_support_from_adj_matrix(
     for anc_qubit in anc_qubits:
         support_vec = adjacency_matrix.sel(from_qubit=anc_qubit)
         data_qubits = [
-            q for q, sup in zip(support_vec.to_qubit.values, support_vec) if sup
+            q
+            for q, sup in zip(support_vec.to_qubit.values.tolist(), support_vec)
+            if sup
         ]
         support[anc_qubit] = data_qubits
 

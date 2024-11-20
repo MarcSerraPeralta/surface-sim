@@ -141,6 +141,9 @@ class Model(object):
     def cphase(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
     def measure(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 

@@ -25,8 +25,8 @@ def check_overlap_layout_pair(layout_1: Layout, layout_2: Layout) -> None:
     if inds_1.intersection(inds_2) != set():
         raise ValueError("The layouts have qubits with the same indices.")
 
-    coords_1 = set(layout_1.get_coords(qubits_1))
-    coords_2 = set(layout_2.get_coords(qubits_2))
+    coords_1 = set(map(tuple, layout_1.get_coords(qubits_1)))
+    coords_2 = set(map(tuple, layout_2.get_coords(qubits_2)))
     if coords_1.intersection(coords_2) != set():
         raise ValueError("The layouts have qubits with the same coordinates.")
 
