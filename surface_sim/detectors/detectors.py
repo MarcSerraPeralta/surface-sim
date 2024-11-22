@@ -334,6 +334,9 @@ class Detectors:
         # build the stim circuit
         detectors_stim = stim.Circuit()
         for anc, targets in detectors.items():
+            # simplify the expression of the detectors by removing the pairs
+            targets = remove_pairs(targets)
+
             if anc in anc_qubits:
                 detectors_rec = [get_rec(*t) for t in targets]
             else:
@@ -481,6 +484,9 @@ class Detectors:
         # because they are considered logical operations, not QEC cycles.
         detectors_stim = stim.Circuit()
         for anc, targets in detectors.items():
+            # simplify the expression of the detectors by removing the pairs
+            targets = remove_pairs(targets)
+
             if anc in anc_qubits:
                 detectors_rec = [get_rec(*t) for t in targets]
             else:
@@ -651,3 +657,12 @@ def get_support_from_adj_matrix(
         support[anc_qubit] = data_qubits
 
     return support
+
+
+def remove_pairs(elements: list) -> list:
+    """Removes all possible pairs inside the given list."""
+    output = []
+    for element in elements:
+        if elements.count(element) % 2 == 1:
+            output.append(element)
+    return output
