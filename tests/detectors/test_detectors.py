@@ -7,7 +7,7 @@ from surface_sim.detectors import Detectors
 
 def test_detectors_update():
     anc_qubits = ["X1", "Z1"]
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     unitary_mat = xr.DataArray(
         data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
@@ -70,7 +70,7 @@ def test_detectors_update():
 
 def test_detectors_update_from_dict():
     anc_qubits = ["X1", "Z1"]
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     new_stabs = {"X1": ["X1", "Z1"], "Z1": ["Z1"]}
 
@@ -91,7 +91,7 @@ def test_detectors_update_from_dict():
 
 def test_detectors_new_circuit():
     anc_qubits = ["X1", "Z1"]
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     unitary_mat = xr.DataArray(
         data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
@@ -115,61 +115,6 @@ def test_detectors_new_circuit():
     return
 
 
-def test_detectors_build_from_anc_frame_1():
-    anc_qubits = ["X1", "Z1"]
-    unitary_mat = xr.DataArray(
-        data=[[1, 1], [0, 1]], coords=dict(new_stab_gen=anc_qubits, stab_gen=anc_qubits)
-    )
-    meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
-
-    # FRAME '1' when reseting and not reseting the ancillas
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    detectors.activate_detectors(anc_qubits)
-    detectors.num_rounds = {a: 0 for a in anc_qubits}
-    detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
-    detector_rec = [
-        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
-    ]
-    assert sorted([-102, -101]) in detector_rec
-    assert sorted([-101]) in detector_rec
-
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    detectors.activate_detectors(anc_qubits)
-    detectors.num_rounds = {a: 1 for a in anc_qubits}
-    detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
-    detector_rec = [
-        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
-    ]
-    assert sorted([-102, -101, -202]) in detector_rec
-    assert sorted([-101, -201]) in detector_rec
-
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    detectors.activate_detectors(anc_qubits)
-    detectors.num_rounds = {a: 1 for a in anc_qubits}
-    detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=False)
-    detector_rec = [
-        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
-    ]
-    assert sorted([-102, -101, -202, -201, -202]) in detector_rec
-    assert sorted([-101, -201, -201]) in detector_rec
-
-    detectors = Detectors(anc_qubits=anc_qubits, frame="1")
-    detectors.activate_detectors(anc_qubits)
-    detectors.num_rounds = {a: 2 for a in anc_qubits}
-    detectors.update(unitary_mat)
-    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=False)
-    detector_rec = [
-        sorted([t.value for t in instr.targets_copy()]) for instr in detectors_stim
-    ]
-    assert sorted([-102, -101, -202, -201, -202, -302]) in detector_rec
-    assert sorted([-101, -201, -201, -301]) in detector_rec
-
-    return
-
-
 def test_detectors_build_from_anc_frame_r():
     anc_qubits = ["X1", "Z1"]
     unitary_mat = xr.DataArray(
@@ -178,7 +123,7 @@ def test_detectors_build_from_anc_frame_r():
     meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
 
     # FRAME 'r' when reseting and not reseting the ancillas
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="post-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 0 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -189,7 +134,7 @@ def test_detectors_build_from_anc_frame_r():
     assert sorted([-102]) in detector_rec
     assert sorted([-101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="post-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -200,7 +145,7 @@ def test_detectors_build_from_anc_frame_r():
     assert sorted([-102, -201, -202]) in detector_rec
     assert sorted([-101, -201]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="post-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -211,7 +156,7 @@ def test_detectors_build_from_anc_frame_r():
     assert sorted([-102, -202, -201, -202]) in detector_rec
     assert sorted([-101, -201, -201]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="post-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 2 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -233,7 +178,7 @@ def test_detectors_build_from_anc_frame_r_1():
     meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
 
     # FRAME 'r-1' when reseting and not reseting the ancillas
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 0 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -244,7 +189,7 @@ def test_detectors_build_from_anc_frame_r_1():
     assert sorted([-102, -101]) in detector_rec
     assert sorted([-101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -255,7 +200,7 @@ def test_detectors_build_from_anc_frame_r_1():
     assert sorted([-102, -101, -202]) in detector_rec
     assert sorted([-101, -201]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -266,7 +211,7 @@ def test_detectors_build_from_anc_frame_r_1():
     assert sorted([-102, -101, -202, -201, -202]) in detector_rec
     assert sorted([-101, -201, -201]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="r-1")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 2 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -288,7 +233,7 @@ def test_detectors_build_from_anc_frame_t():
     meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
 
     # FRAME 't' when reseting and not reseting the ancillas
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 0 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -299,7 +244,7 @@ def test_detectors_build_from_anc_frame_t():
     assert sorted([-102]) in detector_rec
     assert sorted([-101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -310,7 +255,7 @@ def test_detectors_build_from_anc_frame_t():
     assert sorted([-102, -202]) in detector_rec
     assert sorted([-101, -201]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -321,7 +266,7 @@ def test_detectors_build_from_anc_frame_t():
     assert sorted([-102]) in detector_rec
     assert sorted([-101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 2 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -352,7 +297,7 @@ def test_detectors_build_from_data_frames():
             rec += data_qubits.index(q) * 10 - 30
             return stim.target_rec(rec)
 
-    for frame in ["1", "r", "r-1"]:
+    for frame in ["post-gate", "pre-gate"]:
         detectors = Detectors(anc_qubits=anc_qubits, frame=frame)
         detectors.activate_detectors(anc_qubits)
         detectors.num_rounds = {a: 0 for a in anc_qubits}
@@ -425,7 +370,7 @@ def test_detectors_build_from_data_frame_t():
             rec += data_qubits.index(q) * 10 - 30
             return stim.target_rec(rec)
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 0 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -438,7 +383,7 @@ def test_detectors_build_from_data_frame_t():
     assert sorted([-130, -120]) in detector_rec
     assert sorted([-110]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -451,7 +396,7 @@ def test_detectors_build_from_data_frame_t():
     assert sorted([-130, -120, -102]) in detector_rec
     assert sorted([-110, -101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 1 for a in anc_qubits}
     detectors.update(unitary_mat)
@@ -464,7 +409,7 @@ def test_detectors_build_from_data_frame_t():
     assert sorted([-130, -120, -102]) in detector_rec
     assert sorted([-110, -101]) in detector_rec
 
-    detectors = Detectors(anc_qubits=anc_qubits, frame="t")
+    detectors = Detectors(anc_qubits=anc_qubits, frame="gate-independent")
     detectors.activate_detectors(anc_qubits)
     detectors.num_rounds = {a: 2 for a in anc_qubits}
     detectors.update(unitary_mat)

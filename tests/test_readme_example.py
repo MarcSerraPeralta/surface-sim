@@ -17,7 +17,7 @@ def test_README_example():
 
     model = CircuitNoiseModel(setup, qubit_inds)
 
-    detectors = Detectors(anc_qubits, frame="1")
+    detectors = Detectors(anc_qubits, frame="pre-gate")
 
     # create a memory experiment
     NUM_ROUNDS = 10

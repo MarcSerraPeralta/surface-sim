@@ -35,16 +35,13 @@ class Detectors:
 
         Notes
         -----
-        Detector frame ``'1'`` builds the detectors in the basis given by the
-        stabilizer generators of the first QEC round.
-
-        Detector frame ``'r'`` builds the detectors in the basis given by the
+        Detector frame ``'post-gate'`` builds the detectors in the basis given by the
         stabilizer generators of the last-measured QEC round.
 
-        Detector frame ``'r-1'`` builds the detectors in the basis given by the
+        Detector frame ``'pre-gate'`` builds the detectors in the basis given by the
         stabilizer generators of the previous-last-measured QEC round.
 
-        Detector frame ``'t'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
+        Detector frame ``'gate-independent'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
         independently of how the stabilizer generators have been transformed.
         """
         if not isinstance(anc_qubits, Sequence):
@@ -53,6 +50,11 @@ class Detectors:
             )
         if not isinstance(frame, str):
             raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
+        if frame not in ["pre-gate", "post-gate", "gate-independent"]:
+            raise ValueError(
+                "'frame' must be 'pre-gate', 'post-gate', or 'gate-independent',"
+                f" but {frame} was given."
+            )
         if anc_coords is None:
             anc_coords = {a: [] for a in anc_qubits}
         if not isinstance(anc_coords, dict):
@@ -277,18 +279,12 @@ class Detectors:
                 f"'get_rec' must be callable, but {type(get_rec)} was given."
             )
 
-        if self.frame == "1":
-            basis = self.init_gen
-        elif self.frame == "r":
+        if self.frame == "post-gate":
             basis = self.curr_gen
-        elif self.frame == "r-1":
+        elif self.frame == "pre-gate":
             basis = self.prev_gen
-        elif self.frame == "t":
+        elif self.frame == "gate-independent":
             anc_detector_labels = self.init_gen.stab_gen.values.tolist()
-        else:
-            raise ValueError(
-                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
-            )
 
         if anc_qubits is None:
             anc_qubits = self.curr_gen.stab_gen.values.tolist()
@@ -302,7 +298,7 @@ class Detectors:
 
         # generate detectors for all ancillas, then remove the ones
         # that are not needed
-        if self.frame != "t":
+        if self.frame != "gate-independent":
             detectors = _get_ancilla_meas_for_detectors(
                 self.curr_gen,
                 self.prev_gen,
@@ -402,18 +398,12 @@ class Detectors:
         # try to build any other type of detectors as it is not possible (because
         # we have only measured the data qubits in an specific basis), so we
         # do not have access to all stabilizers.
-        if self.frame == "1":
+        if self.frame == "post-gate":
             basis = self.curr_gen
-        elif self.frame == "r":
+        elif self.frame == "pre-gate":
             basis = self.curr_gen
-        elif self.frame == "r-1":
-            basis = self.curr_gen
-        elif self.frame == "t":
+        elif self.frame == "gate-independent":
             anc_detector_labels = self.init_gen.stab_gen.values.tolist()
-        else:
-            raise ValueError(
-                f"'frame' must be '1', 'r-1', 'r' or 't', but {self.frame} was given."
-            )
 
         if anc_qubits is None:
             anc_qubits = self.curr_gen.stab_gen.values.tolist()
@@ -430,7 +420,7 @@ class Detectors:
 
         # generate detectors for all ancillas, then remove the ones
         # that are not needed.
-        if self.frame != "t":
+        if self.frame != "gate-independent":
             anc_detectors = _get_ancilla_meas_for_detectors(
                 self.curr_gen,
                 self.prev_gen,
