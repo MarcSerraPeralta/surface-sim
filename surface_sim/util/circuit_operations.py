@@ -86,6 +86,35 @@ def merge_circuits(*circuits: stim.Circuit, check_meas: bool = True) -> stim.Cir
     return merged_circuit
 
 
+def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
+    """Merges tick blocks to simplify the final circuit.
+
+    A valid TICK block is a ``stim.Circuit`` in which the
+    qubits only perform at maximum one operation (without
+    including noise channels).
+    """
+    ops_blocks = [tuple(instr.name for instr in block) for block in blocks]
+    if len(set(len(b) for b in ops_blocks)) != 1:
+        raise ValueError("The given blocks do not have the same number of operatons.")
+
+    mergeable_blocks = {}
+    for block, op_block in zip(blocks, ops_blocks):
+        if op_block not in mergeable_blocks:
+            mergeable_blocks[op_block] = [block]
+        else:
+            mergeable_blocks[op_block].append(block)
+
+    merged_circuit = stim.Circuit()
+    for t, _ in enumerate(ops_blocks[0]):
+        for mblocks in mergeable_blocks.values():
+            for block in mblocks:
+                # the trick with the indices ensures that the returned object
+                # is a stim.Circuit instead of a stim.CircuitInstruction
+                merged_circuit += block[t : t + 1]
+
+    return merged_circuit
+
+
 def merge_qec_rounds(
     qec_round_iterator: Callable,
     model: Model,
@@ -151,7 +180,7 @@ def merge_qec_rounds(
             for l in layouts
         ]
     ):
-        merged_block = merge_circuits(*blocks)
+        merged_block = merge_tick_blocks(*blocks)
 
         if (len(merged_block) != 0) and (merged_block[0].name == "TICK"):
             # avoid multiple 'TICK's in a single block
@@ -255,7 +284,7 @@ def merge_log_meas(
             for l, r in zip(layouts, rot_bases)
         ]
     ):
-        merged_block = merge_circuits(*blocks)
+        merged_block = merge_tick_blocks(*blocks)
 
         if (len(merged_block) != 0) and (merged_block[0].name == "TICK"):
             # avoid multiple 'TICK's in a single block
