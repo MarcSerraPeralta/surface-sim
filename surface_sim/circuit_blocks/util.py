@@ -120,12 +120,10 @@ def log_meas_iterator(
     yield model.tick()
 
     if rot_basis:
-        yield model.hadamard(data_qubits)
-        yield model.idle(anc_qubits)
+        yield model.hadamard(data_qubits) + model.idle(anc_qubits)
         yield model.tick()
 
-    yield model.measure(data_qubits)
-    yield model.idle(anc_qubits)
+    yield model.measure(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
 
@@ -518,12 +516,10 @@ def log_meas_xzzx_iterator(
         rot_qubits.update(neighbors)
     idle_qubits = qubits - rot_qubits
 
-    yield model.hadamard(rot_qubits)
-    yield model.idle(idle_qubits)
+    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
-    yield model.measure(data_qubits)
-    yield model.idle(anc_qubits)
+    yield model.measure(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
 

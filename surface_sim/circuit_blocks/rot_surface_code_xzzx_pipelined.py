@@ -114,8 +114,7 @@ def qec_round_iterator(
     yield model.tick()
 
     if anc_reset:
-        yield model.reset(anc_qubits)
-        yield model.idle(data_qubits)
+        yield model.reset(anc_qubits) + model.idle(data_qubits)
         yield model.tick()
 
     for ind, stab_type in enumerate(stab_types):
@@ -128,8 +127,7 @@ def qec_round_iterator(
 
         if not ind:
             idle_qubits = qubits - rot_qubits
-            yield model.hadamard(rot_qubits)
-            yield model.idle(idle_qubits)
+            yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
             yield model.tick()
 
         for ord_dir in int_order[stab_type]:
@@ -139,8 +137,7 @@ def qec_round_iterator(
             int_qubits = list(chain.from_iterable(int_pairs))
             idle_qubits = qubits - set(int_qubits)
 
-            yield model.cphase(int_qubits)
-            yield model.idle(idle_qubits)
+            yield model.cphase(int_qubits) + model.idle(idle_qubits)
             yield model.tick()
 
         if not ind:
@@ -148,10 +145,8 @@ def qec_round_iterator(
             yield model.tick()
         else:
             idle_qubits = qubits - rot_qubits
-            yield model.hadamard(rot_qubits)
-            yield model.idle(idle_qubits)
+            yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
             yield model.tick()
 
-    yield model.measure(anc_qubits)
-    yield model.idle(data_qubits)
+    yield model.measure(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
