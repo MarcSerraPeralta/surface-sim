@@ -11,7 +11,7 @@ def test_memory_experiment():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
-        layout.get_qubits(role="anc"), frame="1", anc_coords=layout.anc_coords()
+        layout.get_qubits(role="anc"), frame="post-gate", anc_coords=layout.anc_coords()
     )
     circuit = memory_experiment(
         model=model,
@@ -43,7 +43,7 @@ def test_memory_experiment():
 def test_memory_experiment_anc_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds())
-    detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
+    detectors = Detectors(layout.get_qubits(role="anc"), frame="post-gate")
     circuit = memory_experiment(
         model=model,
         layout=layout,
@@ -71,7 +71,7 @@ def test_memory_experiment_anc_detectors():
 def test_memory_experiment_gauge_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds())
-    detectors = Detectors(layout.get_qubits(role="anc"), frame="1")
+    detectors = Detectors(layout.get_qubits(role="anc"), frame="post-gate")
     circuit = memory_experiment(
         model=model,
         layout=layout,
