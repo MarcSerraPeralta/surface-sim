@@ -113,6 +113,7 @@ class Detectors:
                 raise ValueError(f"Ancilla {anc} was already active.")
 
             self.anc_qubits[anc] = True
+            self.num_rounds[anc] = 0
 
         return
 
@@ -132,6 +133,20 @@ class Detectors:
                 raise ValueError(f"Ancilla {anc} was already active.")
 
             self.anc_qubits[anc] = False
+
+            # set the generators to the identity for the deactivated ancillas.
+            # See #149 for more information.
+            for other_anc in self.anc_qubit_labels:
+                anc_ind = self.anc_qubit_labels.index(anc)
+                other_anc_ind = self.anc_qubit_labels.index(other_anc)
+                if other_anc == anc:
+                    self.curr_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
+                    self.prev_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
+                else:
+                    self.curr_gen.loc[dict(stab_gen=other_anc, basis=anc_ind)] = 0
+                    self.curr_gen.loc[dict(stab_gen=anc, basis=other_anc_ind)] = 0
+                    self.prev_gen.loc[dict(stab_gen=other_anc, basis=anc_ind)] = 0
+                    self.prev_gen.loc[dict(stab_gen=anc, basis=other_anc_ind)] = 0
 
         return
 
@@ -319,6 +334,9 @@ class Detectors:
         # build the stim circuit
         detectors_stim = stim.Circuit()
         for anc, targets in detectors.items():
+            # simplify the expression of the detectors by removing the pairs
+            targets = remove_pairs(targets)
+
             if anc in anc_qubits:
                 detectors_rec = [get_rec(*t) for t in targets]
             else:
@@ -466,12 +484,15 @@ class Detectors:
         # because they are considered logical operations, not QEC cycles.
         detectors_stim = stim.Circuit()
         for anc, targets in detectors.items():
+            # simplify the expression of the detectors by removing the pairs
+            targets = remove_pairs(targets)
+
             if anc in anc_qubits:
                 detectors_rec = [get_rec(*t) for t in targets]
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
-            coords = [*self.anc_coords[anc], fake_num_rounds[anc] - 1.5]
+            coords = [*self.anc_coords[anc], self.total_num_rounds - 0.5]
             instr = stim.CircuitInstruction(
                 "DETECTOR", gate_args=coords, targets=detectors_rec
             )
@@ -636,3 +657,12 @@ def get_support_from_adj_matrix(
         support[anc_qubit] = data_qubits
 
     return support
+
+
+def remove_pairs(elements: list) -> list:
+    """Removes all possible pairs inside the given list."""
+    output = []
+    for element in elements:
+        if elements.count(element) % 2 == 1:
+            output.append(element)
+    return output
