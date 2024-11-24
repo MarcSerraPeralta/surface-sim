@@ -12,6 +12,42 @@ from ..detectors import (
 )
 
 
+def qec_circuit(func):
+    """
+    Decorator for adding the attribute ``"qec_circuit"`` and setting it to
+    ``True`` to a function.
+    """
+    func.qec_circuit = True
+    return func
+
+
+def logical_gate(func):
+    """
+    Decorator for adding the attribute ``"log_gate"`` and setting it to
+    ``True`` to a function.
+    """
+    func.log_gate = True
+    return func
+
+
+def qubit_initialization(func):
+    """
+    Decorator for adding the attribute ``"qubit_init"`` and setting it to
+    ``True`` to a function.
+    """
+    func.qubit_init = True
+    return func
+
+
+def logical_measurement(func):
+    """
+    Decorator for adding the attribute ``"log_meas"`` and setting it to
+    ``True`` to a function.
+    """
+    func.log_meas = True
+    return func
+
+
 def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates of the qubits."""
     circuit = Circuit()
@@ -90,6 +126,7 @@ def log_meas(
     return circuit
 
 
+@logical_measurement
 def log_meas_iterator(
     model: Model,
     layout: Layout,
@@ -154,6 +191,7 @@ def init_qubits(
     )
 
 
+@qubit_initialization
 def init_qubits_iterator(
     model: Model,
     layout: Layout,
@@ -196,6 +234,7 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_x_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
@@ -225,6 +264,7 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_z_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate
@@ -262,6 +302,7 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_trans_s_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """Yields the stim circuits corresponding to a transversal logical S gate
     implemented following:
@@ -333,6 +374,7 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_trans_h_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """Yields the stim circuits corresponding to a transversal logical H gate
     implemented following the circuit show in:
@@ -407,6 +449,7 @@ def log_trans_cnot(
     )
 
 
+@logical_gate
 def log_trans_cnot_iterator(
     model: Model, layout_c: Layout, layout_t: Layout
 ) -> Iterator[Circuit]:
@@ -532,6 +575,7 @@ def log_meas_xzzx(
     return circuit
 
 
+@logical_measurement
 def log_meas_xzzx_iterator(
     model: Model,
     layout: Layout,
@@ -584,6 +628,7 @@ def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_x_xzzx_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
@@ -619,6 +664,7 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_z_xzzx_iterator(model=model, layout=layout), start=Circuit())
 
 
+@logical_gate
 def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate
@@ -672,6 +718,7 @@ def init_qubits_xzzx(
     )
 
 
+@qubit_initialization
 def init_qubits_xzzx_iterator(
     model: Model,
     layout: Layout,
