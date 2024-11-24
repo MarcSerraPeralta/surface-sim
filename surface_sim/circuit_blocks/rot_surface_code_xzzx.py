@@ -120,8 +120,7 @@ def qec_round_iterator(
     yield model.tick()
 
     if anc_reset:
-        yield model.reset(anc_qubits)
-        yield model.idle(data_qubits)
+        yield model.reset(anc_qubits) + model.idle(data_qubits)
         yield model.tick()
 
     # a
@@ -137,11 +136,11 @@ def qec_round_iterator(
     rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
     idle_qubits = qubits - rot_qubits
 
-    yield model.hadamard(rot_qubits)
-    yield model.idle(idle_qubits)
+    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # b
+    cz_circuit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -150,18 +149,18 @@ def qec_round_iterator(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        yield model.cphase(int_qubits)
+        cz_circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    yield model.idle(idle_qubits)
+    yield cz_circuit + model.idle(idle_qubits)
     yield model.tick()
 
     # c
-    yield model.hadamard(data_qubits)
-    yield model.idle(anc_qubits)
+    yield model.hadamard(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
     # d
+    cz_circuit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -170,13 +169,14 @@ def qec_round_iterator(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        yield model.cphase(int_qubits)
+        cz_circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    yield model.idle(idle_qubits)
+    yield cz_circuit + model.idle(idle_qubits)
     yield model.tick()
 
     # e
+    cz_circuit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -185,18 +185,18 @@ def qec_round_iterator(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        yield model.cphase(int_qubits)
+        cz_circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    yield model.idle(idle_qubits)
+    yield cz_circuit + model.idle(idle_qubits)
     yield model.tick()
 
     # f
-    yield model.hadamard(data_qubits)
-    yield model.idle(anc_qubits)
+    yield model.hadamard(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
     # g
+    cz_circit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -205,10 +205,10 @@ def qec_round_iterator(
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
 
-        yield model.cphase(int_qubits)
+        cz_circuit += model.cphase(int_qubits)
 
     idle_qubits = qubits - set(interacted_qubits)
-    yield model.idle(idle_qubits)
+    yield cz_circuit + model.idle(idle_qubits)
     yield model.tick()
 
     # h
@@ -224,11 +224,9 @@ def qec_round_iterator(
     rot_qubits.symmetric_difference_update(rot_qubits_xzzx)
     idle_qubits = qubits - rot_qubits
 
-    yield model.hadamard(rot_qubits)
-    yield model.idle(idle_qubits)
+    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # i
-    yield model.measure(anc_qubits)
-    yield model.idle(data_qubits)
+    yield model.measure(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
