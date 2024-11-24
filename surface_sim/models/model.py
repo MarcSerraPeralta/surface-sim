@@ -117,6 +117,7 @@ class Model(object):
         for q_label, q_coords in coords.items():
             q_ind = self._qubit_inds[q_label]
             circ.append(CircuitInstruction("QUBIT_COORDS", [q_ind], q_coords))
+
         return circ
 
     # gate/measurement/reset operations

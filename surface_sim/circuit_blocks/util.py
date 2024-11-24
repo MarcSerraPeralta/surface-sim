@@ -12,15 +12,12 @@ from ..detectors import (
 )
 
 
-def qubit_coords(model: Model, layout: Layout) -> Circuit:
-    """Returns a stim circuit that sets up the coordinates
-    of the qubits.
-    """
-    coord_dict = layout.qubit_coords()
+def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
+    """Returns a stim circuit that sets up the coordinates of the qubits."""
     circuit = Circuit()
-
-    circuit += model.qubit_coords(coord_dict)
-
+    for layout in layouts:
+        coord_dict = layout.qubit_coords()
+        circuit += model.qubit_coords(coord_dict)
     return circuit
 
 
@@ -140,36 +137,68 @@ def init_qubits(
     By default, the logical measurement is in the Z basis.
     If rot_basis, the logical measurement is in the X basis.
     """
+    # activate detectors
+    # the order of activating the detectors or applying the circuit
+    # does not matter because this will be done in a layer of logical operations,
+    # so no QEC cycles are run simultaneously
+    anc_qubits = layout.get_qubits(role="anc")
+    detectors.activate_detectors(anc_qubits)
+    return sum(
+        init_qubits_iterator(
+            model=model,
+            layout=layout,
+            data_init=data_init,
+            rot_basis=rot_basis,
+        ),
+        start=Circuit(),
+    )
+
+
+def init_qubits_iterator(
+    model: Model,
+    layout: Layout,
+    data_init: dict[str, int],
+    rot_basis: bool = False,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization
+    of the given model.
+    By default, the logical measurement is in the Z basis.
+    If rot_basis, the logical measurement is in the X basis.
+    """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
 
-    circuit = Circuit()
-    circuit += model.reset(qubits)
-    circuit += model.tick()
+    yield model.reset(qubits)
+    yield model.tick()
 
+    init_circ = Circuit()
     exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
-        circuit += model.x_gate(exc_qubits)
+        init_circ += model.x_gate(exc_qubits)
 
     idle_qubits = qubits - exc_qubits
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield init_circ + model.idle(idle_qubits)
+    yield model.tick()
 
     if rot_basis:
-        circuit += model.hadamard(data_qubits)
-        circuit += model.idle(anc_qubits)
-        circuit += model.tick()
-
-    # activate detectors
-    detectors.activate_detectors(anc_qubits)
-
-    return circuit
+        yield model.hadamard(data_qubits) + model.idle(anc_qubits)
+        yield model.tick()
 
 
 def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical X gate
+    of the given model.
+    """
+    # the stabilizer generators do not change when applying a logical X gate
+    return sum(log_x_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical X gate
     of the given model.
     """
     anc_qubits = layout.get_qubits(role="anc")
@@ -179,24 +208,26 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     log_qubit_label = layout.get_logical_qubits()[0]
     log_x_qubits = layout.log_x[log_qubit_label]
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     idle_qubits = set(qubits) - set(log_x_qubits)
-    circuit += model.x_gate(log_x_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # the stabilizer generators do not change when applying a logical X gate
-
-    return circuit
+    yield model.x_gate(log_x_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical Z gate
+    of the given model.
+    """
+    # the stabilizer generators do not change when applying a logical Z gate
+    return sum(log_z_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical Z gate
     of the given model.
     """
     anc_qubits = layout.get_qubits(role="anc")
@@ -206,23 +237,33 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     log_qubit_label = layout.get_logical_qubits()[0]
     log_z_qubits = layout.log_z[log_qubit_label]
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     idle_qubits = set(qubits) - set(log_z_qubits)
-    circuit += model.z_gate(log_z_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # the stabilizer generators do not change when applying a logical Z gate
-
-    return circuit
+    yield model.z_gate(log_z_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """Returns the stim circuit corresponding to a transversal logical S gate
+    implemented following:
+
+    https://quantum-journal.org/papers/q-2024-04-08-1310/
+
+    and
+
+    https://doi.org/10.1088/1367-2630/17/8/083026
+    """
+    # update the stabilizer generators
+    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update_from_dict(new_stabs)
+    return sum(log_trans_s_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """Yields the stim circuits corresponding to a transversal logical S gate
     implemented following:
 
     https://quantum-journal.org/papers/q-2024-04-08-1310/
@@ -261,34 +302,39 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
         elif trans_s["local"] == "S_DAG":
             qubits_s_dag_gate.add(data_qubit)
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     # S, S_DAG gates
+    local_circ = Circuit()
     idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
-    circuit += model.s_gate(qubits_s_gate)
-    circuit += model.s_dag_gate(qubits_s_dag_gate)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    local_circ += model.s_gate(qubits_s_gate)
+    local_circ += model.s_dag_gate(qubits_s_dag_gate)
+    yield local_circ + model.idle(idle_qubits)
+    yield model.tick()
 
     # long-range CZ gates
     int_qubits = list(chain.from_iterable(cz_pairs))
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.cphase(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # update the stabilizer generators
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
-    detectors.update_from_dict(new_stabs)
-
-    return circuit
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """Returns the stim circuit corresponding to a transversal logical H gate
+    implemented following the circuit show in:
+
+    https://arxiv.org/pdf/2406.17653
+    """
+    # update the stabilizer generators
+    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update_from_dict(new_stabs)
+    return sum(log_trans_h_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """Yields the stim circuits corresponding to a transversal logical H gate
     implemented following the circuit show in:
 
     https://arxiv.org/pdf/2406.17653
@@ -319,34 +365,51 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
         if trans_h["local"] == "H":
             qubits_h_gate.add(data_qubit)
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     # H gates
     idle_qubits = qubits - qubits_h_gate
-    circuit += model.hadamard(qubits_h_gate)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
+    yield model.tick()
 
     # long-range SWAP gates
     int_qubits = list(chain.from_iterable(swap_pairs))
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.swap(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # update the stabilizer generators
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
-    detectors.update_from_dict(new_stabs)
-
-    return circuit
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def log_trans_cnot(
     model: Model, layout_c: Layout, layout_t: Layout, detectors: Detectors
 ) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical CNOT gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CNOT.
+    layout_t
+        Code layout for the target of the logical CNOT.
+    detectors
+        Detector definitions to use.
+    """
+    # update the stabilizer generators
+    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
+    new_stabs.update(get_new_stab_dict_from_layout(layout_t, gate_label))
+    detectors.update_from_dict(new_stabs)
+    return sum(
+        log_trans_cnot_iterator(model=model, layout_c=layout_c, layout_t=layout_t),
+        start=Circuit(),
+    )
+
+
+def log_trans_cnot_iterator(
+    model: Model, layout_c: Layout, layout_t: Layout
+) -> Iterator[Circuit]:
     """Returns the stim circuit corresponding to a transversal logical CNOT gate.
 
     Parameters
@@ -387,25 +450,14 @@ def log_trans_cnot(
             )
         cnot_pairs.add((data_qubit, trans_cnot["cnot"]))
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits_c)
-    circuit += model.incoming_noise(data_qubits_t)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits_c) + model.incoming_noise(data_qubits_t)
+    yield model.tick()
 
     # long-range CNOT gates
     int_qubits = list(chain.from_iterable(cnot_pairs))
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.cnot(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # update the stabilizer generators
-    new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
-    new_stabs.update(get_new_stab_dict_from_layout(layout_t, gate_label))
-    detectors.update_from_dict(new_stabs)
-
-    return circuit
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def log_meas_xzzx(
@@ -528,16 +580,23 @@ def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     Returns stim circuit corresponding to a logical X gate
     of the given model.
     """
+    # the stabilizer generators do not change when applying a logical X gate
+    return sum(log_x_xzzx_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical X gate
+    of the given model.
+    """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
 
     log_qubit_label = layout.get_logical_qubits()[0]
     log_x_qubits = layout.log_x[log_qubit_label]
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     # apply log X
     rot_qubits = []
@@ -547,19 +606,22 @@ def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     pauli_z = set(d for d in log_x_qubits if d in rot_qubits)
     pauli_x = set(log_x_qubits) - pauli_z
 
-    circuit += model.x_gate(pauli_x)
-    circuit += model.z_gate(pauli_z)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
-
-    # the stabilizer generators do not change when applying a logical X gate
-
-    return circuit
+    yield model.x_gate(pauli_x) + model.z_gate(pauli_z) + model.idle(anc_qubits)
+    yield model.tick()
 
 
 def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical Z gate
+    of the given model.
+    """
+    # the stabilizer generators do not change when applying a logical Z gate
+    return sum(log_z_xzzx_iterator(model=model, layout=layout), start=Circuit())
+
+
+def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical Z gate
     of the given model.
     """
     anc_qubits = layout.get_qubits(role="anc")
@@ -568,10 +630,8 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     log_qubit_label = layout.get_logical_qubits()[0]
     log_z_qubits = layout.log_z[log_qubit_label]
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     # apply log Z
     rot_qubits = []
@@ -581,14 +641,8 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     pauli_x = set(d for d in log_z_qubits if d in rot_qubits)
     pauli_z = set(log_z_qubits) - pauli_x
 
-    circuit += model.x_gate(pauli_x)
-    circuit += model.z_gate(pauli_z)
-    circuit += model.idle(anc_qubits)
-    circuit += model.tick()
-
-    # the stabilizer generators do not change when applying a logical Z gate
-
-    return circuit
+    yield model.x_gate(pauli_x) + model.z_gate(pauli_z) + model.idle(anc_qubits)
+    yield model.tick()
 
 
 def init_qubits_xzzx(
@@ -604,6 +658,32 @@ def init_qubits_xzzx(
     By default, the logical measurement is in the Z basis.
     If rot_basis, the logical measurement is in the X basis.
     """
+    # activate detectors
+    # the order of activating the detectors or applying the circuit
+    # does not matter because this will be done in a layer of logical operations,
+    # so no QEC cycles are run simultaneously
+    anc_qubits = layout.get_qubits(role="anc")
+    detectors.activate_detectors(anc_qubits)
+    return sum(
+        init_qubits_xzzx_iterator(
+            model=model, layout=layout, data_init=data_init, rot_basis=rot_basis
+        ),
+        start=Circuit(),
+    )
+
+
+def init_qubits_xzzx_iterator(
+    model: Model,
+    layout: Layout,
+    data_init: dict[str, int],
+    rot_basis: bool = False,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization
+    of the given model.
+    By default, the logical measurement is in the Z basis.
+    If rot_basis, the logical measurement is in the X basis.
+    """
     if layout.code != "rotated_surface_code":
         raise TypeError(
             f"The given layout is not a rotated surface code, but a {layout.code}"
@@ -613,17 +693,17 @@ def init_qubits_xzzx(
     data_qubits = layout.get_qubits(role="data")
     qubits = set(data_qubits + anc_qubits)
 
-    circuit = Circuit()
-    circuit += model.reset(qubits)
-    circuit += model.tick()
+    yield model.reset(qubits)
+    yield model.tick()
 
+    init_circ = Circuit()
     exc_qubits = set([q for q, s in data_init.items() if s])
     if exc_qubits:
-        circuit += model.x_gate(exc_qubits)
+        init_circ += model.x_gate(exc_qubits)
 
     idle_qubits = qubits - exc_qubits
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+    yield init_circ + model.idle(idle_qubits)
+    yield model.tick()
 
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -633,14 +713,6 @@ def init_qubits_xzzx(
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
 
-    circuit += model.hadamard(rot_qubits)
-
     idle_qubits = qubits - rot_qubits
-
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # activate detectors
-    detectors.activate_detectors(anc_qubits)
-
-    return circuit
+    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
+    yield model.tick()

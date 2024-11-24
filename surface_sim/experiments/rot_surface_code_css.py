@@ -279,10 +279,7 @@ def repeated_cnot_experiment(
     detectors.new_circuit()
 
     experiment = Circuit()
-    experiment += merge_circuits(
-        qubit_coords(model, layout_c),
-        qubit_coords(model, layout_t),
-    )
+    experiment += qubit_coords(model, layout_c, layout_t)
     experiment += merge_circuits(
         init_qubits(
             model, layout_c, detectors, data_init=data_init_c, rot_basis=rot_basis
