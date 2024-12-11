@@ -22,8 +22,6 @@ galois==0.4.2
     # via surface-sim (pyproject.toml)
 kiwisolver==1.4.5
     # via matplotlib
-llvmlite==0.43.0
-    # via numba
 lmfit==1.2.2
     # via qec-util
 matplotlib==3.8.2
