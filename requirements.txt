@@ -30,8 +30,6 @@ netcdf4==1.6.5
     # via surface-sim (pyproject.toml)
 networkx==3.2.1
     # via qec-util
-numba==0.60.0
-    # via galois
 numpy==1.24.4
     # via
     #   cftime
