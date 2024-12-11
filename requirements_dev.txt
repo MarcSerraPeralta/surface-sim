@@ -43,8 +43,6 @@ iniconfig==2.0.0
     # via pytest
 kiwisolver==1.4.5
     # via matplotlib
-llvmlite==0.34.0
-    # via numba
 lmfit==1.3.2
     # via qec-util
 matplotlib==3.9.2
