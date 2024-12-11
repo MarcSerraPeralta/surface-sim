@@ -13,13 +13,6 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Branch: ${{ github.head_ref }}"
 
-      - name: setup ssh-keys for clonning over ssh
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          name: id_ed25519
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
-
       - name: checkout to branch
         uses: actions/checkout@v3
         with:
@@ -36,4 +29,4 @@ jobs:
           pip install .[dev]
           
       - name: execute pytest
-        run: pytest tests/
+        run: pytest
