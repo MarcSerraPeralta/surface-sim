@@ -1,6 +1,6 @@
 # Surface-sim
 
-![example workflow](https://github.com/MarcSerraPeralta/surface-sim/actions/workflows/actions.yaml/badge.svg)
+![example workflow](https://github.com/MarcSerraPeralta/surface-sim/actions/workflows/ci_pipeline.yaml/badge.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![PyPI](https://img.shields.io/pypi/v/surface-sim?label=pypi%20package)
 
