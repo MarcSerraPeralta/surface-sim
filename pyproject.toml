@@ -21,7 +21,7 @@ dependencies = [
     "xarray",
     "PyYAML",
     "netCDF4",
-    "stim >= 1.13.0", # for 'likeliest_error_sat_problem'
+    "stim >= 1.14.0", # for 'likeliest_error_sat_problem' and 'Circuit.pop'
     "qec-util",
     "python-sat",
     "galois",
