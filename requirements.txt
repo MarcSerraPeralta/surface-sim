@@ -22,6 +22,8 @@ galois==0.4.2
     # via surface-sim (pyproject.toml)
 kiwisolver==1.4.5
     # via matplotlib
+llvmlite==0.43.0
+    # via numba
 lmfit==1.2.2
     # via qec-util
 matplotlib==3.8.2
@@ -30,6 +32,8 @@ netcdf4==1.6.5
     # via surface-sim (pyproject.toml)
 networkx==3.2.1
     # via qec-util
+numba==0.60.0
+    # via galois
 numpy==1.24.4
     # via
     #   cftime
