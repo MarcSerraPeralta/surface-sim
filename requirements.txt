@@ -79,7 +79,7 @@ six==1.16.0
     # via
     #   python-dateutil
     #   python-sat
-stim==1.13.0
+stim==1.14.0
     # via surface-sim (pyproject.toml)
 typing-extensions==4.12.2
     # via galois
