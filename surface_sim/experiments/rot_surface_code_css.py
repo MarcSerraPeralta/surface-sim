@@ -9,7 +9,7 @@ from ..circuit_blocks.rot_surface_code_css import (
     qec_round,
     qec_round_iterator,
     qubit_coords,
-    log_trans_s,
+    log_fold_trans_s,
     log_trans_cnot,
 )
 from ..models import Model
@@ -177,7 +177,7 @@ def repeated_s_experiment(
     experiment += qec_round(model, layout, detectors, anc_reset, first_dets)
 
     for _ in range(num_s_gates):
-        experiment += log_trans_s(model, layout, detectors)
+        experiment += log_fold_trans_s(model, layout, detectors)
         for _ in range(num_rounds_per_gate):
             experiment += qec_round(model, layout, detectors, anc_reset, anc_detectors)
     experiment += log_meas(
