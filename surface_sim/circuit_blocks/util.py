@@ -829,8 +829,8 @@ def init_qubits_xzzx(
     """
     Returns stim circuit corresponding to a logical initialization
     of the given model.
-    By default, the logical measurement is in the Z basis.
-    If rot_basis, the logical measurement is in the X basis.
+    By default, the logical initialization is in the Z basis.
+    If rot_basis, the logical initialization is in the X basis.
     """
     # activate detectors
     # the order of activating the detectors or applying the circuit
