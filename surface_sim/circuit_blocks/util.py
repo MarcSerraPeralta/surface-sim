@@ -14,37 +14,37 @@ from ..detectors import (
 
 def qec_circuit(func):
     """
-    Decorator for adding the attribute ``"qec_circuit"`` and setting it to
-    ``True`` to a function.
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"qec_cycle"`` to a function.
     """
-    func.qec_circuit = True
+    func.log_op_type = "qec_cycle"
     return func
 
 
 def logical_gate(func):
     """
-    Decorator for adding the attribute ``"log_gate"`` and setting it to
-    ``True`` to a function.
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"unitary_gate"`` to a function.
     """
-    func.log_gate = True
+    func.log_op_type = "unitary_gate"
     return func
 
 
 def qubit_initialization(func):
     """
-    Decorator for adding the attribute ``"qubit_init"`` and setting it to
-    ``True`` to a function.
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"qubit_init"`` to a function.
     """
-    func.qubit_init = True
+    func.log_op_type = "qubit_init"
     return func
 
 
 def logical_measurement(func):
     """
-    Decorator for adding the attribute ``"log_meas"`` and setting it to
-    ``True`` to a function.
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"measurement"`` to a function.
     """
-    func.log_meas = True
+    func.log_op_type = "measurement"
     return func
 
 
