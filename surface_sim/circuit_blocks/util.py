@@ -161,6 +161,38 @@ def log_meas_iterator(
     yield model.tick()
 
 
+@logical_measurement
+def log_meas_z_iterator(model: Model, layout: Layout):
+    """
+    Yields stim circuit blocks which in total correspond to a logical Z measurement
+    of the given model without the definition of the detectors and observables.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    """
+    yield from log_meas_iterator(model=model, layout=layout, rot_basis=False)
+
+
+@logical_measurement
+def log_meas_x_iterator(model: Model, layout: Layout):
+    """
+    Yields stim circuit blocks which in total correspond to a logical X measurement
+    of the given model without the definition of the detectors and observables.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    """
+    yield from log_meas_iterator(model=model, layout=layout, rot_basis=True)
+
+
 def init_qubits(
     model: Model,
     layout: Layout,
@@ -201,8 +233,8 @@ def init_qubits_iterator(
     """
     Yields stim circuits corresponding to a logical initialization
     of the given model.
-    By default, the logical measurement is in the Z basis.
-    If rot_basis, the logical measurement is in the X basis.
+    By default, the logical initialization is in the Z basis.
+    If rot_basis, the logical initialization is in the X basis.
     """
     anc_qubits = layout.get_qubits(role="anc")
     data_qubits = layout.get_qubits(role="data")
@@ -223,6 +255,84 @@ def init_qubits_iterator(
     if rot_basis:
         yield model.hadamard(data_qubits) + model.idle(anc_qubits)
         yield model.tick()
+
+
+@qubit_initialization
+def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |0>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_initialization
+def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |1>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_qubits = layout.get_qubits(role="data")
+    data_init = {q: 1 for q in data_qubits}
+    if len(data_qubits) % 2 == 0:
+        # ensure that the bistring corresponds to the |1> state
+        data_init[data_qubits[-1]] = 0
+
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_initialization
+def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |+>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )
+
+
+@qubit_initialization
+def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |->
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_qubits = layout.get_qubits(role="data")
+    data_init = {q: 1 for q in data_qubits}
+    if len(data_qubits) % 2 == 0:
+        # ensure that the bistring corresponds to the |-> state
+        data_init[data_qubits[-1]] = 0
+
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )
 
 
 def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
@@ -285,7 +395,7 @@ def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     yield model.tick()
 
 
-def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """Returns the stim circuit corresponding to a transversal logical S gate
     implemented following:
 
@@ -299,11 +409,11 @@ def log_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
     new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update_from_dict(new_stabs)
-    return sum(log_trans_s_iterator(model=model, layout=layout), start=Circuit())
+    return sum(log_fold_trans_s_iterator(model=model, layout=layout), start=Circuit())
 
 
 @logical_gate
-def log_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """Yields the stim circuits corresponding to a transversal logical S gate
     implemented following:
 
@@ -361,7 +471,7 @@ def log_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     yield model.tick()
 
 
-def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """Returns the stim circuit corresponding to a transversal logical H gate
     implemented following the circuit show in:
 
@@ -371,12 +481,12 @@ def log_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
     new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update_from_dict(new_stabs)
-    return sum(log_trans_h_iterator(model=model, layout=layout), start=Circuit())
+    return sum(log_fold_trans_h_iterator(model=model, layout=layout), start=Circuit())
 
 
 @logical_gate
-def log_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
-    """Yields the stim circuits corresponding to a transversal logical H gate
+def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """Yields the stim circuits corresponding to a fold-transversal logical H gate
     implemented following the circuit show in:
 
     https://arxiv.org/pdf/2406.17653
@@ -619,6 +729,24 @@ def log_meas_xzzx_iterator(
     yield model.tick()
 
 
+@logical_measurement
+def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical Z measurement
+    of the given model without the definition of the detectors and observables.
+    """
+    yield from log_meas_xzzx_iterator(model=model, layout=layout, rot_basis=False)
+
+
+@logical_measurement
+def log_meas_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical X measurement
+    of the given model without the definition of the detectors and observables.
+    """
+    yield from log_meas_xzzx_iterator(model=model, layout=layout, rot_basis=True)
+
+
 def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     """
     Returns stim circuit corresponding to a logical X gate
@@ -701,8 +829,8 @@ def init_qubits_xzzx(
     """
     Returns stim circuit corresponding to a logical initialization
     of the given model.
-    By default, the logical measurement is in the Z basis.
-    If rot_basis, the logical measurement is in the X basis.
+    By default, the logical initialization is in the Z basis.
+    If rot_basis, the logical initialization is in the X basis.
     """
     # activate detectors
     # the order of activating the detectors or applying the circuit
@@ -763,3 +891,81 @@ def init_qubits_xzzx_iterator(
     idle_qubits = qubits - rot_qubits
     yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
     yield model.tick()
+
+
+@qubit_initialization
+def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |0>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    yield from init_qubits_xzzx_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_initialization
+def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |1>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_qubits = layout.get_qubits(role="data")
+    data_init = {q: 1 for q in data_qubits}
+    if len(data_qubits) % 2 == 0:
+        # ensure that the bistring corresponds to the |1> state
+        data_init[data_qubits[-1]] = 0
+
+    yield from init_qubits_xzzx_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_initialization
+def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |+>
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    yield from init_qubits_xzzx_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )
+
+
+@qubit_initialization
+def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |->
+    state of the given model.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_qubits = layout.get_qubits(role="data")
+    data_init = {q: 1 for q in data_qubits}
+    if len(data_qubits) % 2 == 0:
+        # ensure that the bistring corresponds to the |-> state
+        data_init[data_qubits[-1]] = 0
+
+    yield from init_qubits_xzzx_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )

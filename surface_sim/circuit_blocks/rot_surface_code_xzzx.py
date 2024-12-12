@@ -11,19 +11,34 @@ from .util import qec_circuit
 # methods to have in this script
 from .util import qubit_coords
 from .util import log_x_xzzx as log_x
+from .util import log_x_xzzx_iterator as log_x_iterator
 from .util import log_z_xzzx as log_z
+from .util import log_z_xzzx_iterator as log_z_iterator
 from .util import log_meas_xzzx as log_meas
 from .util import log_meas_xzzx_iterator as log_meas_iterator
 from .util import init_qubits_xzzx as init_qubits
+from .util import init_qubits_xzzx_iterator as init_qubits_iterator
+from .util import init_qubits_z0_xzzx_iterator as init_qubits_z0_iterator
+from .util import init_qubits_z1_xzzx_iterator as init_qubits_z1_iterator
+from .util import init_qubits_x0_xzzx_iterator as init_qubits_x0_iterator
+from .util import init_qubits_x1_xzzx_iterator as init_qubits_x1_iterator
 
 __all__ = [
     "qubit_coords",
     "log_meas",
     "log_meas_iterator",
     "log_x",
+    "log_x_iterator",
     "log_z",
-    "qec_round",
+    "log_z_iterator",
     "init_qubits",
+    "init_qubits_iterator",
+    "init_qubits_z0_iterator",
+    "init_qubits_z1_iterator",
+    "init_qubits_x0_iterator",
+    "init_qubits_x1_iterator",
+    "qec_round",
+    "qec_round_iterator",
 ]
 
 
