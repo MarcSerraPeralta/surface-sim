@@ -6,6 +6,7 @@ from stim import Circuit
 from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
+from .util import qec_circuit
 
 # methods to have in this script
 from .util import (
@@ -87,6 +88,7 @@ def qec_round(
     return circuit
 
 
+@qec_circuit
 def qec_round_iterator(
     model: Model,
     layout: Layout,

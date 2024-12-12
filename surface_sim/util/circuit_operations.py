@@ -89,14 +89,25 @@ def merge_circuits(*circuits: stim.Circuit, check_meas: bool = True) -> stim.Cir
 def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
     """Merges tick blocks to simplify the final circuit.
 
-    A valid TICK block is a ``stim.Circuit`` in which the
-    qubits only perform at maximum one operation (without
-    including noise channels).
+    Parameters
+    ----------
+    blocks
+        Each block is a stim.Circuit. They all must have the same
+        number of instructions.
+        A valid TICK block is a ``stim.Circuit`` in which the
+        qubits only perform at maximum one operation (without
+        including noise channels).
+
+    Notes
+    -----
+    The instructions in the output have been sorted so that
+    the lenght of the output circuit is minimal.
     """
     ops_blocks = [tuple(instr.name for instr in block) for block in blocks]
     if len(set(len(b) for b in ops_blocks)) != 1:
         raise ValueError("The given blocks do not have the same number of operatons.")
 
+    # check which blocks can be merged to reduce the output circuit length
     mergeable_blocks = {}
     for block, op_block in zip(blocks, ops_blocks):
         if op_block not in mergeable_blocks:
