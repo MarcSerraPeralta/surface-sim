@@ -100,7 +100,7 @@ def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
 
     Notes
     -----
-    The instructions in the output have been sorted so that 
+    The instructions in the output have been sorted so that
     the lenght of the output circuit is minimal.
     """
     ops_blocks = [tuple(instr.name for instr in block) for block in blocks]
