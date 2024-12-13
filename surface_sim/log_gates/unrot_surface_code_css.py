@@ -4,7 +4,7 @@ import networkx as nx
 from ..layouts import Layout, check_overlap_layouts
 
 
-def set_trans_s(layout: Layout, data_qubit: str) -> None:
+def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     """Adds the required attributes (in place) for the layout to run the transversal S
     gate for the unrotated surface code.
 
@@ -246,7 +246,7 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
     return
 
 
-def set_trans_h(layout: Layout, data_qubit: str) -> None:
+def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
     """Adds the required attributes (in place) for the layout to run the transversal H
     gate for the unrotated surface code.
 

@@ -8,7 +8,7 @@ from surface_sim.experiments.rot_surface_code_css_pipelined import (
 )
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
-from surface_sim.log_gates.rot_surface_code_css import set_trans_s
+from surface_sim.log_gates.rot_surface_code_css import set_fold_trans_s
 
 
 def test_memory_experiment():
@@ -47,7 +47,7 @@ def test_memory_experiment():
 
 def test_repeated_s_experiment():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
-    set_trans_s(layout, "D1")
+    set_fold_trans_s(layout, "D1")
     model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(
         layout.get_qubits(role="anc"), frame="post-gate", anc_coords=layout.anc_coords()
@@ -112,7 +112,7 @@ def test_memory_experiment_anc_detectors():
 
 def test_repeated_s_experiment_anc_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
-    set_trans_s(layout, "D1")
+    set_fold_trans_s(layout, "D1")
     model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="post-gate")
     circuit = repeated_s_experiment(
@@ -172,7 +172,7 @@ def test_memory_experiment_gauge_detectors():
 
 def test_repeated_s_experiment_gauge_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
-    set_trans_s(layout, "D1")
+    set_fold_trans_s(layout, "D1")
     model = NoiselessModel(layout.qubit_inds())
     detectors = Detectors(layout.get_qubits(role="anc"), frame="post-gate")
     circuit = repeated_s_experiment(
