@@ -307,11 +307,21 @@ def merge_qec_rounds(
         raise TypeError(
             f"'qec_round_iterator' must be callable, but {type(qec_round_iterator)} was given."
         )
+    if "log_op_type" not in dir(qec_round_iterator):
+        raise TypeError(
+            "'qec_round_iterator' must have the appropiate decorator. "
+            "See `surface_sim.circuit_blocks` for more information."
+        )
+    if qec_round_iterator.log_op_type != "qec_cycle":
+        raise TypeError(
+            f"'qec_round_iterator' must be a QEC cycle, not a {qec_round_iterator.log_op_type}."
+        )
     if anc_detectors is not None:
         anc_qubits = [l.get_qubits(role="anc") for l in layouts]
         if set(anc_detectors) > set(sum(anc_qubits, start=[])):
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
+    tick = stim.Circuit("TICK")
     circuit = stim.Circuit()
     for blocks in zip(
         *[
@@ -319,14 +329,11 @@ def merge_qec_rounds(
             for l in layouts
         ]
     ):
-        merged_block = merge_tick_blocks(*blocks)
+        # avoid multiple 'TICK's in a single block
+        if tick in blocks:
+            blocks = [tick]
 
-        if (len(merged_block) != 0) and (merged_block[0].name == "TICK"):
-            # avoid multiple 'TICK's in a single block
-            circuit.append(merged_block[0])
-            continue
-
-        circuit += merged_block
+        circuit += merge_tick_blocks(*blocks)
 
     # add detectors
     circuit += detectors.build_from_anc(
@@ -350,6 +357,11 @@ def merge_log_meas(
     Merges the yielded circuits of the logical measurement iterator for each
     of the layouts and returns the circuit corresponding to the join of all
     these merges and the detector and observable definitions.
+
+    IMPORTANT: this function is only kept here for compatibility and it may
+    be removed in newer releases. The correct way of merging logical measurement
+    is by using ``merge_ops`` and using the specific logical measurement iterators
+    of each basis. Note that in this function one needs to specify the basis.
 
     Parameters
     ----------
@@ -416,6 +428,7 @@ def merge_log_meas(
         if set(anc_detectors) > set(sum(anc_qubits, start=[])):
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
+    tick = stim.Circuit("TICK")
     circuit = stim.Circuit()
     for blocks in zip(
         *[
@@ -423,14 +436,11 @@ def merge_log_meas(
             for l, r in zip(layouts, rot_bases)
         ]
     ):
-        merged_block = merge_tick_blocks(*blocks)
+        # avoid multiple 'TICK's in a single block
+        if tick in blocks:
+            blocks = [tick]
 
-        if (len(merged_block) != 0) and (merged_block[0].name == "TICK"):
-            # avoid multiple 'TICK's in a single block
-            circuit.append(merged_block[0])
-            continue
-
-        circuit += merged_block
+        circuit += merge_tick_blocks(*blocks)
 
     # add detectors
     all_stabs = []
