@@ -177,42 +177,23 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
     gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     # Obtain the mapping of qubits of one layout to qubits of the other layout
-    gm = nx.isomorphism.DiGraphMatcher(layout_c.graph, layout_t.graph)
-    if not gm.is_isomorphic:
-        raise ValueError(
-            "The two given layouts for the t-CNOT are not isomorphic,"
-            "meaning that they don't have the same Tanner graph."
-        )
+    gm = nx.isomorphism.GraphMatcher(
+        layout_c.graph.to_undirected(reciprocal=True),
+        layout_t.graph.to_undirected(reciprocal=True),
+    )
 
-    # https://stackoverflow.com/questions/60820193/networkx-digraphmatcher-returns-no-results-on-directed-graphs
-    # The solution to the problem described above is to use 'subgraph_monomorphisms_iter'.
-    # We find 4 monomorphisms as the graphs are equal up to 90 degree rotations
-    monomorphisms = list(gm.subgraph_monomorphisms_iter())
-    if len(monomorphisms) == 0:
-        raise ValueError(
-            "No monomorphism for the layouts has been found. "
-            "Check that the layouts have the appropiate graphs."
-        )
-    # The monomorphism we want is the one in which all the physical CNOTs
+    # The isomorphism we want is the one in which all the physical CNOTs
     # are parallel between each other.
     mapping_c_to_t = None
-    for monomorphism in monomorphisms:
-        correct = True
-
-        c, t = next(iter(monomorphism.items()))
-        coords1 = np.array(layout_c.get_coords([c])[0])
-        coords2 = np.array(layout_t.get_coords([t])[0])
-        base_vector = coords2 - coords1
-        for c, t in monomorphism.items():
-            coords1 = np.array(layout_c.get_coords([c])[0])
-            coords2 = np.array(layout_t.get_coords([t])[0])
-            vector = coords2 - coords1
-            if not np.allclose(vector, base_vector):
-                correct = False
-                break
-
-        if correct:
-            mapping_c_to_t = monomorphism
+    for isomorphism in gm.match():
+        c = list(isomorphism)
+        t = [isomorphism[i] for i in c]
+        coords1 = np.array(layout_c.get_coords(c))
+        coords2 = np.array(layout_t.get_coords(t))
+        vector = coords2 - coords1
+        if np.isclose(vector, vector[0]).all():
+            mapping_c_to_t = isomorphism
+            break
 
     if mapping_c_to_t is None:
         raise ValueError("No mapping between layouts could be found.")

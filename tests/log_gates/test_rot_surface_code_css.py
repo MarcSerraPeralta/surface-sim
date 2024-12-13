@@ -68,14 +68,15 @@ def test_set_fold_trans_s():
 
 
 def test_set_trans_cnot():
-    layout_c = rot_surface_code(distance=3)
+    distance = 9
+    layout_c = rot_surface_code(distance=distance)
     layout_t = rot_surface_code(
-        distance=3,
+        distance=distance,
         logical_qubit_label="L1",
-        init_point=(20, 20),
-        init_data_qubit_id=20,
-        init_zanc_qubit_id=9,
-        init_xanc_qubit_id=9,
+        init_point=(1000, 1000),
+        init_data_qubit_id=1000,
+        init_zanc_qubit_id=1000,
+        init_xanc_qubit_id=1000,
         init_ind=layout_c.get_max_ind() + 1,
     )
     set_trans_cnot(layout_c, layout_t)
@@ -85,7 +86,7 @@ def test_set_trans_cnot():
     new_stab_x = [
         layout_c.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stabs
     ]
-    assert new_stab_x == [[i, f"X{int(i[1:])+9-1}"] for i in x_stabs]
+    assert new_stab_x == [[i, f"X{int(i[1:])+1000-1}"] for i in x_stabs]
 
     x_stabs = layout_t.get_qubits(role="anc", stab_type="x_type")
     new_stab_x = [
@@ -97,7 +98,7 @@ def test_set_trans_cnot():
     new_stab_z = [
         layout_t.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stabs
     ]
-    assert new_stab_z == [[i, f"Z{int(i[1:])-9+1}"] for i in z_stabs]
+    assert new_stab_z == [[i, f"Z{int(i[1:])-1000+1}"] for i in z_stabs]
 
     z_stabs = layout_c.get_qubits(role="anc", stab_type="z_type")
     new_stab_z = [
@@ -107,7 +108,7 @@ def test_set_trans_cnot():
 
     data_qubits = layout_c.get_qubits(role="data")
     cz_gates = [layout_c.param(gate_label, d)["cnot"] for d in data_qubits]
-    assert cz_gates == [f"D{int(i[1:])+20-1}" for i in data_qubits]
+    assert cz_gates == [f"D{int(i[1:])+1000-1}" for i in data_qubits]
 
     new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
     x_stabs = layout_c.get_qubits(role="anc", stab_type="x_type")
