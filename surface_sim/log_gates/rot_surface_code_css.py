@@ -6,7 +6,7 @@ import networkx as nx
 from ..layouts import Layout, check_overlap_layouts
 
 
-def set_trans_s(layout: Layout, data_qubit: str) -> None:
+def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     """Adds the required attributes (in place) for the layout to run the transversal S
     gate for the rotated surface code.
 

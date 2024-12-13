@@ -1,11 +1,11 @@
-from surface_sim.log_gates.rot_surface_code_css import set_trans_s, set_trans_cnot
+from surface_sim.log_gates.rot_surface_code_css import set_fold_trans_s, set_trans_cnot
 from surface_sim.layouts import rot_surface_code_rectangle, rot_surface_code
 from surface_sim.detectors import get_new_stab_dict_from_layout
 
 
-def test_set_trans_s():
+def test_set_fold_trans_s():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
-    set_trans_s(layout, "D1")
+    set_fold_trans_s(layout, "D1")
     gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
 
     x_stab = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
