@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 
 from surface_sim import Layout
-from surface_sim.layouts import unrot_surface_code, unrot_surface_code_rectangle
+from surface_sim.layouts import (
+    unrot_surface_code,
+    unrot_surface_code_rectangle,
+    unrot_surface_codes,
+)
 from surface_sim.layouts import plot
 
 
@@ -56,5 +60,22 @@ def test_unrot_surface_code_rectangle(show_figures):
         _, ax = plt.subplots()
         plot(ax, layout, stim_orientation=False)
         plt.show()
+
+    return
+
+
+def test_unrot_surface_codes():
+    layouts = unrot_surface_codes(2, distance=3)
+
+    assert isinstance(layouts, list)
+    assert len(layouts) == 2
+
+    layout_0, layout_1 = layouts
+    assert set(
+        ["trans-h_L0", "trans-s_L0", "trans-cnot_L0_L1", "trans-cnot_L1_L0"]
+    ) < set(layout_0.to_dict()["layout"][0].keys())
+    assert set(
+        ["trans-h_L1", "trans-s_L1", "trans-cnot_L0_L1", "trans-cnot_L1_L0"]
+    ) < set(layout_1.to_dict()["layout"][0].keys())
 
     return
