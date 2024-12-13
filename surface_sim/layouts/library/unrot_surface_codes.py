@@ -4,6 +4,11 @@ from itertools import count
 
 from ..layout import Layout
 from .util import is_valid, invert_shift, _check_distance
+from ...log_gates.unrot_surface_code_css import (
+    set_fold_trans_s,
+    set_fold_trans_h,
+    set_trans_cnot,
+)
 
 
 def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int:
@@ -284,3 +289,5 @@ def unrot_surface_code(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
     )
+
+
