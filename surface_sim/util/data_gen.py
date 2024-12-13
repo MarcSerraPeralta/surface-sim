@@ -2,7 +2,7 @@ import numpy as np
 from stim import Circuit
 from xarray import DataArray, Dataset
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 
 
 def sample_memory_experiment(

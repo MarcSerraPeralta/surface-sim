@@ -1,7 +1,8 @@
 import numpy as np
 import networkx as nx
 
-from ..layouts import Layout, check_overlap_layouts
+from ..layouts.layout import Layout
+from ..layouts.operations import check_overlap_layouts
 
 
 def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:

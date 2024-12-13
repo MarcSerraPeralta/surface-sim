@@ -6,7 +6,7 @@ import xarray as xr
 import galois
 import stim
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 
 
 GF2 = galois.GF(2)

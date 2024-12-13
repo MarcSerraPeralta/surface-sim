@@ -4,6 +4,11 @@ from itertools import count
 
 from ..layout import Layout
 from .util import is_valid, invert_shift, _check_distance
+from ...log_gates.unrot_surface_code_css import (
+    set_fold_trans_s,
+    set_fold_trans_h,
+    set_trans_cnot,
+)
 
 
 def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int:
@@ -284,3 +289,53 @@ def unrot_surface_code(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
     )
+
+
+def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
+    """
+    Returns a list of unrotated surface codes of the specified distance that
+    are set up to be used in any logical circuit (i.e. they have all the
+    required logical gate attributes).
+
+    Parameters
+    ----------
+    num_layouts
+        Number of layouts to generate.
+    distance
+        The distance of the layouts.
+
+    Returns
+    -------
+    layouts
+        List of layouts.
+    """
+    if not isinstance(num_layouts, int):
+        raise TypeError(
+            f"'num_layouts' must be an int, but {type(num_layouts)} was given."
+        )
+
+    layouts = []
+    num_data = 2 * distance * (distance - 1) + 1
+    num_anc = num_data - 1
+    for k in range(num_layouts):
+        layout = unrot_surface_code(
+            distance=distance,
+            logical_qubit_label=f"L{k}",
+            init_point=(0, 2 * distance * k),
+            init_data_qubit_id=1 + k * num_data,
+            init_zanc_qubit_id=1 + k * num_anc // 2,
+            init_xanc_qubit_id=1 + k * num_anc // 2,
+            init_ind=k * (num_data + num_anc),
+        )
+        layouts.append(layout)
+
+    # set up the parameters for all the logical gates
+    for k, layout in enumerate(layouts):
+        set_fold_trans_h(layout, data_qubit=f"D{1 + k*num_data}")
+        set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        for other_layout in layouts:
+            if layout == other_layout:
+                continue
+            set_trans_cnot(layout, other_layout)
+
+    return layouts

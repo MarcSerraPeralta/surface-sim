@@ -3,7 +3,7 @@ from itertools import chain
 
 import stim
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 from ..detectors import Detectors, get_support_from_adj_matrix
 from ..models import Model
 

@@ -4,6 +4,7 @@ from .library import (
     rot_surface_code_rectangle,
     unrot_surface_code,
     unrot_surface_code_rectangle,
+    unrot_surface_codes,
 )
 from .plotter import plot
 from .util import set_coords
@@ -15,6 +16,7 @@ __all__ = [
     "rot_surface_code_rectangle",
     "unrot_surface_code",
     "unrot_surface_code_rectangle",
+    "unrot_surface_codes",
     "plot",
     "set_coords",
     "check_overlap_layouts",

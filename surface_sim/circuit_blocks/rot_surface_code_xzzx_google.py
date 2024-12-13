@@ -8,7 +8,7 @@ from itertools import chain
 
 from stim import Circuit
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors, get_support_from_adj_matrix
 

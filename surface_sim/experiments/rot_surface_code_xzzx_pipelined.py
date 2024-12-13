@@ -1,6 +1,6 @@
 from stim import Circuit
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 from ..circuit_blocks.rot_surface_code_xzzx_pipelined import (
     init_qubits,
     log_meas,

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from stim import Circuit
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 from ..circuit_blocks.unrot_surface_code_css import (
     init_qubits,
     log_meas,

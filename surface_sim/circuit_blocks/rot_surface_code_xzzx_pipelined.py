@@ -3,7 +3,7 @@ from itertools import chain
 
 from stim import Circuit
 
-from ..layouts import Layout
+from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
 from .decorators import qec_circuit
