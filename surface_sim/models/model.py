@@ -101,9 +101,12 @@ class Model(object):
 
     # annotation operations
     def tick(self) -> Circuit:
-        circ = Circuit()
-        circ.append(CircuitInstruction("TICK", targets=[]))
-        return circ
+        """
+        This method must not be overwritten as the there are functions
+        (e.g. ``merge_qec_rounds``) that assume that 'TICK' instructions
+        are not preceded or followed by any other instruction.
+        """
+        return Circuit("TICK")
 
     def qubit_coords(self, coords: dict[str, list]) -> Circuit:
         if set(coords) > set(self._qubit_inds):

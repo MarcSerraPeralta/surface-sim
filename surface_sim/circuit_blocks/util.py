@@ -10,42 +10,12 @@ from ..detectors import (
     get_new_stab_dict_from_layout,
     get_support_from_adj_matrix,
 )
-
-
-def qec_circuit(func):
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"qec_cycle"`` to a function.
-    """
-    func.log_op_type = "qec_cycle"
-    return func
-
-
-def logical_gate(func):
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"unitary_gate"`` to a function.
-    """
-    func.log_op_type = "unitary_gate"
-    return func
-
-
-def qubit_initialization(func):
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"qubit_init"`` to a function.
-    """
-    func.log_op_type = "qubit_init"
-    return func
-
-
-def logical_measurement(func):
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"measurement"`` to a function.
-    """
-    func.log_op_type = "measurement"
-    return func
+from .decorators import (
+    qubit_initialization,
+    logical_gate,
+    logical_measurement_z,
+    logical_measurement_x,
+)
 
 
 def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
@@ -126,7 +96,6 @@ def log_meas(
     return circuit
 
 
-@logical_measurement
 def log_meas_iterator(
     model: Model,
     layout: Layout,
@@ -161,7 +130,7 @@ def log_meas_iterator(
     yield model.tick()
 
 
-@logical_measurement
+@logical_measurement_z
 def log_meas_z_iterator(model: Model, layout: Layout):
     """
     Yields stim circuit blocks which in total correspond to a logical Z measurement
@@ -177,7 +146,7 @@ def log_meas_z_iterator(model: Model, layout: Layout):
     yield from log_meas_iterator(model=model, layout=layout, rot_basis=False)
 
 
-@logical_measurement
+@logical_measurement_x
 def log_meas_x_iterator(model: Model, layout: Layout):
     """
     Yields stim circuit blocks which in total correspond to a logical X measurement
@@ -685,7 +654,6 @@ def log_meas_xzzx(
     return circuit
 
 
-@logical_measurement
 def log_meas_xzzx_iterator(
     model: Model,
     layout: Layout,
@@ -729,7 +697,7 @@ def log_meas_xzzx_iterator(
     yield model.tick()
 
 
-@logical_measurement
+@logical_measurement_z
 def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical Z measurement
@@ -738,7 +706,7 @@ def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     yield from log_meas_xzzx_iterator(model=model, layout=layout, rot_basis=False)
 
 
-@logical_measurement
+@logical_measurement_x
 def log_meas_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical X measurement

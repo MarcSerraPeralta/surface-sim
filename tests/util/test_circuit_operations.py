@@ -5,10 +5,13 @@ from surface_sim.util.circuit_operations import (
     merge_circuits,
     merge_qec_rounds,
     merge_log_meas,
+    merge_ops,
 )
 from surface_sim.circuit_blocks.unrot_surface_code_css import (
     qec_round_iterator,
     log_meas_iterator,
+    log_meas_z_iterator,
+    log_x_iterator,
 )
 from surface_sim.models import NoiselessModel
 from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_code
@@ -59,7 +62,7 @@ def test_merge_circuits():
         """
         M 0
         TICK
-        M 1
+        X 1
         """
     )
 
@@ -106,6 +109,31 @@ def test_merge_log_meas():
         detectors,
         rot_bases=[{"L0": True}, {"L1": True}],
         anc_reset=True,
+    )
+
+    assert isinstance(circuit, stim.Circuit)
+
+    return
+
+
+def test_merge_ops():
+    layout = unrot_surface_code(distance=3, logical_qubit_label="L0")
+    other_layout = unrot_surface_code(distance=3, logical_qubit_label="L1")
+    model = NoiselessModel(layout.qubit_inds())
+    detectors = Detectors(
+        layout.get_qubits(role="anc"), frame="pre-gate", anc_coords=layout.anc_coords()
+    )
+
+    circuit = merge_ops(
+        [
+            (log_meas_z_iterator, layout),
+            (log_x_iterator, other_layout),
+        ],
+        model,
+        detectors,
+        log_obs_inds=0,
+        anc_reset=True,
+        anc_detectors=["X1"],
     )
 
     assert isinstance(circuit, stim.Circuit)
