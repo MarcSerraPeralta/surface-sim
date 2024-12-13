@@ -79,9 +79,9 @@ def merge_ops(
     ops: list[tuple[Callable, Layout] | tuple[Callable, Layout, Layout]],
     model: Model,
     detectors: Detectors,
+    log_obs_inds: dict[str, int] | int,
     anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    log_obs_inds: dict[str, int] | None = None,
 ) -> stim.Circuit:
     """
     Returns a circuit in which the given iterators have been merged and idle
@@ -102,6 +102,13 @@ def merge_ops(
         Noise model for the gates.
     detectors
         Detector definitions to use.
+    log_obs_inds
+        List of dictionaries to be used when defining the logical observable
+        arguments. The key specifies the logical qubit label and the value
+        specifies the index to be used for the stim arguments.
+        It can also be an integer. Then the arguments for the OBSERVABLE_INCLUDE
+        will be the given integer and increments of it by 1 so that all
+        observables are different.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
         By default ``True``.
@@ -109,10 +116,6 @@ def merge_ops(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    log_obs_inds
-        List of dictionaries to be used when defining the logical observable
-        arguments. The key specifies the logical qubit label and the value
-        specifies the index to be used for the stim arguments.
 
     Returns
     -------
@@ -132,7 +135,12 @@ def merge_ops(
             "The operation functions must have the appropiate decorator. "
             "See `surface_sim.circuit_blocks` for more information."
         )
-    if (log_obs_inds is not None) and (not isinstance(log_obs_inds, dict)):
+    if any(i[0].log_op_type == "qec_cycle" for i in ops):
+        raise TypeError(
+            "This function only accepts to merge non-QEC-cycle operations. "
+            "To merge QEC cycles, use `merge_qec_rounds`."
+        )
+    if (not isinstance(log_obs_inds, int)) and (not isinstance(log_obs_inds, dict)):
         raise TypeError(
             f"'log_obs_inds' must be a dict, but {type(log_obs_inds)} was given."
         )
@@ -191,14 +199,16 @@ def merge_ops(
                 log_data_qubits = log_qubits_support[log_qubit_label]
                 targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
                 instr = stim.CircuitInstruction(
-                    "OBSERVABLE_INCLUDE",
+                    name="OBSERVABLE_INCLUDE",
                     targets=targets,
                     gate_args=(
                         [log_obs_inds[log_qubit_label]]
-                        if log_obs_inds is not None
-                        else []
+                        if not isinstance(log_obs_inds, int)
+                        else [log_obs_inds]
                     ),
                 )
+                if isinstance(log_obs_inds, int):
+                    log_obs_inds += 1
                 circuit.append(instr)
 
     return circuit

@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .util import qec_circuit
+from .decorators import qec_circuit
 
 # methods to have in this script
 from .util import qubit_coords
@@ -16,6 +16,8 @@ from .util import log_z_xzzx as log_z
 from .util import log_z_xzzx_iterator as log_z_iterator
 from .util import log_meas_xzzx as log_meas
 from .util import log_meas_xzzx_iterator as log_meas_iterator
+from .util import log_meas_z_xzzx_iterator as log_meas_z_iterator
+from .util import log_meas_x_xzzx_iterator as log_meas_x_iterator
 from .util import init_qubits_xzzx as init_qubits
 from .util import init_qubits_xzzx_iterator as init_qubits_iterator
 from .util import init_qubits_z0_xzzx_iterator as init_qubits_z0_iterator
@@ -27,6 +29,8 @@ __all__ = [
     "qubit_coords",
     "log_meas",
     "log_meas_iterator",
+    "log_meas_z_iterator",
+    "log_meas_x_iterator",
     "log_x",
     "log_x_iterator",
     "log_z",
