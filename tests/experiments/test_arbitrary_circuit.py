@@ -21,18 +21,13 @@ def test_schedule_from_circuit():
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 
-    list_num_ops = [3, 1, 2, 1, 2]
-    for ops, num_ops in zip(schedule, list_num_ops):
-        assert len(ops) == num_ops
-        if num_ops == 1:
-            assert ops[0][0].log_op_type == "qec_cycle"
+    assert len(schedule) == 9
 
-    list_num_layouts = [[1, 1, 1], [0], [1, 1], [0], [2, 2]]
-    for ops, num_layouts in zip(schedule, list_num_layouts):
-        for op, num_l in zip(ops, num_layouts):
-            assert len(op) == num_l + 1
-            assert all(isinstance(l, Layout) for l in op[1:])
-            if num_l != 0:
-                assert op[0].log_op_type != "qec_cycle"
+    list_num_layouts = [1, 1, 1, 0, 1, 1, 0, 2, 2]
+    for op, num_layouts in zip(schedule, list_num_layouts):
+        assert len(op) == num_layouts + 1
+        assert all(isinstance(l, Layout) for l in op[1:])
+        if num_layouts != 0:
+            assert op[0].log_op_type != "qec_cycle"
 
     return

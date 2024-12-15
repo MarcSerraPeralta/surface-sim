@@ -1,13 +1,12 @@
 from collections.abc import Callable, Sequence, Iterable
 
-import numpy as np
 import stim
 
 from ..util.circuit_operations import merge_ops, merge_qec_rounds
 from ..layouts.layout import Layout
 
 SCHEDULE = list[
-    list[tuple[Callable] | tuple[Callable, Layout] | tuple[Callable, Layout, Layout]]
+    tuple[Callable] | tuple[Callable, Layout] | tuple[Callable, Layout, Layout]
 ]
 
 
@@ -32,17 +31,16 @@ def schedule_from_circuit(
     Returns
     -------
     schedule
-        List of operations to be applied in a single time slice for all (active)
-        layouts. See Notes for more information about the format.
+        List of operations to be applied to a single qubit or pair of qubits.
+        See Notes for more information about the format.
 
     Notes
     -----
     The format of the schedule is the following. Each element of the list
-    is a list of operations to be applied in a single time slice. These operations
-    are have the following form:
-    - ``tuple[Callable]`` when performing a QEC cycle to all layouts
-    - ``tuple[Callable, Layout]`` when performing a single-qubit operation
-    - ``tuple[Callable, Layout, Layout]`` when performing a two-qubit gate.
+    is an operation to be applied to the qubits:
+    - ``tuple[Callable]`` performs a QEC cycle to all layouts
+    - ``tuple[Callable, Layout]`` performs a single-qubit operation
+    - ``tuple[Callable, Layout, Layout]`` performs a two-qubit gate.
 
     For example, the following circuit
 
@@ -57,20 +55,12 @@ def schedule_from_circuit(
 
     .. code:
         [
-                [
-                    (reset_z_iterator, layout_0),
-                    (reset_z_iterator, layout_1),
-                ],
-                [
-                    (qec_round_iterator,),
-                ],
-                [
-                    (log_x_iterator, layout_1),
-                    (log_meas_z, layout_0),
-                ],
-                [
-                    (qec_round_iterator,),
-                ],
+            (reset_z_iterator, layout_0),
+            (reset_z_iterator, layout_1),
+            (qec_round_iterator,),
+            (log_x_iterator, layout_1),
+            (log_meas_z, layout_0),
+            (qec_round_iterator,),
         ]
 
     """
@@ -105,12 +95,10 @@ def schedule_from_circuit(
             "Not all operations in 'circuit' are present in 'gate_to_iterator'."
         )
 
-    schedule = [[]]
+    schedule = []
     for instr in circuit:
         if instr.name == "TICK":
-            schedule.append([])
-            schedule[-1].append((gate_to_iterator["TICK"],))
-            schedule.append([])
+            schedule.append((gate_to_iterator["TICK"],))
             continue
 
         func_iter = gate_to_iterator[instr.name]
@@ -118,10 +106,10 @@ def schedule_from_circuit(
 
         if func_iter.log_op_type == "tq_unitary_gate":
             for i, j in _grouper(targets, 2):
-                schedule[-1].append((func_iter, layouts[i], layouts[j]))
+                schedule.append((func_iter, layouts[i], layouts[j]))
         else:
             for i in targets:
-                schedule[-1].append((func_iter, layouts[i]))
+                schedule.append((func_iter, layouts[i]))
 
     return schedule
 
@@ -132,9 +120,40 @@ def experiment_from_schedule(
     anc_detectors: list[str] | None = None,
 ) -> stim.Circuit:
     """
-    TODO
+    Returns a stim circuit corresponding to a logical experiment
+    corresponding to the given schedule.
+
+    Parameters
+    ----------
+    schedule
+        List of operations to be applied to a single qubit or pair of qubits.
+        See Notes of ``schedule_from_circuit`` for more information about the format.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        By default ``True``.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
+
+    Returns
+    -------
+    experiment
+        Stim circuit corresponding to the logical equivalent of the
+        given schedule.
     """
+    layouts = set()
+    for ops in schedule:
+        for op in ops:
+            layouts.update(set(op[1:]))
+
     experiment = stim.Circuit()
+    activate_layouts = {l: False for l in layouts}
+    for ops in schedule:
+        "DO I NEED TO HAVE TWO LOOPS? OR WITH ONE IS JUST FINE?"
+        "I.E. HAVE ALL THE GATES IN SCHEDULE, NOT IN A LIST INSIDE SCHEDULE"
+        "THEN IT IS THE JOB OF THIS FUNCTION TO FIGURE OUT HOW TO MANAGE THEM,"
+        "BUT THAT IT IS EASY"
     return experiment
 
 
