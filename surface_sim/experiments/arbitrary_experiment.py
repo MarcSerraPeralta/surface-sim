@@ -81,6 +81,8 @@ def schedule_from_circuit(
     circuit = circuit.flattened()
     if not isinstance(layouts, Sequence):
         raise TypeError(f"'layouts' must be a list, but {type(layouts)} was given.")
+    if circuit.num_qubits > len(layouts):
+        raise ValueError("There are more qubits in the circuit than in 'layouts'.")
     if any(not isinstance(l, Layout) for l in layouts):
         raise TypeError("All elements in 'layouts' must be a Layout.")
     if not isinstance(gate_to_iterator, dict):
@@ -112,14 +114,14 @@ def schedule_from_circuit(
             continue
 
         func_iter = gate_to_iterator[instr.name]
-        targets = instr.targets_copy()
+        targets = [t.value for t in instr.targets_copy()]
 
         if func_iter.log_op_type == "tq_unitary_gate":
             for i, j in _grouper(targets, 2):
-                schedule.append((func_iter, layouts[i], layouts[j]))
+                schedule[-1].append((func_iter, layouts[i], layouts[j]))
         else:
             for i in targets:
-                schedule.append((func_iter, layouts[i]))
+                schedule[-1].append((func_iter, layouts[i]))
 
     return schedule
 

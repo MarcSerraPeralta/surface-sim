@@ -57,6 +57,7 @@ __all__ = [
     "log_trans_cnot_iterator",
     "qec_round",
     "qec_round_iterator",
+    "gate_to_iterator",
 ]
 
 
@@ -253,3 +254,20 @@ def qec_round_iterator(
     # i
     yield model.measure(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
+
+
+gate_to_iterator = {
+    "TICK": qec_round_iterator,
+    "S": log_fold_trans_s_iterator,
+    "H": log_fold_trans_h_iterator,
+    "X": log_x_iterator,
+    "Z": log_z_iterator,
+    "CX": log_trans_cnot_iterator,
+    "CNOT": log_trans_cnot_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}

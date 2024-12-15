@@ -529,7 +529,7 @@ def log_trans_cnot(
     )
 
 
-@tw_gate
+@tq_gate
 def log_trans_cnot_iterator(
     model: Model, layout_c: Layout, layout_t: Layout
 ) -> Iterator[Circuit]:
