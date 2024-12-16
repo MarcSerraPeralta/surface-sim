@@ -130,7 +130,7 @@ class Detectors:
 
         for anc in anc_qubits:
             if not self.anc_qubits[anc]:
-                raise ValueError(f"Ancilla {anc} was already active.")
+                raise ValueError(f"Ancilla {anc} was already inactive.")
 
             self.anc_qubits[anc] = False
 

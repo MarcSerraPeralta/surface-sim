@@ -11,6 +11,7 @@ from .decorators import qec_circuit
 # methods to have in this script
 from .util import (
     qubit_coords,
+    idle_iterator,
     log_meas,
     log_meas_iterator,
     log_meas_z_iterator,
@@ -35,6 +36,7 @@ from .util import (
 
 __all__ = [
     "qubit_coords",
+    "idle_iterator",
     "log_meas",
     "log_meas_iterator",
     "log_meas_z_iterator",
@@ -258,6 +260,7 @@ def qec_round_iterator(
 
 gate_to_iterator = {
     "TICK": qec_round_iterator,
+    "I": idle_iterator,
     "S": log_fold_trans_s_iterator,
     "H": log_fold_trans_h_iterator,
     "X": log_x_iterator,

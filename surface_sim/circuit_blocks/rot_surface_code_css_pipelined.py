@@ -11,6 +11,7 @@ from .decorators import qec_circuit
 # methods to have in this script
 from .util import (
     qubit_coords,
+    idle_iterator,
     log_meas,
     log_meas_iterator,
     log_meas_z_iterator,
@@ -33,6 +34,7 @@ from .util import (
 
 __all__ = [
     "qubit_coords",
+    "idle_iterator",
     "log_meas",
     "log_meas_iterator",
     "log_meas_z_iterator",

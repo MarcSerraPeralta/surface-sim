@@ -4,6 +4,9 @@ import stim
 
 from ..util.circuit_operations import merge_ops, merge_qec_rounds
 from ..layouts.layout import Layout
+from ..models.model import Model
+from ..detectors.detectors import Detectors
+from ..circuit_blocks.util import qubit_coords
 
 SCHEDULE = list[
     tuple[Callable] | tuple[Callable, Layout] | tuple[Callable, Layout, Layout]
@@ -116,8 +119,11 @@ def schedule_from_circuit(
 
 def experiment_from_schedule(
     schedule: SCHEDULE,
+    model: Model,
+    detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
+    ensure_idling: bool = True,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -128,6 +134,10 @@ def experiment_from_schedule(
     schedule
         List of operations to be applied to a single qubit or pair of qubits.
         See Notes of ``schedule_from_circuit`` for more information about the format.
+    model
+        Noise model for the gates.
+    detectors
+        Object to build the detectors.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
         By default ``True``.
@@ -135,6 +145,12 @@ def experiment_from_schedule(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
+    ensure_idling
+        Flag to check that all active layouts are participating in one operation
+        in each time slice. This ensures that idling time has not been forgotten
+        when building the schedule.
+        By default ``True``.
+
 
     Returns
     -------
@@ -143,17 +159,108 @@ def experiment_from_schedule(
         given schedule.
     """
     layouts = set()
-    for ops in schedule:
-        for op in ops:
-            layouts.update(set(op[1:]))
+    for op in schedule:
+        layouts.update(set(op[1:]))
 
     experiment = stim.Circuit()
-    activate_layouts = {l: False for l in layouts}
-    for ops in schedule:
-        "DO I NEED TO HAVE TWO LOOPS? OR WITH ONE IS JUST FINE?"
-        "I.E. HAVE ALL THE GATES IN SCHEDULE, NOT IN A LIST INSIDE SCHEDULE"
-        "THEN IT IS THE JOB OF THIS FUNCTION TO FIGURE OUT HOW TO MANAGE THEM,"
-        "BUT THAT IT IS EASY"
+    active_layouts = {l: False for l in layouts}
+    num_gates = {l: 0 for l in layouts}
+    num_log_meas = 0
+    log_obs_inds = {}
+    curr_block = []
+
+    experiment += qubit_coords(model, *layouts)
+    for op in schedule:
+        func = op[0]
+
+        if func.log_op_type == "qec_cycle":
+            # flush all stored operations in current block
+            curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
+            if ensure_idling and curr_num_gates != set([1]):
+                raise ValueError(
+                    "Not all active layouts are participating in an operation. "
+                    f"active layouts: {active_layouts}\noperations: {num_gates}"
+                )
+
+            experiment += merge_ops(
+                ops=curr_block,
+                model=model,
+                detectors=detectors,
+                log_obs_inds=log_obs_inds,
+                anc_reset=anc_reset,
+                anc_detectors=anc_detectors,
+            )
+            num_gates = {l: 0 for l in layouts}
+            num_log_meas = 0
+            log_obs_inds = {}
+            curr_block = []
+
+            # run QEC cycle
+            experiment += merge_qec_rounds(
+                qec_round_iterator=func,
+                model=model,
+                layouts=[l for l, a in active_layouts.items() if a],
+                detectors=detectors,
+                anc_reset=anc_reset,
+                anc_detectors=anc_detectors,
+            )
+            continue
+
+        # update the number of gates so that we know if we need to flush the
+        # current operations or if we need to store the current one in 'curr_block'
+        for l in op[1:]:
+            num_gates[l] += 1
+
+        # check for flushing the operations in case a layout would be doing more
+        # more than one operation. If not, store current operation in 'curr_block'
+        if any(n > 1 for n in num_gates.values()):
+            for l in op[1:]:
+                num_gates[l] -= 1
+            curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
+            if ensure_idling and curr_num_gates != set([1]):
+                raise ValueError(
+                    "Not all active layouts are participating in an operation. "
+                    f"active layouts: {active_layouts}\noperations: {num_gates}"
+                )
+            experiment += merge_ops(
+                ops=curr_block,
+                model=model,
+                detectors=detectors,
+                log_obs_inds=log_obs_inds,
+                anc_reset=anc_reset,
+                anc_detectors=anc_detectors,
+            )
+            num_gates = {l: 0 for l in layouts}
+            num_log_meas = 0
+            log_obs_inds = {}
+            curr_block = [op]
+        else:
+            curr_block.append(op)
+
+        if func.log_op_type == "measurement":
+            active_layouts[op[1]] = False
+            log_obs_inds[op[1].get_logical_qubits()[0]] = num_log_meas
+            num_log_meas += 1
+        if func.log_op_type == "qubit_init":
+            active_layouts[op[1]] = True
+
+    # flush remaining operations
+    if len(curr_block) != 0:
+        curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
+        if ensure_idling and curr_num_gates != set([1]):
+            raise ValueError(
+                "Not all active layouts are participating in an operation. "
+                f"active layouts: {active_layouts}\noperations: {num_gates}"
+            )
+        experiment += merge_ops(
+            ops=curr_block,
+            model=model,
+            detectors=detectors,
+            log_obs_inds=log_obs_inds,
+            anc_reset=anc_reset,
+            anc_detectors=anc_detectors,
+        )
+
     return experiment
 
 

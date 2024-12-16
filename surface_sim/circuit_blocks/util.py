@@ -28,6 +28,28 @@ def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
     return circuit
 
 
+@sq_gate
+def idle_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical idling
+    of the given model.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    """
+    data_qubits = layout.get_qubits(role="data")
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    yield model.idle(data_qubits)
+    yield model.tick()
+
+
 def log_meas(
     model: Model,
     layout: Layout,

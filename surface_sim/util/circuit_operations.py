@@ -211,6 +211,18 @@ def merge_ops(
                     log_obs_inds += 1
                 circuit.append(instr)
 
+    # check if detectors need to be activated or deactivated.
+    # This needs to be done after defining the detectors because if not,
+    # they won't be defined as they will correspond to inactive ancillas.
+    reset_ops = [k for k, i in enumerate(ops) if i[0].log_op_type == "qubit_init"]
+    if len(meas_ops + reset_ops) != 0:
+        for k in meas_ops:
+            anc_qubits = ops[k][1].get_qubits(role="anc")
+            detectors.deactivate_detectors(anc_qubits)
+        for k in reset_ops:
+            anc_qubits = ops[k][1].get_qubits(role="anc")
+            detectors.activate_detectors(anc_qubits)
+
     return circuit
 
 
@@ -220,22 +232,18 @@ def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
     Parameters
     ----------
     blocks
-        Each block is a stim.Circuit. They all must have the same
-        number of instructions.
+        Each block is a stim.Circuit.
         A valid TICK block is a ``stim.Circuit`` in which the
         qubits only perform at maximum one operation (without
         including noise channels).
 
     Notes
     -----
-    The instructions in the output have been sorted so that
+    The instructions in the output have been (correctly) sorted so that
     the lenght of the output circuit is minimal.
     """
-    ops_blocks = [tuple(instr.name for instr in block) for block in blocks]
-    if len(set(len(b) for b in ops_blocks)) != 1:
-        raise ValueError("The given blocks do not have the same number of operatons.")
-
     # check which blocks can be merged to reduce the output circuit length
+    ops_blocks = [tuple(instr.name for instr in block) for block in blocks]
     mergeable_blocks = {}
     for block, op_block in zip(blocks, ops_blocks):
         if op_block not in mergeable_blocks:
@@ -243,10 +251,13 @@ def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
         else:
             mergeable_blocks[op_block].append(block)
 
+    max_length = len(max(ops_blocks, key=lambda x: len(x)))
     merged_circuit = stim.Circuit()
-    for t, _ in enumerate(ops_blocks[0]):
+    for t in range(max_length):
         for mblocks in mergeable_blocks.values():
             for block in mblocks:
+                if t > len(blocks):
+                    continue
                 # the trick with the indices ensures that the returned object
                 # is a stim.Circuit instead of a stim.CircuitInstruction
                 merged_circuit += block[t : t + 1]
