@@ -26,9 +26,6 @@ LAYOUT_DICT = {
             "ind": 0,
             "neighbors": {
                 "south_east": "X1",
-                "north_east": None,
-                "north_west": None,
-                "south_west": None,
             },
             "qubit": "D1",
         },
@@ -40,9 +37,6 @@ LAYOUT_DICT = {
             "ind": 1,
             "neighbors": {
                 "south_west": "X1",
-                "north_east": None,
-                "north_west": None,
-                "south_east": None,
             },
             "qubit": "D2",
         },
@@ -55,8 +49,6 @@ LAYOUT_DICT = {
             "neighbors": {
                 "north_east": "D2",
                 "north_west": "D1",
-                "south_east": None,
-                "south_west": None,
             },
             "qubit": "X1",
         },

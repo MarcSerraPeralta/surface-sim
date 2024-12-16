@@ -141,12 +141,6 @@ class Layout:
                 edge_dir = edge_attrs["direction"]
                 nbr_dict[edge_dir] = nbr_node
 
-            for ver_dir in ("north", "south"):
-                for hor_dir in ("east", "west"):
-                    edge_dir = f"{ver_dir}_{hor_dir}"
-                    if edge_dir not in nbr_dict:
-                        nbr_dict[edge_dir] = None
-
             node_dict["neighbors"] = nbr_dict
 
             layout.append(node_dict)
