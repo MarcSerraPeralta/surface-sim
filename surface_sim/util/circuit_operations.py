@@ -4,7 +4,11 @@ from itertools import chain
 import stim
 
 from ..layouts.layout import Layout
-from ..detectors import Detectors, get_support_from_adj_matrix
+from ..detectors import (
+    Detectors,
+    get_support_from_adj_matrix,
+    get_new_stab_dict_from_layout,
+)
 from ..models import Model
 
 
@@ -169,6 +173,19 @@ def merge_ops(
         circuit += merge_tick_blocks(*curr_block)
 
         curr_block = [next(g, None) for g in generators]
+
+    # update the detectors due to unitary gates
+    for op in ops:
+        func, layouts = op[0], op[1:]
+        if func.log_op_type not in ["sq_unitary_gate", "tq_unitary_gate"]:
+            continue
+
+        gate_label = func.__name__.replace("_iterator", "_")
+        gate_label += "_".join([l.get_logical_qubits()[0] for l in layouts])
+        new_stabs = get_new_stab_dict_from_layout(layouts[0], gate_label)
+        if len(layouts) == 2:
+            new_stabs.update(get_new_stab_dict_from_layout(layouts[1], gate_label))
+        detectors.update_from_dict(new_stabs)
 
     # check if detectors needs to be built because of measurements
     meas_ops = [k for k, i in enumerate(ops) if i[0].log_op_type == "measurement"]
