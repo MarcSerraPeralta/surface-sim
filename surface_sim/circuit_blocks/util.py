@@ -12,7 +12,8 @@ from ..detectors import (
 )
 from .decorators import (
     qubit_initialization,
-    logical_gate,
+    sq_gate,
+    tq_gate,
     logical_measurement_z,
     logical_measurement_x,
 )
@@ -25,6 +26,28 @@ def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
         coord_dict = layout.qubit_coords()
         circuit += model.qubit_coords(coord_dict)
     return circuit
+
+
+@sq_gate
+def idle_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which in total correspond to a logical idling
+    of the given model.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    """
+    data_qubits = layout.get_qubits(role="data")
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    yield model.idle(data_qubits)
+    yield model.tick()
 
 
 def log_meas(
@@ -313,7 +336,7 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_x_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
@@ -343,7 +366,7 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_z_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate
@@ -381,7 +404,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
     return sum(log_fold_trans_s_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """Yields the stim circuits corresponding to a transversal logical S gate
     implemented following:
@@ -453,7 +476,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
     return sum(log_fold_trans_h_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """Yields the stim circuits corresponding to a fold-transversal logical H gate
     implemented following the circuit show in:
@@ -528,7 +551,7 @@ def log_trans_cnot(
     )
 
 
-@logical_gate
+@tq_gate
 def log_trans_cnot_iterator(
     model: Model, layout_c: Layout, layout_t: Layout
 ) -> Iterator[Circuit]:
@@ -724,7 +747,7 @@ def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_x_xzzx_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
@@ -760,7 +783,7 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
     return sum(log_z_xzzx_iterator(model=model, layout=layout), start=Circuit())
 
 
-@logical_gate
+@sq_gate
 def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate

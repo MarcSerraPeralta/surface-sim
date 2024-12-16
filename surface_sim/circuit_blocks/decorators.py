@@ -14,12 +14,22 @@ def qec_circuit(func):
     return func
 
 
-def logical_gate(func):
+def sq_gate(func):
     """
     Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"unitary_gate"`` to a function.
+    ``"sq_unitary_gate"`` to a function.
     """
-    func.log_op_type = "unitary_gate"
+    func.log_op_type = "sq_unitary_gate"
+    return func
+
+
+def tq_gate(func):
+    """
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"tq_unitary_gate"`` to a function.
+    """
+    func.log_op_type = "tq_unitary_gate"
+    func.num_qubits = 1
     return func
 
 

@@ -9,7 +9,7 @@ from ..detectors import Detectors
 from .decorators import qec_circuit
 
 # methods to have in this script
-from .util import qubit_coords
+from .util import qubit_coords, idle_iterator
 from .util import log_x_xzzx as log_x
 from .util import log_x_xzzx_iterator as log_x_iterator
 from .util import log_z_xzzx as log_z
@@ -27,6 +27,7 @@ from .util import init_qubits_x1_xzzx_iterator as init_qubits_x1_iterator
 
 __all__ = [
     "qubit_coords",
+    "idle_iterator",
     "log_meas",
     "log_meas_iterator",
     "log_meas_z_iterator",
