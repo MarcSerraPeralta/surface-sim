@@ -202,6 +202,15 @@ class CircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
         circ = Circuit()
 
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits)
+
+        return circ
+
+    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
         for qubit, ind in zip(qubits, inds):
             prob = self.param("idle_error_prob", qubit)
             circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
@@ -454,6 +463,15 @@ class BiasedCircuitNoiseModel(Model):
         inds = self.get_inds(qubits)
         circ = Circuit()
 
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits)
+
+        return circ
+
+    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
         for qubit, ind in zip(qubits, inds):
             prob = self.param("idle_error_prob", qubit)
             prefactors = biased_prefactors(
@@ -499,14 +517,14 @@ class DecoherenceNoiseModel(Model):
         if self._sym_noise:
             duration = 0.5 * self.gate_duration(name)
 
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
             circ.append(CircuitInstruction(name, targets=self.get_inds(qubits)))
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
         else:
             duration = self.gate_duration(name)
 
             circ.append(CircuitInstruction(name, targets=self.get_inds(qubits)))
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
         return circ
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
@@ -539,7 +557,7 @@ class DecoherenceNoiseModel(Model):
         if self._sym_noise:
             duration = 0.5 * self.gate_duration(name)
 
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
             for qubit in qubits:
                 self.add_meas(qubit)
 
@@ -554,7 +572,7 @@ class DecoherenceNoiseModel(Model):
                     circ.append(
                         CircuitInstruction(name, targets=self.get_inds([qubit]))
                     )
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
         else:
             duration = self.gate_duration(name)
 
@@ -562,7 +580,7 @@ class DecoherenceNoiseModel(Model):
                 self.add_meas(qubit)
 
                 circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle(qubit, duration)
+                circ += self.idle_noise(qubit, duration)
         return circ
 
     def measure_x(self, qubits: Iterable[str]) -> Circuit:
@@ -571,7 +589,7 @@ class DecoherenceNoiseModel(Model):
         if self._sym_noise:
             duration = 0.5 * self.gate_duration(name)
 
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
             for qubit in qubits:
                 self.add_meas(qubit)
 
@@ -586,7 +604,7 @@ class DecoherenceNoiseModel(Model):
                     circ.append(
                         CircuitInstruction(name, targets=self.get_inds([qubit]))
                     )
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
         else:
             duration = self.gate_duration(name)
 
@@ -594,7 +612,7 @@ class DecoherenceNoiseModel(Model):
                 self.add_meas(qubit)
 
                 circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle(qubit, duration)
+                circ += self.idle_noise(qubit, duration)
         return circ
 
     def measure_y(self, qubits: Iterable[str]) -> Circuit:
@@ -603,7 +621,7 @@ class DecoherenceNoiseModel(Model):
         if self._sym_noise:
             duration = 0.5 * self.gate_duration(name)
 
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
             for qubit in qubits:
                 self.add_meas(qubit)
 
@@ -618,7 +636,7 @@ class DecoherenceNoiseModel(Model):
                     circ.append(
                         CircuitInstruction(name, targets=self.get_inds([qubit]))
                     )
-            circ += self.idle(qubits, duration)
+            circ += self.idle_noise(qubits, duration)
         else:
             duration = self.gate_duration(name)
 
@@ -626,7 +644,7 @@ class DecoherenceNoiseModel(Model):
                 self.add_meas(qubit)
 
                 circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle(qubit, duration)
+                circ += self.idle_noise(qubit, duration)
         return circ
 
     def reset(self, qubits: Iterable[str]) -> Circuit:
@@ -639,6 +657,15 @@ class DecoherenceNoiseModel(Model):
         return self.generic_op("RY", qubits)
 
     def idle(self, qubits: Iterable[str], duration: float) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, duration=duration)
+
+        return circ
+
+    def idle_noise(self, qubits: Iterable[str], duration: float) -> Circuit:
         """
         idle Returns the circuit instructions for an idling period on the given qubits.
 
@@ -851,6 +878,15 @@ class ExperimentalNoiseModel(Model):
         return circ
 
     def idle(self, qubits: Iterable[str], duration: float) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, duration=duration)
+
+        return circ
+
+    def idle_noise(self, qubits: Iterable[str], duration: float) -> Circuit:
         """
         idle Returns the circuit instructions for an idling period on the given qubits.
 
@@ -972,9 +1008,16 @@ class NoiselessModel(Model):
         return circ
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
         circ = Circuit()
-        circ.append(CircuitInstruction("I", self.get_inds(qubits)))
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits)
+
         return circ
+
+    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+        return Circuit()
 
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
         return Circuit()
