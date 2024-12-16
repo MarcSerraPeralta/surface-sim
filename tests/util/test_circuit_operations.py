@@ -160,4 +160,17 @@ def test_merge_ops():
 
     assert isinstance(circuit, stim.Circuit)
 
+    with pytest.raises(ValueError):
+        _ = merge_ops(
+            [
+                (log_meas_z_iterator, layout),
+                (log_x_iterator, layout),
+            ],
+            model,
+            detectors,
+            log_obs_inds=0,
+            anc_reset=True,
+            anc_detectors=["X1"],
+        )
+
     return

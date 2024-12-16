@@ -144,6 +144,9 @@ def merge_ops(
         raise TypeError(
             f"'log_obs_inds' must be a dict, but {type(log_obs_inds)} was given."
         )
+    layouts = sum([list(i[1:]) for i in ops], start=[])
+    if len(layouts) != len(set(layouts)):
+        raise ValueError("Layouts are participating in more than one operation.")
 
     circuit = stim.Circuit()
     generators = [i[0](model, *i[1:]) for i in ops]
