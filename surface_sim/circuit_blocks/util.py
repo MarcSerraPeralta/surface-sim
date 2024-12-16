@@ -398,7 +398,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
     https://doi.org/10.1088/1367-2630/17/8/083026
     """
     # update the stabilizer generators
-    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
     new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update_from_dict(new_stabs)
     return sum(log_fold_trans_s_iterator(model=model, layout=layout), start=Circuit())
@@ -423,7 +423,7 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
 
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
-    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
     qubits_s_gate = set()
@@ -470,7 +470,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
     https://arxiv.org/pdf/2406.17653
     """
     # update the stabilizer generators
-    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
     new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update_from_dict(new_stabs)
     return sum(log_fold_trans_h_iterator(model=model, layout=layout), start=Circuit())
@@ -490,7 +490,7 @@ def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
 
     data_qubits = layout.get_qubits(role="data")
     qubits = set(layout.get_qubits())
-    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
 
     swap_pairs = set()
     qubits_h_gate = set()
@@ -541,7 +541,7 @@ def log_trans_cnot(
         Detector definitions to use.
     """
     # update the stabilizer generators
-    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
     new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
     new_stabs.update(get_new_stab_dict_from_layout(layout_t, gate_label))
     detectors.update_from_dict(new_stabs)
@@ -582,7 +582,7 @@ def log_trans_cnot_iterator(
     data_qubits_c = layout_c.get_qubits(role="data")
     data_qubits_t = layout_t.get_qubits(role="data")
     qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
-    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     cnot_pairs = set()
     for data_qubit in data_qubits_c:
