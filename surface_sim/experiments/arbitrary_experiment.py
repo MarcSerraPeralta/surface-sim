@@ -180,7 +180,7 @@ def experiment_from_schedule(
         if func.log_op_type == "qec_cycle":
             # flush all stored operations in current block
             curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-            if ensure_idling and curr_num_gates != set([1]):
+            if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
                 raise ValueError(
                     "Not all active layouts are participating in an operation. "
                     f"active layouts: {active_layouts}\noperations: {num_gates}"
@@ -221,7 +221,7 @@ def experiment_from_schedule(
             for l in op[1:]:
                 num_gates[l] -= 1
             curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-            if ensure_idling and curr_num_gates != set([1]):
+            if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
                 raise ValueError(
                     "Not all active layouts are participating in an operation. "
                     f"active layouts: {active_layouts}\noperations: {num_gates}"
@@ -251,7 +251,7 @@ def experiment_from_schedule(
     # flush remaining operations
     if len(curr_block) != 0:
         curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-        if ensure_idling and curr_num_gates != set([1]):
+        if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
             raise ValueError(
                 "Not all active layouts are participating in an operation. "
                 f"active layouts: {active_layouts}\noperations: {num_gates}"
