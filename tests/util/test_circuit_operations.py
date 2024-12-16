@@ -2,6 +2,7 @@ import pytest
 import stim
 
 from surface_sim.util.circuit_operations import (
+    merge_tick_blocks,
     merge_circuits,
     merge_qec_rounds,
     merge_log_meas,
@@ -20,6 +21,28 @@ from surface_sim.layouts.library.unrot_surface_codes import (
     unrot_surface_codes,
 )
 from surface_sim import Detectors
+
+
+def test_merge_tick_blocks():
+    blocks = [
+        stim.Circuit("X 0\nS 0"),
+        stim.Circuit("X 1\nS 1"),
+        stim.Circuit("X 2\nS 2"),
+    ]
+    circuit = merge_tick_blocks(*blocks)
+    expected_circuit = stim.Circuit(
+        """
+        X 0 1 2
+        S 0 1 2
+        """
+    )
+    assert circuit == expected_circuit
+
+    blocks = [stim.Circuit("X 0\nS 0\nX 0\nS 0")]
+    circuit = merge_tick_blocks(*blocks)
+    assert circuit == blocks[0]
+
+    return
 
 
 def test_merge_circuits():

@@ -259,7 +259,7 @@ def merge_tick_blocks(*blocks: stim.Circuit) -> stim.Circuit:
     for t in range(max_length):
         for mblocks in mergeable_blocks.values():
             for block in mblocks:
-                if t > len(blocks):
+                if t > len(block):
                     continue
                 # the trick with the indices ensures that the returned object
                 # is a stim.Circuit instead of a stim.CircuitInstruction
