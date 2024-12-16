@@ -8,6 +8,9 @@ from ...log_gates.unrot_surface_code_css import (
     set_fold_trans_s,
     set_fold_trans_h,
     set_trans_cnot,
+    set_x,
+    set_z,
+    set_idle,
 )
 
 
@@ -333,6 +336,9 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
     for k, layout in enumerate(layouts):
         set_fold_trans_h(layout, data_qubit=f"D{1 + k*num_data}")
         set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        set_x(layout)
+        set_z(layout)
+        set_idle(layout)
         for other_layout in layouts:
             if layout == other_layout:
                 continue

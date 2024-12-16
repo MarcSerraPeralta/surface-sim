@@ -3,6 +3,16 @@ import networkx as nx
 
 from ..layouts.layout import Layout
 from ..layouts.operations import check_overlap_layouts
+from .util import set_x, set_z, set_idle
+
+__all__ = [
+    "set_x",
+    "set_z",
+    "set_idle",
+    "set_fold_trans_s",
+    "set_fold_trans_h",
+    "set_trans_cnot",
+]
 
 
 def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
@@ -51,7 +61,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     anc_qubits = layout.get_qubits(role="anc")
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)
@@ -174,7 +184,7 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         raise ValueError("This function requires two surface codes of the same size.")
     check_overlap_layouts(layout_c, layout_t)
 
-    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     # Obtain the mapping of qubits of one layout to qubits of the other layout
     gm = nx.isomorphism.GraphMatcher(
@@ -273,7 +283,7 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
     anc_qubits = layout.get_qubits(role="anc")
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)

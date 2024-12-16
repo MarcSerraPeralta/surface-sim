@@ -10,7 +10,7 @@ from surface_sim.detectors import get_new_stab_dict_from_layout
 def test_set_fold_trans_s():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_s(layout, "D1")
-    gate_label = f"trans-s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
     new_stab_x = [
@@ -90,7 +90,7 @@ def test_set_trans_cnot():
         init_ind=layout_c.get_max_ind() + 1,
     )
     set_trans_cnot(layout_c, layout_t)
-    gate_label = f"trans-cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     x_stabs = layout_c.get_qubits(role="anc", stab_type="x_type")
     new_stab_x = [
@@ -141,7 +141,7 @@ def test_set_trans_cnot():
 def test_set_fold_trans_h():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_h(layout, "D1")
-    gate_label = f"trans-h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
     new_stab_x = [
