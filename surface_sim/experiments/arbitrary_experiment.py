@@ -151,12 +151,16 @@ def experiment_from_schedule(
         when building the schedule.
         By default ``True``.
 
-
     Returns
     -------
     experiment
         Stim circuit corresponding to the logical equivalent of the
         given schedule.
+
+    Notes
+    -----
+    The scheduling of the gates between QEC cycles is not optimal as there could
+    be more idling than necessary. This is caused by using ``merge_ops``.
     """
     layouts = set()
     for op in schedule:
