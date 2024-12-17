@@ -166,17 +166,37 @@ def experiment_from_schedule(
     The scheduling of the gates between QEC cycles is not optimal as there could
     be more idling than necessary. This is caused by using ``merge_ops``.
     """
+    if not isinstance(schedule, Sequence):
+        raise TypeError(
+            f"'schedule' must be a sequence, but {type(schedule)} was given."
+        )
+    if any(not isinstance(op, Sequence) for op in schedule):
+        raise TypeError("Elements of 'schedule' must be sequences.")
+    if not isinstance(model, Model):
+        raise TypeError(f"'model' must be a Model, but {type(model)} was given.")
+    if not isinstance(detectors, Detectors):
+        raise TypeError(
+            f"'detectors' must be a Detectors, but {type(detectors)} was given."
+        )
     layouts = set()
     for op in schedule:
+        if any(not isinstance(l, Layout) for l in op[1:]):
+            raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
         layouts.update(set(op[1:]))
 
     if anc_detectors is None:
         anc_detectors = []
         for layout in layouts:
             anc_detectors += layout.get_qubits(role="anc")
+    if not isinstance(anc_detectors, Sequence):
+        raise TypeError(
+            f"'anc_detectors' must be a sequence, but {type(anc_detectors)} was given."
+        )
     anc_detectors = list(anc_detectors)
 
     experiment = stim.Circuit()
+    model.new_circuit()
+    detectors.new_circuit()
     active_layouts = {l: False for l in layouts}
     num_gates = {l: 0 for l in layouts}
     num_log_meas = 0
@@ -225,6 +245,10 @@ def experiment_from_schedule(
         # update the number of gates so that we know if we need to flush the
         # current operations or if we need to store the current one in 'curr_block'
         for l in op[1:]:
+            if (not active_layouts[l]) and (func.log_op_type != "qubit_init"):
+                raise ValueError(
+                    "It is not possible to perform an operation on an inactive layout."
+                )
             num_gates[l] += 1
 
         # check for flushing the operations in case a layout would be doing more
