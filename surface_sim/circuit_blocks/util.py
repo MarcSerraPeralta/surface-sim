@@ -11,7 +11,8 @@ from ..detectors import (
     get_support_from_adj_matrix,
 )
 from .decorators import (
-    qubit_initialization,
+    qubit_init_z,
+    qubit_init_x,
     sq_gate,
     tq_gate,
     logical_measurement_z,
@@ -216,7 +217,6 @@ def init_qubits(
     )
 
 
-@qubit_initialization
 def init_qubits_iterator(
     model: Model,
     layout: Layout,
@@ -250,7 +250,7 @@ def init_qubits_iterator(
         yield model.tick()
 
 
-@qubit_initialization
+@qubit_init_z
 def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
@@ -267,7 +267,7 @@ def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     )
 
 
-@qubit_initialization
+@qubit_init_z
 def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
@@ -289,7 +289,7 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     )
 
 
-@qubit_initialization
+@qubit_init_x
 def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
@@ -306,7 +306,7 @@ def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     )
 
 
-@qubit_initialization
+@qubit_init_x
 def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->
@@ -838,7 +838,6 @@ def init_qubits_xzzx(
     )
 
 
-@qubit_initialization
 def init_qubits_xzzx_iterator(
     model: Model,
     layout: Layout,
@@ -885,7 +884,7 @@ def init_qubits_xzzx_iterator(
     yield model.tick()
 
 
-@qubit_initialization
+@qubit_init_z
 def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
@@ -902,7 +901,7 @@ def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     )
 
 
-@qubit_initialization
+@qubit_init_z
 def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
@@ -924,7 +923,7 @@ def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     )
 
 
-@qubit_initialization
+@qubit_init_x
 def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
@@ -941,7 +940,7 @@ def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     )
 
 
-@qubit_initialization
+@qubit_init_x
 def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->

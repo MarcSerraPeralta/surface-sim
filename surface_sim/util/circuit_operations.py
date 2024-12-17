@@ -346,8 +346,8 @@ def merge_qec_rounds(
             f"'qec_round_iterator' must be a QEC cycle, not a {qec_round_iterator.log_op_type}."
         )
     if anc_detectors is not None:
-        anc_qubits = [l.get_qubits(role="anc") for l in layouts]
-        if set(anc_detectors) > set(sum(anc_qubits, start=[])):
+        data_qubits = [l.get_qubits(role="data") for l in layouts]
+        if set(anc_detectors).intersection(sum(data_qubits, start=[])) != set():
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
     tick = stim.Circuit("TICK")

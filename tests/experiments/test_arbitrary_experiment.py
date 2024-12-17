@@ -81,3 +81,47 @@ def test_experiment_from_schedule():
     assert num_coords == dem.num_detectors
 
     return
+
+
+def test_experiment_from_schedule_no_gauge_detectors():
+    layouts = unrot_surface_codes(3, distance=3)
+    qubit_inds = {}
+    anc_coords = []
+    anc_qubits = []
+    for layout in layouts:
+        qubit_inds.update(layout.qubit_inds())
+        anc_qubits += layout.get_qubits(role="anc")
+        anc_coords += layout.anc_coords()
+
+    circuit = stim.Circuit(
+        """
+        R 0 1
+        TICK
+        X 1
+        I 0
+        TICK
+        M 0
+        I 1
+        TICK
+        """
+    )
+    model = NoiselessModel(qubit_inds=qubit_inds)
+    detectors = Detectors(anc_qubits, frame="pre-gate")
+
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    experiment = experiment_from_schedule(
+        schedule,
+        model,
+        detectors,
+        anc_reset=True,
+        anc_detectors=None,
+        gauge_detectors=False,
+    )
+
+    assert isinstance(experiment, stim.Circuit)
+
+    # check that the detectors and logicals fulfill their
+    # conditions by building the stim diagram
+    _ = circuit.detector_error_model(allow_gauge_detectors=False)
+
+    return

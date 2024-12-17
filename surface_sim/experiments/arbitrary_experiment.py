@@ -124,6 +124,7 @@ def experiment_from_schedule(
     anc_reset: bool = True,
     anc_detectors: Sequence[str] | None = None,
     ensure_idling: bool = True,
+    gauge_detectors: bool = True,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -150,6 +151,9 @@ def experiment_from_schedule(
         in each time slice. This ensures that idling time has not been forgotten
         when building the schedule.
         By default ``True``.
+    gauge_detectors
+        Flag to define gauge detectors.
+        By default ``True``.
 
     Returns
     -------
@@ -166,12 +170,19 @@ def experiment_from_schedule(
     for op in schedule:
         layouts.update(set(op[1:]))
 
+    if anc_detectors is None:
+        anc_detectors = []
+        for layout in layouts:
+            anc_detectors += layout.get_qubits(role="anc")
+    anc_detectors = list(anc_detectors)
+
     experiment = stim.Circuit()
     active_layouts = {l: False for l in layouts}
     num_gates = {l: 0 for l in layouts}
     num_log_meas = 0
     log_obs_inds = {}
     curr_block = []
+    curr_anc_detectors = anc_detectors.copy()
 
     experiment += qubit_coords(model, *layouts)
     for op in schedule:
@@ -206,8 +217,9 @@ def experiment_from_schedule(
                 layouts=[l for l, a in active_layouts.items() if a],
                 detectors=detectors,
                 anc_reset=anc_reset,
-                anc_detectors=anc_detectors,
+                anc_detectors=curr_anc_detectors,
             )
+            curr_anc_detectors = anc_detectors.copy()
             continue
 
         # update the number of gates so that we know if we need to flush the
@@ -232,7 +244,7 @@ def experiment_from_schedule(
                 detectors=detectors,
                 log_obs_inds=log_obs_inds,
                 anc_reset=anc_reset,
-                anc_detectors=anc_detectors,
+                anc_detectors=curr_anc_detectors,
             )
             num_gates = {l: 0 for l in layouts}
             num_log_meas = 0
@@ -247,6 +259,11 @@ def experiment_from_schedule(
             num_log_meas += 1
         if func.log_op_type == "qubit_init":
             active_layouts[op[1]] = True
+            if not gauge_detectors:
+                # stab_type to remove
+                stab_type = "z_type" if func.rot_basis else "x_type"
+                for a in op[1].get_qubits(role="anc", stab_type=stab_type):
+                    curr_anc_detectors.remove(a)
 
     # flush remaining operations
     if len(curr_block) != 0:
@@ -262,7 +279,7 @@ def experiment_from_schedule(
             detectors=detectors,
             log_obs_inds=log_obs_inds,
             anc_reset=anc_reset,
-            anc_detectors=anc_detectors,
+            anc_detectors=curr_anc_detectors,
         )
 
     return experiment
