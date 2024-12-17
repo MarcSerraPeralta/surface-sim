@@ -42,11 +42,12 @@ def idle_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
         Code layout.
     """
     data_qubits = layout.get_qubits(role="data")
+    qubits = layout.get_qubits()
 
     yield model.incoming_noise(data_qubits)
     yield model.tick()
 
-    yield model.idle(data_qubits)
+    yield model.idle(qubits)
     yield model.tick()
 
 

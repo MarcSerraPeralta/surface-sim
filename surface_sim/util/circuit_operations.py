@@ -102,6 +102,7 @@ def merge_ops(
         Each layout can only appear once, i.e. it can only perform one
         operation. Operations do not include QEC cycles (see
         ``merge_qec_cycles`` to merge cycles).
+        The TICK instructions must appear together.
     model
         Noise model for the gates.
     detectors
@@ -125,12 +126,6 @@ def merge_ops(
     -------
     circuit
         Circuit from merging the given circuits.
-
-    Notes
-    -----
-    This function assumes that the number of stim operations between ticks is
-    the same for each gate to perform. This includes both the physical gate and
-    the noise channels.
     """
     if any(not isinstance(i[0], Callable) for i in ops):
         raise TypeError("The first element for each entry in 'ops' must be callable.")
@@ -159,9 +154,12 @@ def merge_ops(
 
     curr_block = [next(g, None) for g in generators]
     while curr_block != end:
-        # merge all ticks into a single tick
+        # merge all ticks into a single tick.
+        # [TICK, None, None] still needs to be a single TICK
         if tick in curr_block:
-            curr_block = [tick] + [o for o in curr_block if o != tick]
+            if len([i for i in curr_block if i not in [tick, None]]) > 0:
+                raise ValueError("TICKs must appear together.")
+            curr_block = [tick]
 
         # change 'None' to idling
         for k, _ in enumerate(curr_block):
