@@ -33,12 +33,23 @@ def tq_gate(func):
     return func
 
 
-def qubit_initialization(func):
+def qubit_init_z(func):
     """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"qubit_init"`` to a function.
+    Decorator for adding the attribute ``"log_op_type", "rot_basis"`` and setting
+    them to ``"qubit_init", False`` (respectively) to a function.
     """
     func.log_op_type = "qubit_init"
+    func.rot_basis = False
+    return func
+
+
+def qubit_init_x(func):
+    """
+    Decorator for adding the attribute ``"log_op_type", "rot_basis"`` and setting
+    them to ``"qubit_init", False`` (respectively) to a function.
+    """
+    func.log_op_type = "qubit_init"
+    func.rot_basis = True
     return func
 
 
