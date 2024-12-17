@@ -159,9 +159,10 @@ def merge_ops(
 
     curr_block = [next(g, None) for g in generators]
     while curr_block != end:
-        # merge all ticks into a single tick
+        # merge all ticks into a single tick.
+        # [TICK, None, None] still needs to be a single TICK
         if tick in curr_block:
-            curr_block = [tick] + [o for o in curr_block if o != tick]
+            curr_block = [tick]
 
         # change 'None' to idling
         for k, _ in enumerate(curr_block):
