@@ -8,6 +8,7 @@ from surface_sim.models import (
     CircuitNoiseModel,
     IncomingNoiseModel,
     PhenomenologicalNoiseModel,
+    MeasurementNoiseModel,
 )
 
 SETUP = {
@@ -161,6 +162,69 @@ def test_PhenomenologicalNoiseModel():
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert set(NOISE_GATES) >= set(ops)
     assert len(ops) > 1
+
+    return
+
+
+def test_MeasurementNoiseModel():
+    setup = Setup(SETUP)
+    model = MeasurementNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+
+    ops = [o.name for o in model.x_gate(["D1"])]
+    assert ops == ["X"]
+
+    ops = [o.name for o in model.z_gate(["D1"])]
+    assert ops == ["Z"]
+
+    ops = [o.name for o in model.hadamard(["D1"])]
+    assert ops == ["H"]
+
+    ops = [o.name for o in model.cphase(["D1", "D2"])]
+    assert ops == ["CZ"]
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert ops == ["CX"]
+
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert ops == ["SWAP"]
+
+    ops = [o.name for o in model.measure(["D1"])]
+    assert "M" in ops
+    assert set(NOISE_GATES + ["M"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_z(["D1"])]
+    assert "M" in ops
+    assert set(NOISE_GATES + ["M"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_x(["D1"])]
+    assert "MX" in ops
+    assert set(NOISE_GATES + ["MX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_y(["D1"])]
+    assert "MY" in ops
+    assert set(NOISE_GATES + ["MY"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset(["D1"])]
+    assert ops == ["R"]
+
+    ops = [o.name for o in model.reset_z(["D1"])]
+    assert ops == ["R"]
+
+    ops = [o.name for o in model.reset_x(["D1"])]
+    assert ops == ["RX"]
+
+    ops = [o.name for o in model.reset_y(["D1"])]
+    assert ops == ["RY"]
+
+    ops = [o.name for o in model.idle(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
 
     return
 
