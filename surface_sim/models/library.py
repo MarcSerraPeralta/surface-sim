@@ -1104,3 +1104,69 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
                 circ.append(CircuitInstruction("MY", [ind]))
 
         return circ
+
+
+class MeasurementNoiseModel(NoiselessModel):
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+        self._setup = setup
+        self._qubit_inds = qubit_inds
+        self._meas_order = {q: [] for q in qubit_inds}
+        self._num_meas = 0
+        return
+
+    def measure(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MZ", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MZ", [ind]))
+
+        return circ
+
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MX", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MX", [ind]))
+
+        return circ
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ for clearer stim diagrams
+        for qubit, ind in zip(qubits, inds):
+            prob = self.param("meas_error_prob", qubit)
+            circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
+
+        for qubit, ind in zip(qubits, inds):
+            self.add_meas(qubit)
+            if self.param("assign_error_flag", qubit):
+                prob = self.param("assign_error_prob", qubit)
+                circ.append(CircuitInstruction("MY", [ind], [prob]))
+            else:
+                circ.append(CircuitInstruction("MY", [ind]))
+
+        return circ
