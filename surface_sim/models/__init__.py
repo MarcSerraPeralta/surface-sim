@@ -5,7 +5,9 @@ from .library import (
     ExperimentalNoiseModel,
     NoiselessModel,
     IncomingNoiseModel,
+    IncomingDepolNoiseModel,
     PhenomenologicalNoiseModel,
+    PhenomenologicalDepolNoiseModel,
     MeasurementNoiseModel,
 )
 from .model import Model
@@ -18,6 +20,8 @@ __all__ = [
     "ExperimentalNoiseModel",
     "NoiselessModel",
     "IncomingNoiseModel",
+    "IncomingDepolNoiseModel",
     "PhenomenologicalNoiseModel",
+    "PhenomenologicalDepolNoiseModel",
     "MeasurementNoiseModel",
 ]
