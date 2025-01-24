@@ -324,22 +324,26 @@ def set_fold_trans_cz(layout_c: Layout, layout_t: Layout, data_qubit: str) -> No
     bottom_left_qubit_t = sorted(
         qubit_coords_t.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
     )
-    shift_vector = np.array(bottom_left_qubit_c[0]) - np.array(bottom_left_qubit_t[0])
+    shift_vector = np.array(bottom_left_qubit_c[0][1]) - np.array(
+        bottom_left_qubit_t[0][1]
+    )
 
     # get the reflection function
     neighbors = layout_t.param("neighbors", data_qubit)
+    stab_x = layout_t.get_qubits(role="anc", stab_type="x_type")
+    stab_z = layout_t.get_qubits(role="anc", stab_type="z_type")
     dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
     dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
 
     data_qubit_diag = layout_t.get_neighbors(anc_qubit_x, direction=dir_z)[0]
     sym_vector = np.array(layout_t.param("coords", data_qubit_diag)) - np.array(
-        layout.param("coords", data_qubit)
+        layout_t.param("coords", data_qubit)
     )
     point = np.array(layout_t.param("coords", data_qubit))
     fold_reflection = lambda x: reflection(x, point, sym_vector)
 
     coords_to_label_dict = {}
-    for node, attr in layout_t.graph.nodes.items():
+    for node, attr in layout_c.graph.nodes.items():
         coords = attr["coords"]
         coords = np.round(coords, decimals=5)  # to avoid numerical issues
         coords_to_label_dict[tuple(coords)] = node
@@ -352,12 +356,13 @@ def set_fold_trans_cz(layout_c: Layout, layout_t: Layout, data_qubit: str) -> No
         pair_coords = np.round(pair_coords, decimals=5)
         data_pair = coords_to_label_dict[tuple(pair_coords)]
         cz_gates[data_qubit] = data_pair
+    cz_gates_inverse = {v: k for k, v in cz_gates.items()}
 
     # Store the logical information for the data qubits
     data_qubits_c = set(layout_c.get_qubits(role="data"))
     data_qubits_t = set(layout_t.get_qubits(role="data"))
     for qubit in data_qubits_c:
-        layout_c.set_param(gate_label, qubit, {"cz": cz_gates[qubit]})
+        layout_c.set_param(gate_label, qubit, {"cz": cz_gates_inverse[qubit]})
     for qubit in data_qubits_t:
         layout_t.set_param(gate_label, qubit, {"cz": cz_gates[qubit]})
 

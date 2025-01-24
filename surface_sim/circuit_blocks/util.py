@@ -606,6 +606,87 @@ def log_trans_cnot_iterator(
     yield model.tick()
 
 
+def log_fold_trans_cz(
+    model: Model, layout_c: Layout, layout_t: Layout, detectors: Detectors
+) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical CZ gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CZ.
+    layout_t
+        Code layout for the target of the logical CZ.
+    detectors
+        Detector definitions to use.
+    """
+    # update the stabilizer generators
+    gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
+    new_stabs.update(get_new_stab_dict_from_layout(layout_t, gate_label))
+    detectors.update_from_dict(new_stabs)
+    return sum(
+        log_fold_trans_cz_iterator(model=model, layout_c=layout_c, layout_t=layout_t),
+        start=Circuit(),
+    )
+
+
+@tq_gate
+def log_fold_trans_cz_iterator(
+    model: Model, layout_c: Layout, layout_t: Layout
+) -> Iterator[Circuit]:
+    """Returns the stim circuit corresponding to a transversal logical CZ gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CZ.
+    layout_t
+        Code layout for the target of the logical CZ.
+    detectors
+        Detector definitions to use.
+    """
+    if layout_c.code not in ["unrotated_surface_code"]:
+        raise TypeError(
+            "The given layout is not a unrotated surface code, "
+            f"but a {layout_c.code}"
+        )
+    if layout_t.code not in ["unrotated_surface_code"]:
+        raise TypeError(
+            "The given layout is not a unrotated surface code, "
+            f"but a {layout_t.code}"
+        )
+
+    data_qubits_c = layout_c.get_qubits(role="data")
+    data_qubits_t = layout_t.get_qubits(role="data")
+    qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
+    gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+
+    cz_pairs = set()
+    for data_qubit in data_qubits_c:
+        trans_cz = layout_c.param(gate_label, data_qubit)
+        if trans_cz is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        cz_pairs.add((data_qubit, trans_cz["cz"]))
+
+    yield model.incoming_noise(data_qubits_c) + model.incoming_noise(data_qubits_t)
+    yield model.tick()
+
+    # long-range CZ gates
+    int_qubits = list(chain.from_iterable(cz_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
 def log_meas_xzzx(
     model: Model,
     layout: Layout,
