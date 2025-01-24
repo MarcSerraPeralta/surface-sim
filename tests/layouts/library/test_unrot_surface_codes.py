@@ -75,22 +75,28 @@ def test_unrot_surface_codes():
         [
             "log_fold_trans_h_L0",
             "log_fold_trans_s_L0",
+            "log_fold_trans_sqrt_x_L0",
             "log_x_L0",
             "log_z_L0",
             "idle_L0",
             "log_trans_cnot_L0_L1",
             "log_trans_cnot_L1_L0",
+            "log_fold_trans_cz_L0_L1",
+            "log_fold_trans_cz_L1_L0",
         ]
     ) < set(layout_0.to_dict()["layout"][0].keys())
     assert set(
         [
             "log_fold_trans_h_L1",
             "log_fold_trans_s_L1",
+            "log_fold_trans_sqrt_x_L1",
             "log_x_L1",
             "log_z_L1",
             "idle_L1",
             "log_trans_cnot_L0_L1",
             "log_trans_cnot_L1_L0",
+            "log_fold_trans_cz_L0_L1",
+            "log_fold_trans_cz_L1_L0",
         ]
     ) < set(layout_1.to_dict()["layout"][0].keys())
 
