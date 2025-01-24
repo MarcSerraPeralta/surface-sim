@@ -525,6 +525,83 @@ def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
     yield model.tick()
 
 
+def log_fold_trans_sqrt_x(
+    model: Model, layout: Layout, detectors: Detectors
+) -> Circuit:
+    """Returns the stim circuit corresponding to a transversal logical SQRT_X gate.
+    The gate is implemented as HSH.
+    """
+    # update the stabilizer generators
+    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
+    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update_from_dict(new_stabs)
+    return sum(
+        log_fold_trans_sqrt_x_iterator(model=model, layout=layout), start=Circuit()
+    )
+
+
+@sq_gate
+def log_fold_trans_sqrt_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """Yields the stim circuits corresponding to a fold-transversal logical SQRT_X gate
+    The gate is implemented as HSH.
+    """
+    if layout.code not in ["unrotated_surface_code"]:
+        raise TypeError(
+            f"The given layout is not an unrotated surface code, but a {layout.code}"
+        )
+
+    data_qubits = layout.get_qubits(role="data")
+    qubits = set(layout.get_qubits())
+    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
+
+    cz_pairs = set()
+    qubits_h_gate = set()
+    qubits_s_gate = set()
+    qubits_s_dag_gate = set()
+    for data_qubit in data_qubits:
+        trans_sqrt_x = layout.param(gate_label, data_qubit)
+        if trans_sqrt_x is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal SQRT_X gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the swap gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_sqrt_x["cz"] is not None:
+            cz_pairs.add(tuple(sorted([data_qubit, trans_sqrt_x["cz"]])))
+        if trans_sqrt_x["local_h"] == "H":
+            qubits_h_gate.add(data_qubit)
+        if trans_sqrt_x["local_s"] == "S":
+            qubits_s_gate.add(data_qubit)
+        if trans_sqrt_x["local_s"] == "S_DAG":
+            qubits_s_dag_gate.add(data_qubit)
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    # H gates
+    idle_qubits = qubits - qubits_h_gate
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # long-range CZ gates and S and S_DAG gates
+    int_qubits = list(chain.from_iterable(cz_pairs))
+    idle_qubits = qubits - set(int_qubits) - qubits_s_gate - qubits_s_dag_gate
+    yield (
+        model.cphase(int_qubits)
+        + model.s_gate(qubits_s_gate)
+        + model.s_dag_gate(qubits_s_dag_gate)
+        + model.idle(idle_qubits)
+    )
+    yield model.tick()
+
+    # H gates
+    idle_qubits = qubits - qubits_h_gate
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
+    yield model.tick()
+
+
 def log_trans_cnot(
     model: Model, layout_c: Layout, layout_t: Layout, detectors: Detectors
 ) -> Circuit:

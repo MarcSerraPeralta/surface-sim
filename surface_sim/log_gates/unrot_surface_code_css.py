@@ -179,7 +179,7 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
     anc_qubits = layout.get_qubits(role="anc")
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"log_fold_trans_sqrt-x_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)
@@ -207,7 +207,7 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
         pair_coords = np.round(pair_coords, decimals=5)
         data_pair = coords_to_label_dict[tuple(pair_coords)]
         cz_gates[data_qubit] = data_pair if data_pair != data_qubit else None
-        h_gates[data_qubit] = "H" if data_pair != data_qubit else "I"
+        h_gates[data_qubit] = "H"
 
     # get S gates from the data qubit positions
     s_gates = {q: "I" for q in data_qubits}
