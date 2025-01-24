@@ -38,6 +38,7 @@ class Layout:
     - ``get_coords``
     - ``qubit_coords``
     - ``anc_coords``
+    - ``data_coords``
 
     Set information
     ---------------
@@ -277,6 +278,12 @@ class Layout:
         anc_qubits = self.get_qubits(role="anc")
         anc_coords = self.get_coords(anc_qubits)
         return {q: c for q, c in zip(anc_qubits, anc_coords)}
+
+    def data_coords(self) -> dict[str, list[float | int]]:
+        """Returns a dictionary mapping all data qubits to their coordinates."""
+        data_qubits = self.get_qubits(role="data")
+        data_coords = self.get_coords(data_qubits)
+        return {q: c for q, c in zip(data_qubits, data_coords)}
 
     def adjacency_matrix(self) -> DataArray:
         """Returns the adjaceny matrix corresponding to the layout.
