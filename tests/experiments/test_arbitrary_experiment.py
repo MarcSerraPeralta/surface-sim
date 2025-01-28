@@ -273,3 +273,53 @@ def test_equivalence():
     assert experiment == experiment_manual
 
     return
+
+
+def test_module_2_operations_in_detectors():
+    layouts = unrot_surface_codes(2, distance=3)
+    qubit_inds = {}
+    anc_coords = []
+    anc_qubits = []
+    for layout in layouts:
+        qubit_inds.update(layout.qubit_inds())
+        anc_qubits += layout.get_qubits(role="anc")
+        anc_coords += layout.anc_coords()
+    setup = CircuitNoiseSetup()
+    setup.set_var_param("prob", 1e-3)
+    model = CircuitNoiseModel(setup, qubit_inds=qubit_inds)
+    detectors = Detectors(anc_qubits, frame="pre-gate")
+
+    circuit = stim.Circuit(
+        """
+        RX 0 1
+        TICK
+        CX 1 0
+        TICK
+        S 0 1
+        TICK
+        CX 0 1
+        TICK
+        CX 0 1
+        TICK
+        S 0 1
+        TICK
+        CX 1 0
+        TICK
+        MX 0 1
+    """
+    )
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    experiment = experiment_from_schedule(
+        schedule,
+        model,
+        detectors,
+        anc_reset=True,
+        anc_detectors=None,
+    )
+    experiment = experiment[:-14]  # remove detectors built from data
+
+    for instr in experiment.flattened():
+        if instr.name == "DETECTOR":
+            assert len(instr.targets_copy()) <= 3
+
+    return

@@ -440,8 +440,8 @@ class Detectors:
         # that are not needed.
         if self.frame != "gate-independent":
             anc_detectors = _get_ancilla_meas_for_detectors(
-                self.curr_gen,
-                self.prev_gen,
+                curr_gen=self.curr_gen,
+                prev_gen=self.prev_gen,
                 basis=basis,
                 num_rounds=fake_num_rounds,
                 anc_reset_curr=True,
@@ -542,9 +542,10 @@ def _get_ancilla_meas_for_detectors(
     # matrix inversion is not possible in xarray,
     # thus go to np.ndarrays with correct order of columns and rows.
     anc_qubits = curr_gen.stab_gen.values.tolist()
-    curr_gen_arr = curr_gen.sel(stab_gen=anc_qubits).values
-    basis_arr = basis.sel(stab_gen=anc_qubits).values
-    prev_gen_arr = prev_gen.sel(stab_gen=anc_qubits).values
+    basis_inds = list(range(len(anc_qubits)))
+    curr_gen_arr = GF2(curr_gen.sel(stab_gen=anc_qubits, basis=basis_inds).to_numpy())
+    basis_arr = GF2(basis.sel(stab_gen=anc_qubits, basis=basis_inds).to_numpy())
+    prev_gen_arr = GF2(prev_gen.sel(stab_gen=anc_qubits, basis=basis_inds).to_numpy())
 
     # convert self.prev_gen and self.curr_gen to the frame basis
     curr_gen_arr = curr_gen_arr @ np.linalg.inv(basis_arr)
