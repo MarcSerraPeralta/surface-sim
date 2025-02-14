@@ -39,6 +39,8 @@ fonttools==4.53.1
     # via matplotlib
 galois==0.4.3
     # via surface-sim (pyproject.toml)
+gprof2dot==2024.6.6
+    # via surface-sim (pyproject.toml)
 iniconfig==2.0.0
     # via pytest
 kiwisolver==1.4.5

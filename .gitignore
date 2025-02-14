@@ -148,3 +148,7 @@ vscode/
 
 # MacOS DS_Store
 .DS_Store
+
+# profiler files
+*.dot
+*.profile

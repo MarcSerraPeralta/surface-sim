@@ -4,11 +4,7 @@ from itertools import chain
 import stim
 
 from ..layouts.layout import Layout
-from ..detectors import (
-    Detectors,
-    get_support_from_adj_matrix,
-    get_new_stab_dict_from_layout,
-)
+from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
 
 
@@ -197,7 +193,7 @@ def merge_ops(
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
             stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-            anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
+            anc_support = layout.get_support(stabs)
             all_stabs += stabs
             all_anc_support.update(anc_support)
 
@@ -477,7 +473,7 @@ def merge_log_meas(
     for layout, rot_basis in zip(layouts, rot_bases):
         stab_type = "x_type" if rot_basis else "z_type"
         stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-        anc_support = get_support_from_adj_matrix(layout.adjacency_matrix(), stabs)
+        anc_support = layout.get_support(stabs)
         all_stabs += stabs
         all_anc_support.update(anc_support)
 

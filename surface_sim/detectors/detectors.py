@@ -135,18 +135,15 @@ class Detectors:
             self.anc_qubits[anc] = False
 
             # set the generators to the identity for the deactivated ancillas.
-            # See #149 for more information.
-            for other_anc in self.anc_qubit_labels:
-                anc_ind = self.anc_qubit_labels.index(anc)
-                other_anc_ind = self.anc_qubit_labels.index(other_anc)
-                if other_anc == anc:
-                    self.curr_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
-                    self.prev_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
-                else:
-                    self.curr_gen.loc[dict(stab_gen=other_anc, basis=anc_ind)] = 0
-                    self.curr_gen.loc[dict(stab_gen=anc, basis=other_anc_ind)] = 0
-                    self.prev_gen.loc[dict(stab_gen=other_anc, basis=anc_ind)] = 0
-                    self.prev_gen.loc[dict(stab_gen=anc, basis=other_anc_ind)] = 0
+            # See #149 for more information. If it is not the identity, then
+            # the matrix is not invertible.
+            anc_ind = self.anc_qubit_labels.index(anc)
+            self.curr_gen.loc[dict(stab_gen=anc)] = 0
+            self.curr_gen.loc[dict(basis=anc_ind)] = 0
+            self.prev_gen.loc[dict(stab_gen=anc)] = 0
+            self.prev_gen.loc[dict(basis=anc_ind)] = 0
+            self.curr_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
+            self.prev_gen.loc[dict(stab_gen=anc, basis=anc_ind)] = 1
 
         return
 
@@ -374,8 +371,7 @@ class Detectors:
             Dictionary descriving the data qubit support on the stabilizers.
             The keys are the ancilla qubits and the values are the collection
             of data qubits.
-            See ``surface_sim.Layout.adjacency_matrix`` and
-            ``surface_sim.detectors.get_support_from_adj_matrix`` for more information.
+            See ``surface_sim.Layout.get_support`` for more information.
         anc_reset
             Flag for if the ancillas are being reset in every QEC cycle.
         reconstructable_stabs
@@ -614,50 +610,6 @@ def get_new_stab_dict_from_layout(
         new_stab_gens[anc_qubit] = log_gate_attrs["new_stab_gen"]
 
     return new_stab_gens
-
-
-def get_support_from_adj_matrix(
-    adjacency_matrix: xr.DataArray, anc_qubits: Sequence[str]
-) -> dict[str, list[str]]:
-    """Returns a dictionary that maps ancilla qubits to the data qubits
-    they have support on.
-
-    Parameters
-    ----------
-    adjacency_matrix
-        Adjacency matrix of the qubits in the layout.
-        It must have ``to_qubit`` and ``from_qubit`` coordinates.
-        It can be built using ``surface_sim.Layout.adjacency_matrix``.
-    anc_qubits
-        Sequence of ancilla qubits for which to compute they data-qubit
-        support.
-
-    Returns
-    -------
-    support
-        Dictionary with ancilla qubits as keys, whose values are a list
-        of the data qubits they have support on.
-    """
-    if not isinstance(adjacency_matrix, xr.DataArray):
-        raise TypeError(
-            f"'adjacency_matrix' must be a xr.DataArray, but {type(adjacency_matrix)} was given."
-        )
-    if not isinstance(anc_qubits, Sequence):
-        raise TypeError(
-            f"'anc_qubits' must be a collection, but {type(anc_qubits)} was given."
-        )
-
-    support = {}
-    for anc_qubit in anc_qubits:
-        support_vec = adjacency_matrix.sel(from_qubit=anc_qubit)
-        data_qubits = [
-            q
-            for q, sup in zip(support_vec.to_qubit.values.tolist(), support_vec)
-            if sup
-        ]
-        support[anc_qubit] = data_qubits
-
-    return support
 
 
 def remove_pairs(elements: list) -> list:

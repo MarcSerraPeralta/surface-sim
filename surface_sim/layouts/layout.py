@@ -36,6 +36,7 @@ class Layout:
     - ``get_logical_qubits``
     - ``get_neighbors``
     - ``get_coords``
+    - ``get_support``
     - ``qubit_coords``
     - ``anc_coords``
     - ``data_coords``
@@ -268,6 +269,10 @@ class Layout:
             raise ValueError("Some of the given qubits do not have coordinates.")
 
         return [all_coords[q] for q in qubits]
+
+    def get_support(self, qubits: Iterable[str]) -> dict[str, list[str]]:
+        """Returns a dictionary mapping the qubits to their support."""
+        return {q: self.get_neighbors([q]) for q in qubits}
 
     def qubit_coords(self) -> dict[str, list[float | int]]:
         """Returns a dictionary mapping all the qubits to their coordinates."""
