@@ -117,8 +117,10 @@ class Model(object):
 
         circ = Circuit()
 
-        for q_label, q_coords in coords.items():
-            q_ind = self._qubit_inds[q_label]
+        # sort the qubit coordinate definitions by index so that it is reproducible
+        ind_coord_pairs = [(self._qubit_inds[label], c) for label, c in coords.items()]
+        ind_coord_pairs.sort(key=lambda x: x[0])
+        for q_ind, q_coords in ind_coord_pairs:
             circ.append(CircuitInstruction("QUBIT_COORDS", [q_ind], q_coords))
 
         return circ

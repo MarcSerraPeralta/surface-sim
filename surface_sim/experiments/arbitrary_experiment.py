@@ -183,6 +183,8 @@ def experiment_from_schedule(
         if any(not isinstance(l, Layout) for l in op[1:]):
             raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
         layouts.update(set(op[1:]))
+    layout_order = list(layouts)
+    layout_order.sort(key=lambda x: min(x.get_logical_qubits()))
 
     if anc_detectors is None:
         anc_detectors = []
@@ -231,10 +233,12 @@ def experiment_from_schedule(
             curr_block = []
 
             # run QEC cycle
+            curr_layouts = [l for l, a in active_layouts.items() if a]
+            curr_layouts.sort(key=lambda x: layout_order.index(x))
             experiment += merge_qec_rounds(
                 qec_round_iterator=func,
                 model=model,
-                layouts=[l for l, a in active_layouts.items() if a],
+                layouts=curr_layouts,
                 detectors=detectors,
                 anc_reset=anc_reset,
                 anc_detectors=curr_anc_detectors,

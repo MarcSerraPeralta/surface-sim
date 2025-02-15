@@ -18,11 +18,10 @@ from .decorators import (
 
 def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates of the qubits."""
-    circuit = Circuit()
+    coord_dict = {}
     for layout in layouts:
-        coord_dict = layout.qubit_coords()
-        circuit += model.qubit_coords(coord_dict)
-    return circuit
+        coord_dict.update(layout.qubit_coords())
+    return model.qubit_coords(coord_dict)
 
 
 @sq_gate
