@@ -25,6 +25,7 @@ class Detectors:
         ----------
         anc_qubits
             List of ancilla qubits.
+            The detector ordering will follow this list.
         frame
             Detector frame to use when building the detectors.
             The options for the detector frames are described in the Notes section.
@@ -329,8 +330,13 @@ class Detectors:
                 detectors[anc] = dets
 
         # build the stim circuit
+        # the detectors are built in the same ordering as 'self.anc_qubit_labels' to
+        # make it reproducible and so that the user can choose it.
         detectors_stim = stim.Circuit()
-        for anc, targets in detectors.items():
+        anc_target_pairs = sorted(
+            detectors.items(), key=lambda x: self.anc_qubit_labels.index(x[0])
+        )
+        for anc, targets in anc_target_pairs:
             # simplify the expression of the detectors by removing the pairs
             targets = remove_pairs(targets)
 
@@ -475,11 +481,16 @@ class Detectors:
             detectors[anc_qubit] = new_dets
 
         # Build the stim circuit.
-        # the coordinates of the detectors from the logical measurement are
+        # The coordinates of the detectors from the logical measurement are
         # set to half a timestep unit (instead of a full unit as in the QEC cycle),
         # because they are considered logical operations, not QEC cycles.
+        # The detectors are built in the same ordering as 'self.anc_qubit_labels' to
+        # make it reproducible and so that the user can choose it.
         detectors_stim = stim.Circuit()
-        for anc, targets in detectors.items():
+        anc_target_pairs = sorted(
+            detectors.items(), key=lambda x: self.anc_qubit_labels.index(x[0])
+        )
+        for anc, targets in anc_target_pairs:
             # simplify the expression of the detectors by removing the pairs
             targets = remove_pairs(targets)
 
