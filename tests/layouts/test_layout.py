@@ -90,6 +90,8 @@ def test_layout_get_information():
     assert layout.get_max_ind() == 2
     assert layout.get_min_ind() == 0
 
+    assert layout.get_labels_from_inds([2]) == ["X1"]
+
     assert layout.get_qubits(role="anc") == ["X1"]
     assert layout.get_qubits(role="anc", stab_type="z_type") == []
 
@@ -98,6 +100,8 @@ def test_layout_get_information():
     assert set(layout.get_neighbors(["D1", "X1"])) == set(["X1", "D1", "D2"])
     assert set(layout.get_neighbors(["D1"], as_pairs=True)) == set([("D1", "X1")])
     assert set(layout.get_neighbors(["D1"], direction="south_east")) == set(["X1"])
+
+    assert set(layout.get_support(["D1"])["D1"]) == set(["X1"])
 
     assert layout.get_coords(["X1", "D2"]) == [[0, 2], [1, 3]]
 
