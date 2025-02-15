@@ -555,8 +555,16 @@ def _get_ancilla_meas_for_detectors(
     prev_gen_arr = GF2(prev_gen.sel(stab_gen=anc_qubits, basis=basis_inds).to_numpy())
 
     # convert self.prev_gen and self.curr_gen to the frame basis
-    curr_gen_arr = curr_gen_arr @ np.linalg.inv(basis_arr)
-    prev_gen_arr = prev_gen_arr @ np.linalg.inv(basis_arr)
+    if (curr_gen_arr == basis_arr).all():
+        curr_gen_arr = np.identity(curr_gen_arr.shape[0])
+        prev_gen_arr = prev_gen_arr @ np.linalg.inv(basis_arr)
+    elif (prev_gen_arr == basis_arr).all():
+        curr_gen_arr = curr_gen_arr @ np.linalg.inv(basis_arr)
+        prev_gen_arr = np.identity(curr_gen_arr.shape[0])
+    else:
+        inv_array = np.linalg.inv(basis_arr)
+        curr_gen_arr = curr_gen_arr @ inv_array
+        prev_gen_arr = prev_gen_arr @ inv_array
 
     # get all outcomes that need to be XORed
     detectors = {}
