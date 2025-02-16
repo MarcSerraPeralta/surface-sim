@@ -176,10 +176,14 @@ def merge_ops(
 
         gate_label = func.__name__.replace("_iterator", "_")
         gate_label += "_".join([l.get_logical_qubits()[0] for l in layouts])
-        new_stabs = get_new_stab_dict_from_layout(layouts[0], gate_label)
+        new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layouts[0], gate_label)
         if len(layouts) == 2:
-            new_stabs.update(get_new_stab_dict_from_layout(layouts[1], gate_label))
-        detectors.update_from_dict(new_stabs)
+            new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(
+                layouts[1], gate_label
+            )
+            new_stabs.update(new_stabs_2)
+            new_stabs_inv.update(new_stabs_2_inv)
+        detectors.update(new_stabs, new_stabs_inv)
 
     # check if detectors needs to be built because of measurements
     meas_ops = [k for k, i in enumerate(ops) if i[0].log_op_type == "measurement"]

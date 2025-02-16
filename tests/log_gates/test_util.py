@@ -20,7 +20,7 @@ def test_set_x():
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     assert new_stabs == new_stabs_inv
     for s in stabs:
-        assert new_stabs[s] == [s]
+        assert new_stabs[s] == {s}
 
     return
 
@@ -42,7 +42,7 @@ def test_set_z():
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     assert new_stabs == new_stabs_inv
     for s in stabs:
-        assert new_stabs[s] == [s]
+        assert new_stabs[s] == {s}
 
     return
 
@@ -64,6 +64,6 @@ def test_set_idle():
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     assert new_stabs == new_stabs_inv
     for s in stabs:
-        assert new_stabs[s] == [s]
+        assert new_stabs[s] == {s}
 
     return

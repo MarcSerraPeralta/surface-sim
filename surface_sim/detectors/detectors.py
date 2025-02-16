@@ -490,8 +490,11 @@ class Detectors:
         # build the stim circuit
         # the detectors are built in the same ordering as 'self.anc_qubit_labels' to
         # make it reproducible and so that the user can choose it.
+        # Contrary to 'build_from_anc' we do not add empty detectors because
+        # only one (logical) qubit is measured, so we don't need to report the stabilizers
+        # of other (logical) qubits.
         detectors_stim = stim.Circuit()
-        for anc in self.anc_qubit_labels:
+        for anc in reconstructable_stabs:
             if anc in anc_qubits:
                 # simplify the expression of the detectors by removing the pairs
                 targets = detectors[anc]
