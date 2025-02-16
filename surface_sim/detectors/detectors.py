@@ -1,12 +1,8 @@
 from collections.abc import Callable, Iterable, Sequence
 from copy import deepcopy
-import galois
 import stim
 
 from ..layouts.layout import Layout
-
-
-GF2 = galois.GF(2)
 
 
 class Detectors:
