@@ -13,25 +13,23 @@ def test_set_fold_trans_s():
     gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
-    new_stab_x = [
-        layout.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stabs
-    ]
-    assert new_stab_x == [
-        ["X1", "Z1"],
-        ["X2", "Z4"],
-        ["X3", "Z2"],
-        ["X4", "Z5"],
-        ["X5", "Z3"],
-        ["X6", "Z6"],
-    ]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_x = [layout.param(gate_label, x_stab)[key] for x_stab in x_stabs]
+        assert new_stab_x == [
+            ["X1", "Z1"],
+            ["X2", "Z4"],
+            ["X3", "Z2"],
+            ["X4", "Z5"],
+            ["X5", "Z3"],
+            ["X6", "Z6"],
+        ]
 
     z_stabs = sorted(
         layout.get_qubits(role="anc", stab_type="z_type"), key=lambda x: int(x[1:])
     )
-    new_stab_z = [
-        layout.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stabs
-    ]
-    assert new_stab_z == [["Z1"], ["Z2"], ["Z3"], ["Z4"], ["Z5"], ["Z6"]]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_z = [layout.param(gate_label, z_stab)[key] for z_stab in z_stabs]
+        assert new_stab_z == [["Z1"], ["Z2"], ["Z3"], ["Z4"], ["Z5"], ["Z6"]]
 
     data_qubits = sorted(layout.get_qubits(role="data"), key=lambda x: int(x[1:]))
     cz_gates = [layout.param(gate_label, d)["cz"] for d in data_qubits]
@@ -68,7 +66,8 @@ def test_set_fold_trans_s():
         "S",
     ]
 
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    assert new_stabs == new_stabs_inv
     for z in z_stabs:
         assert len(new_stabs[z]) == 1
     for x in x_stabs:
@@ -93,41 +92,39 @@ def test_set_trans_cnot():
     gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     x_stabs = layout_c.get_qubits(role="anc", stab_type="x_type")
-    new_stab_x = [
-        layout_c.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stabs
-    ]
-    assert new_stab_x == [[i, f"X{int(i[1:])+1000-1}"] for i in x_stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_x = [layout_c.param(gate_label, x_stab)[key] for x_stab in x_stabs]
+        assert new_stab_x == [[i, f"X{int(i[1:])+1000-1}"] for i in x_stabs]
 
     x_stabs = layout_t.get_qubits(role="anc", stab_type="x_type")
-    new_stab_x = [
-        layout_t.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stabs
-    ]
-    assert new_stab_x == [[i] for i in x_stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_x = [layout_t.param(gate_label, x_stab)[key] for x_stab in x_stabs]
+        assert new_stab_x == [[i] for i in x_stabs]
 
     z_stabs = layout_t.get_qubits(role="anc", stab_type="z_type")
-    new_stab_z = [
-        layout_t.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stabs
-    ]
-    assert new_stab_z == [[i, f"Z{int(i[1:])-1000+1}"] for i in z_stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_z = [layout_t.param(gate_label, z_stab)[key] for z_stab in z_stabs]
+        assert new_stab_z == [[i, f"Z{int(i[1:])-1000+1}"] for i in z_stabs]
 
     z_stabs = layout_c.get_qubits(role="anc", stab_type="z_type")
-    new_stab_z = [
-        layout_c.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stabs
-    ]
-    assert new_stab_z == [[i] for i in z_stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_z = [layout_c.param(gate_label, z_stab)[key] for z_stab in z_stabs]
+        assert new_stab_z == [[i] for i in z_stabs]
 
     data_qubits = layout_c.get_qubits(role="data")
     cz_gates = [layout_c.param(gate_label, d)["cnot"] for d in data_qubits]
     assert cz_gates == [f"D{int(i[1:])+1000-1}" for i in data_qubits]
 
-    new_stabs = get_new_stab_dict_from_layout(layout_c, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout_c, gate_label)
+    assert new_stabs == new_stabs_inv
     x_stabs = layout_c.get_qubits(role="anc", stab_type="x_type")
     z_stabs = layout_c.get_qubits(role="anc", stab_type="z_type")
     for z in z_stabs:
         assert len(new_stabs[z]) == 1
     for x in x_stabs:
         assert len(new_stabs[x]) == 2
-    new_stabs = get_new_stab_dict_from_layout(layout_t, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout_t, gate_label)
+    assert new_stabs == new_stabs_inv
     x_stabs = layout_t.get_qubits(role="anc", stab_type="x_type")
     z_stabs = layout_t.get_qubits(role="anc", stab_type="z_type")
     for z in z_stabs:
@@ -144,18 +141,16 @@ def test_set_fold_trans_h():
     gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
-    new_stab_x = [
-        layout.param(gate_label, x_stab)["new_stab_gen"] for x_stab in x_stabs
-    ]
-    assert new_stab_x == [["Z1"], ["Z4"], ["Z2"], ["Z5"], ["Z3"], ["Z6"]]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_x = [layout.param(gate_label, x_stab)[key] for x_stab in x_stabs]
+        assert new_stab_x == [["Z1"], ["Z4"], ["Z2"], ["Z5"], ["Z3"], ["Z6"]]
 
     z_stabs = sorted(
         layout.get_qubits(role="anc", stab_type="z_type"), key=lambda x: int(x[1:])
     )
-    new_stab_z = [
-        layout.param(gate_label, z_stab)["new_stab_gen"] for z_stab in z_stabs
-    ]
-    assert new_stab_z == [["X1"], ["X3"], ["X5"], ["X2"], ["X4"], ["X6"]]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stab_z = [layout.param(gate_label, z_stab)[key] for z_stab in z_stabs]
+        assert new_stab_z == [["X1"], ["X3"], ["X5"], ["X2"], ["X4"], ["X6"]]
 
     data_qubits = sorted(layout.get_qubits(role="data"), key=lambda x: int(x[1:]))
     swap_gates = [layout.param(gate_label, d)["swap"] for d in data_qubits]
@@ -178,7 +173,8 @@ def test_set_fold_trans_h():
     local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
     assert set(local_gates) == set(["H"])
 
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    assert new_stabs == new_stabs_inv
     for s in z_stabs + x_stabs:
         assert len(new_stabs[s]) == 1
 

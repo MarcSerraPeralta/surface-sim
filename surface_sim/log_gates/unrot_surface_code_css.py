@@ -130,9 +130,15 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
         anc_to_new_stab[anc_z] = [anc_z]
 
     # Store new stabilizer generators to the ancilla qubits
+    # the stabilizer propagation for s_dag is the same as for s
     for anc_qubit in anc_qubits:
         layout.set_param(
-            gate_label, anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
+            gate_label,
+            anc_qubit,
+            {
+                "new_stab_gen": anc_to_new_stab[anc_qubit],
+                "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
+            },
         )
 
     return
@@ -254,9 +260,15 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
         anc_to_new_stab[anc_x] = [anc_x]
 
     # Store new stabilizer generators to the ancilla qubits
+    # the stabilizer propagation for sqrt_x_dag is the same as for sqrt_x
     for anc_qubit in anc_qubits:
         layout.set_param(
-            gate_label, anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
+            gate_label,
+            anc_qubit,
+            {
+                "new_stab_gen": anc_to_new_stab[anc_qubit],
+                "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
+            },
         )
 
     return
@@ -387,10 +399,25 @@ def set_fold_trans_cz(layout_c: Layout, layout_t: Layout, data_qubit: str) -> No
         anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
 
     # Store new stabilizer generators to the ancilla qubits
+    # CZ^\dagger = CZ
     for anc in layout_c.get_qubits(role="anc"):
-        layout_c.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
+        layout_c.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+            },
+        )
     for anc in layout_t.get_qubits(role="anc"):
-        layout_t.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
+        layout_t.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+            },
+        )
 
     return
 
@@ -455,10 +482,25 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         anc_to_new_stab[anc] = [anc]
 
     # Store new stabilizer generators to the ancilla qubits
+    # CNOT^\dagger = CNOT
     for anc in layout_c.get_qubits(role="anc"):
-        layout_c.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
+        layout_c.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+            },
+        )
     for anc in layout_t.get_qubits(role="anc"):
-        layout_t.set_param(gate_label, anc, {"new_stab_gen": anc_to_new_stab[anc]})
+        layout_t.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+            },
+        )
 
     return
 
@@ -551,9 +593,15 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
         anc_to_new_stab[anc_qubit] = [anc_pair]
 
     # Store new stabilizer generators to the ancilla qubits
+    # H^\dagger = H
     for anc_qubit in anc_qubits:
         layout.set_param(
-            gate_label, anc_qubit, {"new_stab_gen": anc_to_new_stab[anc_qubit]}
+            gate_label,
+            anc_qubit,
+            {
+                "new_stab_gen": anc_to_new_stab[anc_qubit],
+                "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
+            },
         )
 
     return

@@ -9,14 +9,16 @@ def test_set_x():
     gate_label = f"log_x_{layout.get_logical_qubits()[0]}"
 
     stabs = layout.get_qubits(role="anc")
-    new_stabs = [layout.param(gate_label, s)["new_stab_gen"] for s in stabs]
-    assert new_stabs == [[s] for s in stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
+        assert new_stabs == [[s] for s in stabs]
 
     data_qubits = layout.get_qubits(role="data")
     local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
     assert len([g for g in local_gates if g == "X"]) % 2 == 1
 
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    assert new_stabs == new_stabs_inv
     for s in stabs:
         assert new_stabs[s] == [s]
 
@@ -29,14 +31,16 @@ def test_set_z():
     gate_label = f"log_z_{layout.get_logical_qubits()[0]}"
 
     stabs = layout.get_qubits(role="anc")
-    new_stabs = [layout.param(gate_label, s)["new_stab_gen"] for s in stabs]
-    assert new_stabs == [[s] for s in stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
+        assert new_stabs == [[s] for s in stabs]
 
     data_qubits = layout.get_qubits(role="data")
     local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
     assert len([g for g in local_gates if g == "Z"]) % 2 == 1
 
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    assert new_stabs == new_stabs_inv
     for s in stabs:
         assert new_stabs[s] == [s]
 
@@ -49,14 +53,16 @@ def test_set_idle():
     gate_label = f"idle_{layout.get_logical_qubits()[0]}"
 
     stabs = layout.get_qubits(role="anc")
-    new_stabs = [layout.param(gate_label, s)["new_stab_gen"] for s in stabs]
-    assert new_stabs == [[s] for s in stabs]
+    for key in ["new_stab_gen", "new_stab_gen_inv"]:
+        new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
+        assert new_stabs == [[s] for s in stabs]
 
     data_qubits = layout.get_qubits(role="data")
     local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
     assert len([g for g in local_gates if g != "I"]) == 0
 
-    new_stabs = get_new_stab_dict_from_layout(layout, gate_label)
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    assert new_stabs == new_stabs_inv
     for s in stabs:
         assert new_stabs[s] == [s]
 

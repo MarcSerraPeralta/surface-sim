@@ -31,7 +31,11 @@ def set_x(layout: Layout) -> None:
 
     # Store new stabilizer generators to the ancilla qubits
     for anc_qubit in anc_qubits:
-        layout.set_param(gate_label, anc_qubit, {"new_stab_gen": [anc_qubit]})
+        layout.set_param(
+            gate_label,
+            anc_qubit,
+            {"new_stab_gen": [anc_qubit], "new_stab_gen_inv": [anc_qubit]},
+        )
 
     return
 
@@ -66,7 +70,11 @@ def set_z(layout: Layout) -> None:
 
     # Store new stabilizer generators to the ancilla qubits
     for anc_qubit in anc_qubits:
-        layout.set_param(gate_label, anc_qubit, {"new_stab_gen": [anc_qubit]})
+        layout.set_param(
+            gate_label,
+            anc_qubit,
+            {"new_stab_gen": [anc_qubit], "new_stab_gen_inv": [anc_qubit]},
+        )
 
     return
 
@@ -97,6 +105,10 @@ def set_idle(layout: Layout) -> None:
 
     # Store new stabilizer generators to the ancilla qubits
     for anc_qubit in anc_qubits:
-        layout.set_param(gate_label, anc_qubit, {"new_stab_gen": [anc_qubit]})
+        layout.set_param(
+            gate_label,
+            anc_qubit,
+            {"new_stab_gen": [anc_qubit], "new_stab_gen_inv": [anc_qubit]},
+        )
 
     return
