@@ -18,12 +18,8 @@ fonttools==4.47.2
     # via matplotlib
 future==0.18.3
     # via uncertainties
-galois==0.4.2
-    # via surface-sim (pyproject.toml)
 kiwisolver==1.4.5
     # via matplotlib
-llvmlite==0.43.0
-    # via numba
 lmfit==1.2.2
     # via qec-util
 matplotlib==3.8.2
@@ -32,17 +28,13 @@ netcdf4==1.6.5
     # via surface-sim (pyproject.toml)
 networkx==3.2.1
     # via qec-util
-numba==0.60.0
-    # via galois
 numpy==1.24.4
     # via
     #   cftime
     #   contourpy
-    #   galois
     #   lmfit
     #   matplotlib
     #   netcdf4
-    #   numba
     #   pandas
     #   qec-util
     #   scipy
@@ -81,8 +73,6 @@ six==1.16.0
     #   python-sat
 stim==1.14.0
     # via surface-sim (pyproject.toml)
-typing-extensions==4.12.2
-    # via galois
 tzdata==2023.4
     # via pandas
 uncertainties==3.1.7
