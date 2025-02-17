@@ -1,7 +1,7 @@
 """
 The circuits are based on the following paper by Google AI:
 https://doi.org/10.1038/s41586-022-05434-1
-https://doi.org/10.48550/arXiv.2207.06431 
+https://doi.org/10.48550/arXiv.2207.06431
 """
 
 from itertools import chain
