@@ -656,7 +656,8 @@ def log_trans_cnot_iterator(
     qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
     gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
-    cnot_pairs = set()
+    cz_pairs = set()
+    qubits_h_gate = set(data_qubits_t)
     for data_qubit in data_qubits_c:
         trans_cnot = layout_c.param(gate_label, data_qubit)
         if trans_cnot is None:
@@ -665,15 +666,25 @@ def log_trans_cnot_iterator(
                 f"{gate_label} gate on qubit {data_qubit}. "
                 "Use the 'log_gates' module to set it up."
             )
-        cnot_pairs.add((data_qubit, trans_cnot["cnot"]))
+        cz_pairs.add((data_qubit, trans_cnot["cz"]))
 
     yield model.incoming_noise(data_qubits_c) + model.incoming_noise(data_qubits_t)
     yield model.tick()
 
-    # long-range CNOT gates
-    int_qubits = list(chain.from_iterable(cnot_pairs))
+    # CNOT is decomposed into H CZ H
+    idle_qubits = qubits - qubits_h_gate
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # long-range CZ gates
+    int_qubits = list(chain.from_iterable(cz_pairs))
     idle_qubits = qubits - set(int_qubits)
-    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # CNOT is decomposed into H CZ H
+    idle_qubits = qubits - qubits_h_gate
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
     yield model.tick()
 
 
