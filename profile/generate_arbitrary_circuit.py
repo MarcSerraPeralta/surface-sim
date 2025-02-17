@@ -8,7 +8,7 @@ from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.layouts import unrot_surface_codes
 
 # INPUTS
-DISTANCE = 19
+DISTANCE = 41
 PROB = 1e-3
 NOISE_MODEL = CircuitNoiseModel
 FRAME = "pre-gate"
