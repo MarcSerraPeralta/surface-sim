@@ -415,7 +415,7 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
         )
 
     data_qubits = layout.get_qubits(role="data")
-    qubits = set(layout.get_qubits())
+    anc_qubits = layout.get_qubits(role="anc")
     gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
@@ -442,17 +442,13 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
     yield model.tick()
 
     # S, S_DAG gates
-    local_circ = Circuit()
-    idle_qubits = qubits - qubits_s_gate - qubits_s_dag_gate
-    local_circ += model.s_gate(qubits_s_gate)
-    local_circ += model.s_dag_gate(qubits_s_dag_gate)
-    yield local_circ + model.idle(idle_qubits)
-    yield model.tick()
-
-    # long-range CZ gates
     int_qubits = list(chain.from_iterable(cz_pairs))
-    idle_qubits = qubits - set(int_qubits)
-    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield (
+        model.s_gate(qubits_s_gate)
+        + model.s_dag_gate(qubits_s_dag_gate)
+        + model.cphase(int_qubits)
+        + model.idle(anc_qubits)
+    )
     yield model.tick()
 
 
