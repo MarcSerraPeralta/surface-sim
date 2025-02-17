@@ -1,11 +1,9 @@
 from copy import deepcopy
 
 import numpy as np
-import networkx as nx
 
 from ..layouts.layout import Layout
-from ..layouts.operations import check_overlap_layouts
-from .util import set_x, set_z, set_idle
+from .util import set_x, set_z, set_idle, set_trans_cnot
 
 __all__ = [
     "set_x",
@@ -168,99 +166,6 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             {
                 "new_stab_gen": anc_to_new_stab[anc_qubit],
                 "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
-            },
-        )
-
-    return
-
-
-def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
-    """Adds the required attributes (in place) for the layout to run the
-    transversal CNOT gate for the rotated surface code.
-
-    Parameters
-    ----------
-    layout_c
-        The layout for the control of the CNOT for which to add the attributes.
-    layout_t
-        The layout for the target of the CNOT for which to add the attributes.
-    """
-    if (layout_c.code != "rotated_surface_code") or (
-        layout_t.code != "rotated_surface_code"
-    ):
-        raise ValueError(
-            "This function is for rotated surface codes, "
-            f"but layouts for {layout_t.code} and {layout_c.code} were given."
-        )
-    if (layout_c.distance_x != layout_t.distance_x) or (
-        layout_c.distance_z != layout_t.distance_z
-    ):
-        raise ValueError("This function requires two surface codes of the same size.")
-    check_overlap_layouts(layout_c, layout_t)
-
-    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
-
-    # Obtain the mapping of qubits of one layout to qubits of the other layout
-    gm = nx.isomorphism.GraphMatcher(
-        layout_c.graph.to_undirected(reciprocal=True),
-        layout_t.graph.to_undirected(reciprocal=True),
-    )
-
-    # The isomorphism we want is the one in which all the physical CNOTs
-    # are parallel between each other.
-    mapping_c_to_t = None
-    for isomorphism in gm.match():
-        c = list(isomorphism)
-        t = [isomorphism[i] for i in c]
-        coords1 = np.array(layout_c.get_coords(c))
-        coords2 = np.array(layout_t.get_coords(t))
-        vector = coords2 - coords1
-        if np.isclose(vector, vector[0]).all():
-            mapping_c_to_t = isomorphism
-            break
-
-    if mapping_c_to_t is None:
-        raise ValueError("No mapping between layouts could be found.")
-
-    mapping_t_to_c = {v: k for k, v in mapping_c_to_t.items()}
-
-    # Store the logical information for the data qubits
-    data_qubits_c = set(layout_c.get_qubits(role="data"))
-    data_qubits_t = set(layout_t.get_qubits(role="data"))
-    for qubit in data_qubits_c:
-        layout_c.set_param(gate_label, qubit, {"cnot": mapping_c_to_t[qubit]})
-    for qubit in data_qubits_t:
-        layout_t.set_param(gate_label, qubit, {"cnot": mapping_t_to_c[qubit]})
-
-    # Compute the new stabilizer generators based on the CNOT connections
-    anc_to_new_stab = {}
-    for anc in layout_c.get_qubits(role="anc", stab_type="z_type"):
-        anc_to_new_stab[anc] = [anc]
-    for anc in layout_c.get_qubits(role="anc", stab_type="x_type"):
-        anc_to_new_stab[anc] = [anc, mapping_c_to_t[anc]]
-    for anc in layout_t.get_qubits(role="anc", stab_type="z_type"):
-        anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
-    for anc in layout_t.get_qubits(role="anc", stab_type="x_type"):
-        anc_to_new_stab[anc] = [anc]
-
-    # Store new stabilizer generators to the ancilla qubits
-    # CNOT^\dagger = CNOT
-    for anc in layout_c.get_qubits(role="anc"):
-        layout_c.set_param(
-            gate_label,
-            anc,
-            {
-                "new_stab_gen": anc_to_new_stab[anc],
-                "new_stab_gen_inv": anc_to_new_stab[anc],
-            },
-        )
-    for anc in layout_t.get_qubits(role="anc"):
-        layout_t.set_param(
-            gate_label,
-            anc,
-            {
-                "new_stab_gen": anc_to_new_stab[anc],
-                "new_stab_gen_inv": anc_to_new_stab[anc],
             },
         )
 
