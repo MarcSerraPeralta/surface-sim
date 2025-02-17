@@ -19,6 +19,9 @@ readme = "README.md"
 dependencies = [
     "numpy",
     "xarray",
+    "networkx",
+    "scipy", # required by netwokx but not automatically installed by pip
+    "matplotlib",
     "PyYAML",
     "netCDF4",
     "stim >= 1.14.0", # for 'likeliest_error_sat_problem' and 'Circuit.pop'
