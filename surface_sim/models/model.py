@@ -21,6 +21,10 @@ class Model(object):
     def qubits(self) -> list[str]:
         return list(self._qubit_inds.keys())
 
+    @property
+    def uniform(self) -> bool:
+        return self._setup.uniform
+
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
@@ -30,8 +34,8 @@ class Model(object):
         # LSP unusable with all the errors.
         return [self._qubit_inds[q] for q in qubits]
 
-    def param(self, *qubits: str):
-        return self._setup.param(*qubits)
+    def param(self, *args, **kargs):
+        return self._setup.param(*args, **kargs)
 
     # easier detector definition
     def add_meas(self, qubit: str) -> None:

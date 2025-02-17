@@ -35,12 +35,16 @@ class Setup:
         self._qubit_params = dict()
         self._global_params = dict()
         self._var_params = dict()
+        self.uniform = False
 
         _setup = deepcopy(setup)
         self.name = _setup.pop("name", None)
         self.description = _setup.pop("description", None)
         self._gate_durations = _setup.pop("gate_durations", {})
         self._load_setup(_setup)
+        if self._qubit_params == {}:
+            self.uniform = True
+
         return
 
     def _load_setup(self, setup: dict[str, object]) -> None:
@@ -198,14 +202,14 @@ class Setup:
                 raise TypeError("All qubits must be str.")
             self._qubit_params[qubits][param] = param_val
 
-    def param(self, param: str, *qubits: str) -> float:
+    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()) -> float:
         """Returns the value of the given parameter for the specified qubit(s).
 
         Parameters
         ----------
         param
             Name of the parameter.
-        *qubits
+        qubits
             Qubit or qubit pairs of which to get the parameter.
 
         Returns
