@@ -18,6 +18,8 @@ class Setup:
         "reset_error_prob": "sq_error_prob",
         "meas_error_prob": "sq_error_prob",
         "idle_error_prob": "sq_error_prob",
+        "idle_meas_error_prob": "idle_error_prob",
+        "idle_reset_error_prob": "idle_error_prob",
     }
 
     def __init__(self, setup: dict[str, object]) -> None:
@@ -203,7 +205,7 @@ class Setup:
                 raise TypeError("All qubits must be str.")
             self._qubit_params[qubits][param] = param_val
 
-    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()) -> float:
+    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()):
         """Returns the value of the given parameter for the specified qubit(s).
 
         Parameters
@@ -230,6 +232,7 @@ class Setup:
             val = self._global_params[param]
             return self._eval_param_val(val)
 
+        # if none of the previous works, try loading from 'parent' parameter
         if param in self.PARENTS:
             return self.param(self.PARENTS[param])
 

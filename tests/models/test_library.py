@@ -37,6 +37,8 @@ SETUP = {
             "assign_error_prob": 0.1,
             "reset_error_prob": 0.1,
             "idle_error_prob": 0.1,
+            "idle_meas_error_prob": 0.1,
+            "idle_reset_error_prob": 0.1,
             "T1": 1,
             "T2": 1,
         },
@@ -101,6 +103,12 @@ def test_NoiselessModel():
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
 
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
+    assert ops == ["I"]
+
     return
 
 
@@ -159,6 +167,12 @@ def test_PhenomenologicalNoiseModel():
     assert ops == ["RY"]
 
     ops = [o.name for o in model.idle(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
     assert ops == ["I"]
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
@@ -225,6 +239,12 @@ def test_PhenomenologicalDepolNoiseModel():
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
 
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
+    assert ops == ["I"]
+
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert set(NOISE_GATES) >= set(ops)
     assert len(ops) == 1
@@ -289,6 +309,12 @@ def test_MeasurementNoiseModel():
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
 
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
+    assert ops == ["I"]
+
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert len(ops) == 0
 
@@ -342,6 +368,12 @@ def test_IncomingNoiseModel():
     assert ops == ["RY"]
 
     ops = [o.name for o in model.idle(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
     assert ops == ["I"]
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
@@ -398,6 +430,12 @@ def test_IncomingDepolNoiseModel():
     assert ops == ["RY"]
 
     ops = [o.name for o in model.idle(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert ops == ["I"]
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
     assert ops == ["I"]
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
@@ -650,6 +688,14 @@ def test_CircuitNoiseModel():
     assert len(ops) > 1
 
     ops = [o.name for o in model.idle(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) > 0
+
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) > 0
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
     assert set(NOISE_GATES + ["I"]) >= set(ops)
     assert len(ops) > 0
 

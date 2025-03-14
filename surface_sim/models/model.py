@@ -181,6 +181,12 @@ class Model(object):
     def idle(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
+        raise NotImplementedError
+
     def idle_noise(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 

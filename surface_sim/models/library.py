@@ -273,15 +273,35 @@ class CircuitNoiseModel(Model):
 
         return circ
 
-    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, "idle_meas_error_prob")
+
+        return circ
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, "idle_reset_error_prob")
+
+        return circ
+
+    def idle_noise(
+        self, qubits: Iterable[str], param_name: str = "idle_error_prob"
+    ) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
         if self.uniform:
-            prob = self.param("idle_error_prob")
+            prob = self.param(param_name)
             circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
         else:
             for qubit, ind in zip(qubits, inds):
-                prob = self.param("idle_error_prob", qubit)
+                prob = self.param(param_name, qubit)
                 circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
         return circ
 
@@ -662,12 +682,32 @@ class BiasedCircuitNoiseModel(Model):
 
         return circ
 
-    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, "idle_meas_error_prob")
+
+        return circ
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_noise(qubits, "idle_reset_error_prob")
+
+        return circ
+
+    def idle_noise(
+        self, qubits: Iterable[str], param_name: str = "idle_error_prob"
+    ) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
 
         if self.uniform:
-            prob = self.param("idle_error_prob")
+            prob = self.param(param_name)
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli"),
                 biased_factor=self.param("biased_factor"),
@@ -677,7 +717,7 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_1", inds, prob))
         else:
             for qubit, ind in zip(qubits, inds):
-                prob = self.param("idle_error_prob", qubit)
+                prob = self.param(param_name, qubit)
                 prefactors = biased_prefactors(
                     biased_pauli=self.param("biased_pauli", qubit),
                     biased_factor=self.param("biased_factor", qubit),
@@ -1065,6 +1105,16 @@ class NoiselessModel(Model):
         return circ
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("I", self.get_inds(qubits)))
+        return circ
+
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("I", self.get_inds(qubits)))
+        return circ
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("I", self.get_inds(qubits)))
         return circ
