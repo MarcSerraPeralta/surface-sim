@@ -1,15 +1,12 @@
 name: "Circuit-level noise setup"
 description: "Setup for a circuit-level noise model that can be used for any distance."
-
-error_prob: &prob "prob"
-flag_assign_errors: &assign_errors "assign_errors"
-prob_assign_errors: &prob_assign "assign_prob"
-
 setup:
-  - sq_error_prob: *prob
-    cz_error_prob: *prob
-    meas_error_prob: *prob
-    reset_error_prob: *prob
-    idle_error_prob: *prob
-    assign_error_flag: *assign_errors
-    assign_error_prob: *prob_assign
+  - sq_error_prob: "{prob}"
+    tq_error_prob: "{prob}"
+    meas_error_prob: "{prob}"
+    reset_error_prob: "{prob}"
+    idle_error_prob: "{prob}"
+    idle_meas_error_prob: "{prob}"
+    idle_reset_error_prob: "{prob}"
+    assign_error_flag: "{assign_errors}"
+    assign_error_prob: "{prob}"

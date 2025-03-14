@@ -258,11 +258,11 @@ def qec_round(
     # j
     circuit += model.measure(anc_qubits)
 
-    circuit += model.idle(data_qubits)
+    circuit += model.idle_meas(data_qubits)
     circuit += model.tick()
 
     circuit += model.reset(anc_qubits)
-    circuit += model.idle(data_qubits)
+    circuit += model.idle_reset(data_qubits)
     circuit += model.tick()
 
     # add detectors

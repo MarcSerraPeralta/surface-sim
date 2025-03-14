@@ -18,6 +18,8 @@ class Setup:
         "reset_error_prob": "sq_error_prob",
         "meas_error_prob": "sq_error_prob",
         "idle_error_prob": "sq_error_prob",
+        "idle_meas_error_prob": "idle_error_prob",
+        "idle_reset_error_prob": "idle_error_prob",
     }
 
     def __init__(self, setup: dict[str, object]) -> None:
@@ -68,9 +70,10 @@ class Setup:
             else:
                 self._global_params.update(params_dict)
 
-            for param, val in params_dict.items():
-                if isinstance(val, str) and param not in self._var_params:
-                    self._var_params[val] = None
+            for val in params_dict.values():
+                if isinstance(val, str):
+                    for p in _get_var_params(val):
+                        self._var_params[p] = None
 
     @property
     def free_params(self) -> list[str]:
@@ -156,7 +159,7 @@ class Setup:
             raise ValueError(f"Variable param {var_param} not in 'Setup.free_params'.")
         return val
 
-    def set_var_param(self, var_param: str, val: float) -> None:
+    def set_var_param(self, var_param: str, val: float | int | bool | str) -> None:
         """Sets the given value to the given variable parameter.
 
         Parameters
@@ -202,7 +205,7 @@ class Setup:
                 raise TypeError("All qubits must be str.")
             self._qubit_params[qubits][param] = param_val
 
-    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()) -> float:
+    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()):
         """Returns the value of the given parameter for the specified qubit(s).
 
         Parameters
@@ -229,6 +232,7 @@ class Setup:
             val = self._global_params[param]
             return self._eval_param_val(val)
 
+        # if none of the previous works, try loading from 'parent' parameter
         if param in self.PARENTS:
             return self.param(self.PARENTS[param])
 
@@ -239,11 +243,31 @@ class Setup:
 
     def _eval_param_val(self, val):
         # Parameter values can refer to another parameter (i.e. a variable parameter)
-        if val in self._var_params:
-            param = deepcopy(val)
-            val = self._var_params[param]
-            if val is None:
-                raise ValueError(f"Variable parameter {param} is not specified.")
+        if not isinstance(val, str):
+            return val
+
+        if params := _get_var_params(val):
+            for p in params:
+                if self._var_params[p] is None:
+                    raise ValueError(f"The free param '{p}' has not been specified.")
+
+            # if val = "{parameter}", then no evaluation is needed
+            # this is important if the value of 'parameter' is a string because
+            # we don't want to do 'eval("value_of_parameter") in this case
+            if val == f"{{{params[0]}}}" and isinstance(
+                self._var_params[params[0]], str
+            ):
+                return val.format(**self._var_params)
+
+            val = val.format(**self._var_params)
+
+            # ensure that eval only performs mathematical operations
+            val_check = val.replace("True", "").replace("False", "").replace(" ", "")
+            if set(val_check) > set("0123456789.*/+-^%~|()=<>?"):
+                raise ValueError(
+                    "The strings with variable parameters can only be mathematical expressions."
+                )
+            val = eval(val)
 
         return val
 
@@ -263,3 +287,19 @@ class Setup:
             return self._gate_durations[name]
         except KeyError:
             raise ValueError(f"No gate duration specified for '{name}'")
+
+
+def _get_var_params(string: str) -> list[str]:
+    params = []
+    for s in string.split("{")[1:]:
+        if "}" not in s:
+            raise ValueError(
+                "Only one level of brakets is allowed. Ensure that brakets are matched."
+            )
+
+        param = s.split("}")[0]
+        if param == "":
+            raise ValueError("Params must be non-empty strings.")
+        params.append(param)
+
+    return params

@@ -13,10 +13,10 @@ SETUP = {
     },
     "setup": [
         {
-            "sq_error_prob": "free",
+            "sq_error_prob": "{free}",
             "tq_error_prob": 0.33,
             "cz_error_prob": 0.1,
-            "meas_error_prob": "free2",
+            "meas_error_prob": "{free2}",
             "assign_error_flag": True,
             "assign_error_prob": 0.1,
             "reset_error_prob": 0.1,
