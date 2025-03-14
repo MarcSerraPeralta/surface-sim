@@ -159,7 +159,7 @@ class Setup:
             raise ValueError(f"Variable param {var_param} not in 'Setup.free_params'.")
         return val
 
-    def set_var_param(self, var_param: str, val: float) -> None:
+    def set_var_param(self, var_param: str, val: float | int | bool | str) -> None:
         """Sets the given value to the given variable parameter.
 
         Parameters
