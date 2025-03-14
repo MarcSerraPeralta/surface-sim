@@ -251,6 +251,14 @@ class Setup:
                 if self._var_params[p] is None:
                     raise ValueError(f"The free param '{p}' has not been specified.")
 
+            # if val = "{parameter}", then no evaluation is needed
+            # this is important if the value of 'parameter' is a string because
+            # we don't want to do 'eval("value_of_parameter") in this case
+            if val == f"{{{params[0]}}}" and isinstance(
+                self._var_params[params[0]], str
+            ):
+                return val.format(**self._var_params)
+
             val = val.format(**self._var_params)
 
             # ensure that eval only performs mathematical operations

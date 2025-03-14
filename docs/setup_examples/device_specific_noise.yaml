@@ -1,6 +1,5 @@
 name: "Noise setup from experimental characterization"
 description: "Setup for a experimental noise model that uses the results from the device characterization."
-
 gate_durations:
   CZ: 0.05
   H: 0.04
