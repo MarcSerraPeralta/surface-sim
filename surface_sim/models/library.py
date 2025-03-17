@@ -732,186 +732,226 @@ class BiasedCircuitNoiseModel(Model):
 
 
 class DecoherenceNoiseModel(Model):
-    """An coherence-limited noise model using T1 and T2"""
+    """An coherence-limited noise model using T1 and T2.
+    The noise is added when perfoming gates and when calling ``self.idle``.
+    When calling ``self.idle`` the arguments are going to be ignored and
+    the model will add noise to all qubits that have been idling during the last
+    layer of gates. In this sense, ``self.idle`` needs to be called after each
+    gate layer, if not the model will throw an error.
+    """
 
-    def __init__(
-        self, setup: Setup, qubit_inds: dict[str, int], symmetric_noise: bool = True
-    ) -> None:
-        self._sym_noise = symmetric_noise
-        return super().__init__(setup, qubit_inds)
+    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+        self._curr_gates = {q: [] for q in qubit_inds}
+        super().__init__(setup=setup, qubit_inds=qubit_inds)
+        return
 
-    def generic_op(self, name: str, qubits: Iterable[str]) -> Circuit:
+    def new_circuit(self) -> None:
+        """Empties the variables used for ``meas_target``. This must be called
+        when creating a new circuit."""
+        self._meas_order = {q: [] for q in self._qubit_inds}
+        self._num_meas = 0
+        self._curr_gates = {q: [] for q in self._qubit_inds}
+        return
+
+    def _generic_gate(self, name: str, qubits: Iterable[str]) -> Circuit:
         """
-        generic_op Returns the circuit instructions for a generic operation (that is supported by Stim) on the given qubits.
+        Returns the circuit instructions for a generic gate supported by
+        ``stim`` on the given qubits.
 
         Parameters
         ----------
         name
-            The name of the gate (as defined in Stim)
+            The name of the gate as defined in ``stim``.
         qubits
             The qubits to apply the gate to.
 
-        Yields
-        ------
-        Circuit
+        Returns
+        -------
+        circ
             The circuit instructions for a generic gate on the given qubits.
         """
+        sym_noise = set(self.setup.param("symmetric_noise", q) for q in qubits)
+        if len(sym_noise) != 1:
+            raise ValueError(
+                "'sym_noise' has different values for the considered qubits."
+            )
+        sym_noise = sym_noise.pop()
+
         circ = Circuit()
+        duration = self.gate_duration(name)
+        if sym_noise:
+            duration = 0.5 * duration
+            circ += self.idle_duration(qubits, duration)
 
-        if self._sym_noise:
-            duration = 0.5 * self.gate_duration(name)
+        circ.append(CircuitInstruction(name, targets=self.get_inds(qubits)))
+        circ += self.idle_duration(qubits, duration)
 
-            circ += self.idle_noise(qubits, duration)
-            circ.append(CircuitInstruction(name, targets=self.get_inds(qubits)))
-            circ += self.idle_noise(qubits, duration)
-        else:
-            duration = self.gate_duration(name)
+        return circ
 
-            circ.append(CircuitInstruction(name, targets=self.get_inds(qubits)))
-            circ += self.idle_noise(qubits, duration)
+    def _generic_measurement(self, name: str, qubits: Iterable[str]) -> Circuit:
+        """
+        Returns the circuit instructions for a generic measurement supported by
+        ``stim`` on the given qubits.
+
+        Parameters
+        ----------
+        name
+            The name of the measurement as defined in ``stim``.
+        qubits
+            The qubits to apply the gate to.
+
+        Returns
+        -------
+        circ
+            The circuit instructions for a generic measurement on the given qubits.
+        """
+        sym_noise = set(self.setup.param("symmetric_noise", q) for q in qubits)
+        if len(sym_noise) != 1:
+            raise ValueError(
+                "'sym_noise' has different values for the considered qubits."
+            )
+        sym_noise = sym_noise.pop()
+
+        circ = Circuit()
+        duration = self.gate_duration(name)
+        if sym_noise:
+            duration = 0.5 * duration
+            circ += self.idle_duration(qubits, duration)
+
+        for qubit in qubits:
+            self.add_meas(qubit)
+            inds = self.get_inds([qubit])
+            if prob := self.param("assign_error_flag", qubit):
+                circ.append(CircuitInstruction(name, targets=inds, gate_args=[prob]))
+            else:
+                circ.append(CircuitInstruction(name, targets=inds))
+
+        circ += self.idle_duration(qubits, duration)
+
         return circ
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("X", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("X")
+        return self._generic_gate("X", qubits)
 
     def z_gate(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("Z", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("Z")
+        return self._generic_gate("Z", qubits)
 
     def hadamard(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("H", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("H")
+        return self._generic_gate("H", qubits)
 
     def s_gate(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("S", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("S")
+        return self._generic_gate("S", qubits)
 
     def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("S_DAG", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("S_DAG")
+        return self._generic_gate("S_DAG", qubits)
 
     def cphase(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("CZ", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("CZ")
+        return self._generic_gate("CZ", qubits)
 
     def cnot(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("CNOT", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("CNOT")
+        return self._generic_gate("CNOT", qubits)
 
     def swap(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("SWAP", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("SWAP")
+        return self._generic_gate("SWAP", qubits)
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
-        circ = Circuit()
-        name = "M"
-        if self._sym_noise:
-            duration = 0.5 * self.gate_duration(name)
-
-            circ += self.idle_noise(qubits, duration)
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(
-                        CircuitInstruction(
-                            name, targets=self.get_inds([qubit]), gate_args=[prob]
-                        )
-                    )
-                else:
-                    circ.append(
-                        CircuitInstruction(name, targets=self.get_inds([qubit]))
-                    )
-            circ += self.idle_noise(qubits, duration)
-        else:
-            duration = self.gate_duration(name)
-
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle_noise(qubit, duration)
-        return circ
+        for qubit in qubits:
+            self._curr_gates[qubit].append("M")
+        return self._generic_measurement("M", qubits)
 
     def measure_x(self, qubits: Iterable[str]) -> Circuit:
-        circ = Circuit()
-        name = "MX"
-        if self._sym_noise:
-            duration = 0.5 * self.gate_duration(name)
-
-            circ += self.idle_noise(qubits, duration)
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(
-                        CircuitInstruction(
-                            name, targets=self.get_inds([qubit]), gate_args=[prob]
-                        )
-                    )
-                else:
-                    circ.append(
-                        CircuitInstruction(name, targets=self.get_inds([qubit]))
-                    )
-            circ += self.idle_noise(qubits, duration)
-        else:
-            duration = self.gate_duration(name)
-
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle_noise(qubit, duration)
-        return circ
+        for qubit in qubits:
+            self._curr_gates[qubit].append("MX")
+        return self._generic_measurement("MX", qubits)
 
     def measure_y(self, qubits: Iterable[str]) -> Circuit:
-        circ = Circuit()
-        name = "MY"
-        if self._sym_noise:
-            duration = 0.5 * self.gate_duration(name)
-
-            circ += self.idle_noise(qubits, duration)
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(
-                        CircuitInstruction(
-                            name, targets=self.get_inds([qubit]), gate_args=[prob]
-                        )
-                    )
-                else:
-                    circ.append(
-                        CircuitInstruction(name, targets=self.get_inds([qubit]))
-                    )
-            circ += self.idle_noise(qubits, duration)
-        else:
-            duration = self.gate_duration(name)
-
-            for qubit in qubits:
-                self.add_meas(qubit)
-
-                circ.append(CircuitInstruction(name, targets=[qubit]))
-                circ += self.idle_noise(qubit, duration)
-        return circ
+        for qubit in qubits:
+            self._curr_gates[qubit].append("MY")
+        return self._generic_measurement("MY", qubits)
 
     def reset(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("R", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("R")
+        return self._generic_gate("R", qubits)
 
     def reset_x(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("RX", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("RX")
+        return self._generic_gate("RX", qubits)
 
     def reset_y(self, qubits: Iterable[str]) -> Circuit:
-        return self.generic_op("RY", qubits)
+        for qubit in qubits:
+            self._curr_gates[qubit].append("RY")
+        return self._generic_gate("RY", qubits)
 
-    def idle(self, qubits: Iterable[str], duration: float) -> Circuit:
+    def idle(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
 
         circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, duration=duration)
+        circ += self.idle_noise(qubits)
 
         return circ
 
-    def idle_noise(self, qubits: Iterable[str], duration: float) -> Circuit:
-        """
-        Returns the circuit instructions for an idling period on the given qubits.
+    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+        if set(len(g) for g in self._curr_gates.values()) > set([0, 1]):
+            raise ValueError("'Setup.idle' must be called after each layer of gates.")
+
+        # compute idling time for each qubit
+        durations = {q: 0.0 for q in self._qubit_inds}
+        for q, g in self._curr_gates.items():
+            if len(g) == 1:
+                durations[q] = self.gate_duration(g[0])
+        max_duration = max(durations.values())
+        durations = {q: max_duration - d for q, d in durations.items()}
+        durations = {q: d for q, d in durations.items() if d != 0}
+
+        # build circuit
+        circ = Circuit()
+        for qubit, duration in durations.items():
+            circ += self.idle_duration([qubit], duration)
+
+        # reset gates
+        self._curr_gates = {q: [] for q in self._qubit_inds}
+
+        return circ
+
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_duration(qubits, duration=self.gate_duration("M"))
+
+        return circ
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("I", inds))
+        circ += self.idle_duration(qubits, duration=self.gate_duration("R"))
+
+        return circ
+
+    def idle_duration(self, qubits: Iterable[str], duration: float) -> Circuit:
+        """Returns the circuit instructions for an idling period on the given qubits.
 
         Parameters
         ----------
@@ -926,6 +966,23 @@ class DecoherenceNoiseModel(Model):
             The circuit instructions for an idling period on the given qubits.
         """
         circ = Circuit()
+
+        if self.uniform:
+            relax_time = self.param("T1")
+            deph_time = self.param("T2")
+            # check that the parameters are physical
+            assert (relax_time > 0) and (deph_time > 0) and (deph_time < 2 * relax_time)
+
+            error_probs = idle_error_probs(relax_time, deph_time, duration)
+            targets = self.get_inds(qubits)
+
+            circ.append(
+                CircuitInstruction(
+                    "PAULI_CHANNEL_1", targets=targets, gate_args=error_probs
+                )
+            )
+
+            return circ
 
         for qubit in qubits:
             relax_time = self.param("T1", qubit)
@@ -942,79 +999,7 @@ class DecoherenceNoiseModel(Model):
                     gate_args=error_probs,
                 )
             )
-        return circ
 
-    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
-        return Circuit()
-
-
-class ExperimentalNoiseModel(CircuitNoiseModel):
-    """
-    Noise models that uses the metrics characterized from
-    an experimental setup
-    """
-
-    def idle(self, qubits: Iterable[str], duration: float) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, duration=duration)
-
-        return circ
-
-    def idle_noise(self, qubits: Iterable[str], duration: float) -> Circuit:
-        """
-        idle Returns the circuit instructions for an idling period on the given qubits.
-
-        Parameters
-        ----------
-        qubits
-            The qubits to idle.
-        duration
-            The duration of the idling period.
-
-        Yields
-        ------
-        Circuit
-            The circuit instructions for an idling period on the given qubits.
-        """
-        circ = Circuit()
-        if self.uniform:
-            relax_time = self.param("T1")
-            deph_time = self.param("T2")
-            # check that the parameters are physical
-            assert (relax_time > 0) and (deph_time > 0) and (deph_time < 2 * relax_time)
-
-            error_probs = idle_error_probs(relax_time, deph_time, duration)
-
-            circ.append(
-                CircuitInstruction(
-                    "PAULI_CHANNEL_1",
-                    targets=self.get_inds(qubits),
-                    gate_args=error_probs,
-                )
-            )
-        else:
-            for qubit in qubits:
-                relax_time = self.param("T1", qubit)
-                deph_time = self.param("T2", qubit)
-                # check that the parameters are physical
-                assert (
-                    (relax_time > 0)
-                    and (deph_time > 0)
-                    and (deph_time < 2 * relax_time)
-                )
-
-                error_probs = idle_error_probs(relax_time, deph_time, duration)
-
-                circ.append(
-                    CircuitInstruction(
-                        "PAULI_CHANNEL_1",
-                        targets=self.get_inds([qubit]),
-                        gate_args=error_probs,
-                    )
-                )
         return circ
 
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
