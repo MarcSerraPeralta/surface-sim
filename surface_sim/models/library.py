@@ -964,7 +964,7 @@ class DecoherenceNoiseModel(Model):
             circ += self.idle_duration([qubit], duration)
 
         # reset durations
-        self._durations = {q: 0 for q in self._qubit_inds}
+        self._durations = {q: 0.0 for q in self._qubit_inds}
 
         return circ
 
