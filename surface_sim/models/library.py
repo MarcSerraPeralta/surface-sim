@@ -309,10 +309,55 @@ class CircuitNoiseModel(Model):
         return Circuit()
 
 
-class BiasedCircuitNoiseModel(Model):
+class SI1000NoiseModel(CircuitNoiseModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+        self._meas_or_reset_qubits = []
         super().__init__(setup, qubit_inds)
+        return
 
+    def tick(self) -> Circuit:
+        circ = Circuit()
+        if self._meas_or_reset_qubits:
+            idle_qubits = set(self._qubit_inds).difference(self._meas_or_reset_qubits)
+            circ += self.idle_noise(idle_qubits, "extra_idle_meas_or_reset_error_prob")
+        circ += Circuit("TICK")
+        self._meas_or_reset_qubits = []
+        return circ
+
+    def reset(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().reset(qubits)
+
+    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().reset_x(qubits)
+
+    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().reset_y(qubits)
+
+    def reset_z(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().reset_z(qubits)
+
+    def measure(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().measure(qubits)
+
+    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().measure_x(qubits)
+
+    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().measure_y(qubits)
+
+    def measure_z(self, qubits: Iterable[str]) -> Circuit:
+        self._meas_or_reset_qubits += list(qubits)
+        return super().measure_z(qubits)
+
+
+class BiasedCircuitNoiseModel(Model):
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -732,25 +777,14 @@ class BiasedCircuitNoiseModel(Model):
 
 
 class DecoherenceNoiseModel(Model):
-    """An coherence-limited noise model using T1 and T2.
-    The noise is added when perfoming gates and when calling ``self.idle``.
-    When calling ``self.idle`` the arguments are going to be ignored and
-    the model will add noise to all qubits that have been idling during the last
-    layer of gates. In this sense, ``self.idle`` needs to be called after each
-    gate layer, if not the model will throw an error.
+    """A coherence-limited noise model using T1 and T2.
+    The noise is added when perfoming gates and when calling
+    ``DecoherenceNoiseModel.tick``.
     """
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        self._curr_gates = {q: [] for q in qubit_inds}
+        self._durations = {q: 0.0 for q in qubit_inds}
         super().__init__(setup=setup, qubit_inds=qubit_inds)
-        return
-
-    def new_circuit(self) -> None:
-        """Empties the variables used for ``meas_target``. This must be called
-        when creating a new circuit."""
-        self._meas_order = {q: [] for q in self._qubit_inds}
-        self._num_meas = 0
-        self._curr_gates = {q: [] for q in self._qubit_inds}
         return
 
     def _generic_gate(self, name: str, qubits: Iterable[str]) -> Circuit:
@@ -832,121 +866,105 @@ class DecoherenceNoiseModel(Model):
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("X")
+            self._durations[qubit] += self.gate_duration("X")
         return self._generic_gate("X", qubits)
 
     def z_gate(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("Z")
+            self._durations[qubit] += self.gate_duration("Z")
         return self._generic_gate("Z", qubits)
 
     def hadamard(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("H")
+            self._durations[qubit] += self.gate_duration("H")
         return self._generic_gate("H", qubits)
 
     def s_gate(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("S")
+            self._durations[qubit] += self.gate_duration("S")
         return self._generic_gate("S", qubits)
 
     def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("S_DAG")
+            self._durations[qubit] += self.gate_duration("S_DAG")
         return self._generic_gate("S_DAG", qubits)
 
     def cphase(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("CZ")
+            self._durations[qubit] += self.gate_duration("CZ")
         return self._generic_gate("CZ", qubits)
 
     def cnot(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("CNOT")
+            self._durations[qubit] += self.gate_duration("CNOT")
         return self._generic_gate("CNOT", qubits)
 
     def swap(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("SWAP")
+            self._durations[qubit] += self.gate_duration("SWAP")
         return self._generic_gate("SWAP", qubits)
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("M")
+            self._durations[qubit] += self.gate_duration("M")
         return self._generic_measurement("M", qubits)
 
     def measure_x(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("MX")
+            self._durations[qubit] += self.gate_duration("MX")
         return self._generic_measurement("MX", qubits)
 
     def measure_y(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("MY")
+            self._durations[qubit] += self.gate_duration("MY")
         return self._generic_measurement("MY", qubits)
 
     def reset(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("R")
+            self._durations[qubit] += self.gate_duration("R")
         return self._generic_gate("R", qubits)
 
     def reset_x(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("RX")
+            self._durations[qubit] += self.gate_duration("RX")
         return self._generic_gate("RX", qubits)
 
     def reset_y(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
-            self._curr_gates[qubit].append("RY")
+            self._durations[qubit] += self.gate_duration("RY")
         return self._generic_gate("RY", qubits)
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
-
         circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits)
-
         return circ
 
     def idle_noise(self, qubits: Iterable[str]) -> Circuit:
-        if set(len(g) for g in self._curr_gates.values()) > set([0, 1]):
-            raise ValueError("'Setup.idle' must be called after each layer of gates.")
+        return Circuit()
 
+    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
+        return self.idle(qubits)
+
+    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
+        return self.idle(qubits)
+
+    def tick(self) -> Circuit:
         # compute idling time for each qubit
-        durations = {q: 0.0 for q in self._qubit_inds}
-        for q, g in self._curr_gates.items():
-            if len(g) == 1:
-                durations[q] = self.gate_duration(g[0])
-        max_duration = max(durations.values())
-        durations = {q: max_duration - d for q, d in durations.items()}
+        max_duration = max(self._durations.values())
+        durations = {q: max_duration - d for q, d in self._durations.items()}
         durations = {q: d for q, d in durations.items() if d != 0}
+
+        # order durations for better circuit readibility
+        durations = sorted(durations.items(), key=lambda x: x[1])
 
         # build circuit
         circ = Circuit()
-        for qubit, duration in durations.items():
+        for qubit, duration in durations:
             circ += self.idle_duration([qubit], duration)
 
-        # reset gates
-        self._curr_gates = {q: [] for q in self._qubit_inds}
-
-        return circ
-
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_duration(qubits, duration=self.gate_duration("M"))
-
-        return circ
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_duration(qubits, duration=self.gate_duration("R"))
+        # reset durations
+        self._durations = {q: 0.0 for q in self._qubit_inds}
 
         return circ
 
@@ -1009,9 +1027,10 @@ class DecoherenceNoiseModel(Model):
 class NoiselessModel(Model):
     """Noiseless model"""
 
-    def __init__(self, qubit_inds: dict[str, int]) -> None:
-        empty_setup = Setup(dict(setup=[{}]))
-        return super().__init__(setup=empty_setup, qubit_inds=qubit_inds)
+    def __init__(
+        self, qubit_inds: dict[str, int], setup: Setup = Setup(dict(setup=[{}]))
+    ) -> None:
+        return super().__init__(setup=setup, qubit_inds=qubit_inds)
 
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()

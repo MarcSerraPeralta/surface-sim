@@ -10,6 +10,7 @@ from surface_sim.models import (
     PhenomenologicalNoiseModel,
     PhenomenologicalDepolNoiseModel,
     MeasurementNoiseModel,
+    SI1000NoiseModel,
 )
 
 SETUP = {
@@ -20,12 +21,12 @@ SETUP = {
         "CZ": 1,
         "CNOT": 1,
         "SWAP": 1,
-        "M": 1,
-        "MX": 1,
-        "MY": 1,
-        "R": 1,
-        "RX": 1,
-        "RY": 1,
+        "M": 10,
+        "MX": 10,
+        "MY": 10,
+        "R": 10,
+        "RX": 10,
+        "RY": 10,
     },
     "setup": [
         {
@@ -38,9 +39,10 @@ SETUP = {
             "idle_error_prob": 0.1,
             "idle_meas_error_prob": 0.1,
             "idle_reset_error_prob": 0.1,
+            "extra_idle_meas_or_reset_error_prob": 0.1,
             "T1": 1,
             "T2": 1,
-            "symmetric_noise": True,
+            "symmetric_noise": False,
         },
     ],
 }
@@ -52,6 +54,7 @@ NOISE_GATES = [
     "PAULI_CHANNEL_2",
     "X_ERROR",
     "Z_ERROR",
+    "Y_ERROR",
 ]
 
 
@@ -519,14 +522,150 @@ def test_DecoherentNoiseModel():
     assert set(NOISE_GATES + ["RY"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check that extra idling is added if the gate durations do not match
     model.new_circuit()
-    model.reset(["D1"])
+    circ = Circuit()
+    circ += model.reset(["D1"])
+    circ += model.hadamard(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 0
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.hadamard(["D1"])
+    circ += model.hadamard(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    return
+
+
+def test_SI1000NoiseModel():
+    setup = Setup(SETUP)
+    model = SI1000NoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+
+    ops = [o.name for o in model.x_gate(["D1"])]
+    assert "X" in ops
+    assert set(NOISE_GATES + ["X"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.z_gate(["D1"])]
+    assert "Z" in ops
+    assert set(NOISE_GATES + ["Z"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.hadamard(["D1"])]
+    assert "H" in ops
+    assert set(NOISE_GATES + ["H"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cphase(["D1", "D2"])]
+    assert "CZ" in ops
+    assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cnot(["D1", "D2"])]
+    assert "CX" in ops
+    assert set(NOISE_GATES + ["CX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert "SWAP" in ops
+    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure(["D1"])]
+    assert "M" in ops
+    assert set(NOISE_GATES + ["M"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_z(["D1"])]
+    assert "M" in ops
+    assert set(NOISE_GATES + ["M"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_x(["D1"])]
+    assert "MX" in ops
+    assert set(NOISE_GATES + ["MX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.measure_y(["D1"])]
+    assert "MY" in ops
+    assert set(NOISE_GATES + ["MY"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset(["D1"])]
+    assert "R" in ops
+    assert set(NOISE_GATES + ["R"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_z(["D1"])]
+    assert "R" in ops
+    assert set(NOISE_GATES + ["R"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_x(["D1"])]
+    assert "RX" in ops
+    assert set(NOISE_GATES + ["RX"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.reset_y(["D1"])]
+    assert "RY" in ops
+    assert set(NOISE_GATES + ["RY"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.idle(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) > 0
+
+    ops = [o.name for o in model.idle_meas(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) > 0
+
+    ops = [o.name for o in model.idle_reset(["D1"])]
     assert set(NOISE_GATES + ["I"]) >= set(ops)
     assert len(ops) > 0
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert len(ops) == 0
+
+    # check extra noise channels when doing measurement or resets
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.measure(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
 
     return
 
@@ -623,7 +762,7 @@ def test_CircuitNoiseModel():
     return
 
 
-def test_model_meas_roder():
+def test_model_meas_order():
     setup = Setup(SETUP)
     qubit_inds = {"D1": 1, "D2": 2}
     models = [
@@ -632,6 +771,7 @@ def test_model_meas_roder():
         DecoherenceNoiseModel(setup, qubit_inds=qubit_inds),
         IncomingNoiseModel(setup, qubit_inds=qubit_inds),
         PhenomenologicalNoiseModel(setup, qubit_inds=qubit_inds),
+        SI1000NoiseModel(setup, qubit_inds=qubit_inds),
     ]
 
     for model in models:

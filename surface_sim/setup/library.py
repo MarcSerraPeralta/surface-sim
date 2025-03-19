@@ -33,10 +33,20 @@ class SI1000(Setup):
         C. Gidney, M. Newman, A. Fowler, and M. Broughton.
         A Fault-Tolerant honeycomb memory. Quantum, 5:605, Dec. 2021.
 
-        It should be loaded with the `CircuitNoiseModel` model.
+        **IMPORTANT**
 
-        It contains a variable parameter ``"prob"`` that can be set for
-        different physical error probabilities.
+        1. It should be loaded with the ``SI1000NoiseModel`` model. It should not be loaded
+        with ``CircuitNoiseModel`` because the noise model stacks noise channels
+        for qubits that are not being measured on top of their respective
+        noise gate channels (e.g. idling).
+
+        2. This noise model assumes that qubits are reset after measurements.
+        In this sense, it does not add classical measurement errors (also known as
+        assignment errors). It also assumes that ``model.tick()`` is called
+        in-between gate layers.
+
+        3. It contains a variable parameter ``"prob"`` that must be set before
+        building any circuit.
         """
         setup_dict = dict(
             name="SI1000 noise setup",
@@ -48,8 +58,7 @@ class SI1000(Setup):
                     meas_error_prob="{prob} * 5",
                     reset_error_prob="{prob} * 2",
                     idle_error_prob="{prob} / 10",
-                    idle_meas_error_prob="{prob} * 2",
-                    idle_reset_error_prob="{prob} * 2",
+                    extra_idle_meas_or_reset_error_prob="{prob} * 2",
                     assign_error_flag=False,
                     assign_error_prob=0,
                 ),
