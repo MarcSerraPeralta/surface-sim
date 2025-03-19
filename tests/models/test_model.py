@@ -48,3 +48,16 @@ def test_setup_from_model():
     assert SETUP["setup"][0]["T1"] == model.param("T1")
 
     return
+
+
+def test_new_circuit():
+    setup = Setup(SETUP)
+    qubit_inds = {"D1": 300, "d3": 2}
+    model = Model(setup, qubit_inds=qubit_inds)
+
+    model._num_meas = 123
+    model.new_circuit()
+
+    assert model._num_meas == 0
+
+    return

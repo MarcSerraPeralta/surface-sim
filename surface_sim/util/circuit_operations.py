@@ -330,6 +330,8 @@ def merge_qec_rounds(
         raise TypeError(
             f"'layouts' must be a collection, but {type(layouts)} was given."
         )
+    if len(layouts) == 0:
+        return stim.Circuit()
     if any(not isinstance(l, Layout) for l in layouts):
         raise TypeError("Elements in 'layouts' must be Layout objects.")
     if not isinstance(qec_round_iterator, Callable):
@@ -350,7 +352,7 @@ def merge_qec_rounds(
         if set(anc_detectors).intersection(sum(data_qubits, start=[])) != set():
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
-    tick = stim.Circuit("TICK")
+    tick_instr = stim.Circuit("TICK")[0]
     circuit = stim.Circuit()
     for blocks in zip(
         *[
@@ -358,9 +360,22 @@ def merge_qec_rounds(
             for l in layouts
         ]
     ):
-        # avoid multiple 'TICK's in a single block
-        if tick in blocks:
-            blocks = [tick]
+        # avoid multiple 'TICK's in a single block, but be aware that
+        # 'model.tick()' can return noise channels and a 'TICK'.
+        # As the iterator is the same for all block, they all have the same structure.
+        if tick_instr in blocks[0]:
+            tick_idx = [k for k, i in enumerate(blocks[0]) if i == tick_instr]
+            if len(tick_idx) != 1:
+                raise ValueError(
+                    "A block from `qec_round_iterator` cannot have more than one TICK."
+                )
+            tick_idx = tick_idx[0]
+            after_tick = stim.Circuit()
+            for block in blocks:
+                circuit += block[:tick_idx]
+                after_tick += block[tick_idx + 1 :]
+            circuit += stim.Circuit("TICK") + after_tick
+            continue
 
         circuit += merge_tick_blocks(*blocks)
 

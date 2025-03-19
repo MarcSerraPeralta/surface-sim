@@ -6,6 +6,21 @@ from ..setup import Setup
 
 
 class Model(object):
+    """Noise model class for generating the ``stim.Circuit``s for each
+    of the physical operations including noise channels.
+
+    **IMPORTANT**
+
+    It assumes that layers of operations are separated by ``Model.tick()``,
+    and that all qubits participiate in an operation (for idling, use e.g.
+    ``Model.idle``) if they are active (i.e. not measured).
+
+    When designing new noise model classes, the output should be a ``stim.Circuit``
+    that must include the operation of the corresponding class method
+    (e.g. ``"X"`` for ``Model.x_gate``) and (optionally) noise channels.
+    It should not include anything else.
+    """
+
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._setup = setup
         self._qubit_inds = qubit_inds
@@ -99,17 +114,11 @@ class Model(object):
     def new_circuit(self) -> None:
         """Empties the variables used for ``meas_target``. This must be called
         when creating a new circuit."""
-        self._meas_order = {q: [] for q in self._qubit_inds}
-        self._num_meas = 0
+        self.__init__(setup=self._setup, qubit_inds=self._qubit_inds)
         return
 
     # annotation operations
     def tick(self) -> Circuit:
-        """
-        This method must not be overwritten as the there are functions
-        (e.g. ``merge_qec_rounds``) that assume that 'TICK' instructions
-        are not preceded or followed by any other instruction.
-        """
         return Circuit("TICK")
 
     def qubit_coords(self, coords: dict[str, list]) -> Circuit:
