@@ -146,16 +146,18 @@ def merge_ops(
     circuit = stim.Circuit()
     generators = [i[0](model, *i[1:]) for i in ops]
     end = [None for _ in ops]
-    tick = stim.Circuit("TICK")
+    tick_instr = stim.Circuit("TICK")[0]
 
     curr_block = [next(g, None) for g in generators]
     while curr_block != end:
         # merge all ticks into a single tick.
         # [TICK, None, None] still needs to be a single TICK
-        if tick in curr_block:
-            if len([i for i in curr_block if i not in [tick, None]]) > 0:
-                raise ValueError("TICKs must appear together.")
-            curr_block = [tick]
+        # As it is a TICK, no idling needs to be added.
+        tick_presence = [tick_instr in c for c in curr_block if c is not None]
+        if any(tick_presence):
+            circuit += _merge_ticks([c for c in curr_block if c is not None])
+            curr_block = [next(g, None) for g in generators]
+            continue
 
         # change 'None' to idling
         for k, _ in enumerate(curr_block):
@@ -364,17 +366,7 @@ def merge_qec_rounds(
         # 'model.tick()' can return noise channels and a 'TICK'.
         # As the iterator is the same for all block, they all have the same structure.
         if tick_instr in blocks[0]:
-            tick_idx = [k for k, i in enumerate(blocks[0]) if i == tick_instr]
-            if len(tick_idx) != 1:
-                raise ValueError(
-                    "A block from `qec_round_iterator` cannot have more than one TICK."
-                )
-            tick_idx = tick_idx[0]
-            after_tick = stim.Circuit()
-            for block in blocks:
-                circuit += block[:tick_idx]
-                after_tick += block[tick_idx + 1 :]
-            circuit += stim.Circuit("TICK") + after_tick
+            circuit += _merge_ticks(blocks)
             continue
 
         circuit += merge_tick_blocks(*blocks)
@@ -517,4 +509,24 @@ def merge_log_meas(
             )
             circuit.append(instr)
 
+    return circuit
+
+
+def _merge_ticks(blocks: Sequence[stim.Circuit]) -> stim.Circuit:
+    """Merges stim circuit containing TICK instructions and noise channels
+    so that only one TICK instruction is present while keeping if the noise
+    channels happened before of after the TICK.
+    It assumes that a TICK instruction is present in each block.
+    """
+    tick_instr = stim.Circuit("TICK")[0]
+    circuit = stim.Circuit()
+    after_tick = stim.Circuit()
+    for block in blocks:
+        tick_idx = [k for k, i in enumerate(block) if i == tick_instr]
+        if len(tick_idx) != 1:
+            raise ValueError("A block from cannot have more than one TICK.")
+        tick_idx = tick_idx[0]
+        circuit += block[:tick_idx]
+        after_tick += block[tick_idx + 1 :]
+    circuit += stim.Circuit("TICK") + after_tick
     return circuit
