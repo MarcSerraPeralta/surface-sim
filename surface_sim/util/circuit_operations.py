@@ -153,8 +153,7 @@ def merge_ops(
         # merge all ticks into a single tick.
         # [TICK, None, None] still needs to be a single TICK
         # As it is a TICK, no idling needs to be added.
-        tick_presence = [tick_instr in c for c in curr_block if c is not None]
-        if any(tick_presence):
+        if any([tick_instr in c for c in curr_block if c is not None]):
             circuit += _merge_ticks([c for c in curr_block if c is not None])
             curr_block = [next(g, None) for g in generators]
             continue
