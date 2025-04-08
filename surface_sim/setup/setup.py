@@ -1,8 +1,11 @@
 from __future__ import annotations
+from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
 
 import yaml
+
+Param = float | int | bool | str | None
 
 
 class Setup:
@@ -62,6 +65,9 @@ class Setup:
                 qubits = tuple(params_dict.pop("qubits"))
             else:
                 qubits = None
+
+            if any(not isinstance(v, Param) for v in params_dict.values()):
+                raise TypeError(f"Params must be {Param}, but {params_dict} was given.")
 
             if qubits:
                 if qubits in self._qubit_params.keys():
@@ -139,7 +145,7 @@ class Setup:
             yaml.dump(setup, file, default_flow_style=False)
         return
 
-    def var_param(self, var_param: str) -> float:
+    def var_param(self, var_param: str) -> Param:
         """Returns the value of the given variable parameter name.
 
         Parameters
@@ -159,7 +165,7 @@ class Setup:
             raise ValueError(f"Variable param {var_param} not in 'Setup.free_params'.")
         return val
 
-    def set_var_param(self, var_param: str, val: float | int | bool | str) -> None:
+    def set_var_param(self, var_param: str, val: Param) -> None:
         """Sets the given value to the given variable parameter.
 
         Parameters
@@ -173,13 +179,18 @@ class Setup:
             raise TypeError(
                 f"'var_param' must be a str, but {type(var_param)} was given."
             )
+        if not isinstance(val, Param):
+            raise TypeError(f"'val' must be {Param}, but {type(val)} was given.")
+
         self._var_params[var_param] = val
         return
 
     def set_param(
-        self, param: str, param_val: float | int | bool | str, *qubits: str
+        self, param: str, param_val: Param, qubits: str | tuple[str, ...] = tuple()
     ) -> None:
         """Sets the given value to the given parameter of the given qubit(s).
+        For example, setting the CZ error probability requires
+        ``qubits = tuple[str, str]``.
 
         Parameters
         ----------
@@ -187,33 +198,46 @@ class Setup:
             Name of the parameter.
         param_val
             Value to set to ``param``.
-        *qubits
-            Qubit or qubit pairs of which to set the parameter.
+        qubits
+            Qubit(s) of which to set the parameter.
         """
         if not isinstance(param, str):
             raise TypeError(f"'param' must be a str, but {type(param)} was given.")
-        if not isinstance(param_val, (float, int, bool, str)):
+        if not isinstance(param_val, Param):
             raise TypeError(
-                "'param_val' must be a float, int, bool, or str, "
-                f"but {type(param_val)} was given."
+                f"'param_val' must be {Param} but {type(param_val)} was given."
+            )
+        if isinstance(qubits, str):
+            qubits = (qubits,)
+        if (not isinstance(qubits, Sequence)) or (
+            any(not isinstance(q, str) for q in qubits)
+        ):
+            raise TypeError(
+                f"'qubits' must be a tuple[str], but {type(qubits)} was given."
             )
 
+        qubits = tuple(qubits)
         if not qubits:
             self._global_params[param] = param_val
         else:
-            if any(not isinstance(q, str) for q in qubits):
-                raise TypeError("All qubits must be str.")
+            if qubits not in self._qubit_params:
+                raise ValueError(
+                    f"'{param}' for '{'-'.join(qubits)}' is not a param of this setup."
+                )
             self._qubit_params[qubits][param] = param_val
+        return
 
-    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()):
+    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()) -> Param:
         """Returns the value of the given parameter for the specified qubit(s).
+        For example, getting the CZ error probability requires
+        ``qubits = tuple[str, str]``.
 
         Parameters
         ----------
         param
             Name of the parameter.
         qubits
-            Qubit or qubit pairs of which to get the parameter.
+            Qubit(s) of which to get the parameter.
 
         Returns
         -------
@@ -222,9 +246,16 @@ class Setup:
         """
         if not isinstance(param, str):
             raise TypeError(f"'param' must be a str, but {type(param)} was given.")
-        if any(not isinstance(q, str) for q in qubits):
-            raise TypeError("All qubits must be str.")
+        if isinstance(qubits, str):
+            qubits = (qubits,)
+        if (not isinstance(qubits, Sequence)) or (
+            any(not isinstance(q, str) for q in qubits)
+        ):
+            raise TypeError(
+                f"'qubits' must be a tuple[str], but {type(qubits)} was given."
+            )
 
+        qubits = tuple(qubits)
         if qubits in self._qubit_params and param in self._qubit_params[qubits]:
             val = self._qubit_params[qubits][param]
             return self._eval_param_val(val)
@@ -237,8 +268,9 @@ class Setup:
             return self.param(self.PARENTS[param])
 
         if qubits:
-            qubit_str = ", ".join(qubits)
-            raise KeyError(f"Parameter {param} not defined for qubit(s) {qubit_str}")
+            raise KeyError(
+                f"'{param}' for '{'-'.join(qubits)}' is not a param of this setup."
+            )
         raise KeyError(f"Global parameter {param} not defined")
 
     def _eval_param_val(self, val):
