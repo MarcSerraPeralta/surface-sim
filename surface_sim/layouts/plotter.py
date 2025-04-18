@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.patches import Circle, Polygon
+from matplotlib.patches import Circle, Polygon, Wedge
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
@@ -14,12 +14,13 @@ from .layout import Layout
 Coordinates = tuple[float, float]
 CoordRange = tuple[float, float]
 
-# Regex to filter qubit labels for TeX text
+# Regex to filter qubit labels for TeX text.
 RE_FILTER = re.compile("([a-zA-Z]+)([0-9]+)")
 
 # Order in which to draw the elements.
-# We want the text to be the last drawn object so that is it on top and thus readable
-ZORDERS = dict(circle=3, patch=1, line=2, text=4)
+# We want the text to be the last drawn object so that is it on top and thus readable.
+# Wedge is used to draw the logical support.
+ZORDERS = dict(circle=3, wedge=2, patch=0, line=1, text=4)
 
 # Define the default colors
 COLORS = {
@@ -113,6 +114,34 @@ def get_circle(center: Coordinates, radius: float, **kwargs) -> Circle:
     """
     zorder = ZORDERS["circle"]
     circle = Circle(center, radius=radius, zorder=zorder, **kwargs)
+    return circle
+
+
+def get_wedge(
+    center: Coordinates, r: float, theta1: float, theta2: float, **kwargs
+) -> Wedge:
+    """Draws a ``matplotlib.patches.Wedge`` with the given specifications.
+
+    Parameters
+    ----------
+    coords
+        The coordinates of the centre of the circle.
+    r
+        The radius of the circle.
+    theta1
+        The angle to start drawing the wedge.
+    theta2
+        The angle to finish drawing the wedge.
+    **kargs
+        Extra arguments for ``matplotlib.patches.Wedge``.
+
+    Returns
+    -------
+    Wedge
+        The circle with the given specifications.
+    """
+    zorder = ZORDERS["wedge"]
+    circle = Wedge(center, r=r, theta1=theta1, theta2=theta2, zorder=zorder, **kwargs)
     return circle
 
 
@@ -269,6 +298,53 @@ def qubit_artists(layout: Layout) -> Iterable[Circle]:
         yield get_circle(coords, radius, **circle_params)
 
 
+def logical_artists(layout: Layout) -> Iterable[Wedge]:
+    """Draws the logical support of a layout.
+
+    Parameters
+    ----------
+    layout
+        The layout to draw the qubits of.
+    """
+    default_radius = 0.3
+    width = 0.1
+    default_params = dict(edgecolor="none")
+
+    logical_qubits = layout.get_logical_qubits()
+    if len(logical_qubits) == 0:
+        return
+    angle = 360 / len(logical_qubits)
+    support = {"z": layout.log_z, "x": layout.log_x}
+    support_x = [q for l in layout.log_x.values() for q in l]
+
+    for k, logical_qubit in enumerate(logical_qubits):
+        for pauli in ["z", "x"]:
+            for qubit in support[pauli][logical_qubit]:
+                coords = layout.param("coords", qubit)
+                if len(coords) != 2:
+                    raise ValueError(
+                        "Coordinates must be 2D to be plotted, "
+                        f"but {len(coords)}D were given for qubit {qubit}."
+                    )
+
+                wedge_params = deepcopy(default_params)
+                wedge_params["facecolor"] = COLORS["red"]
+                radius = default_radius + width
+                if pauli == "z":
+                    wedge_params["facecolor"] = COLORS["blue"]
+                    if qubit in support_x:
+                        radius = default_radius + 2 * width
+
+                yield get_wedge(
+                    coords,
+                    radius,
+                    theta1=k * angle,
+                    theta2=(k + 1) * angle,
+                    width=width,
+                    **wedge_params,
+                )
+
+
 def patch_artists(layout: Layout) -> Iterable[Polygon]:
     """Draws the stabilizer patches of a layout.
 
@@ -348,6 +424,7 @@ def plot(
     add_labels: bool = True,
     add_patches: bool = True,
     add_connections: bool = True,
+    add_logicals: bool = True,
     pad: float = 1,
     stim_orientation: bool = True,
     label_fontsize: float | int = 11,
@@ -366,6 +443,8 @@ def plot(
         Flag to plot stabilizer patches, by default ``True``.
     add_connections
         Flag to plot lines indicating the connectivity, by default ``True``.
+    add_logicals
+        Flag to highlight the logical support on the data qubits, by default ``True``.
     pad
         The padding to the bottom axis, by default ``1``.
     stim_orientation
@@ -383,6 +462,10 @@ def plot(
     """
     for artist in qubit_artists(layout):
         ax.add_artist(artist)
+
+    if add_logicals:
+        for artist in logical_artists(layout):
+            ax.add_artist(artist)
 
     if add_patches:
         for artist in patch_artists(layout):
