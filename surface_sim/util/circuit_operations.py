@@ -1,4 +1,4 @@
-from collections.abc import Sequence, Callable
+from collections.abc import Sequence
 from itertools import chain
 
 import stim
@@ -6,6 +6,7 @@ import stim
 from ..layouts.layout import Layout
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
+from ..circuit_blocks.decorators import LogOpCallable
 
 
 MEAS_INSTR = [
@@ -126,7 +127,9 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
 
 
 def merge_logical_operations(
-    op_iterators: list[tuple[Callable, Layout] | tuple[Callable, Layout, Layout]],
+    op_iterators: list[
+        tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
+    ],
     model: Model,
     detectors: Detectors,
     log_obs_inds: dict[str, int] | int,
@@ -174,14 +177,9 @@ def merge_logical_operations(
     circuit
         Circuit from merging the given circuits.
     """
-    if any(not isinstance(i[0], Callable) for i in op_iterators):
+    if any(not isinstance(i[0], LogOpCallable) for i in op_iterators):
         raise TypeError(
-            "The first element for each entry in 'op_iterators' must be callable."
-        )
-    if any(("log_op_type" not in dir(i[0])) for i in op_iterators):
-        raise TypeError(
-            "The operation functions must have the appropiate decorator. "
-            "See `surface_sim.circuit_blocks` for more information."
+            "The first element for each entry in 'op_iterators' must be LogOpCallable."
         )
     if any(i[0].log_op_type == "qec_cycle" for i in op_iterators):
         raise TypeError(
@@ -303,7 +301,7 @@ def merge_logical_operations(
 
 
 def merge_qec_rounds(
-    qec_round_iterator: Callable,
+    qec_round_iterator: LogOpCallable,
     model: Model,
     layouts: Sequence[Layout],
     detectors: Detectors,
@@ -319,7 +317,7 @@ def merge_qec_rounds(
     Parameters
     ----------
     qec_round_iterator
-        Callable that yields the circuits to be merged of the QEC cycle without
+        LogOpCallable that yields the circuits to be merged of the QEC cycle without
         the detectors.
         Its inputs must include ``model`` and ``layout``.
     model
@@ -353,14 +351,9 @@ def merge_qec_rounds(
         return stim.Circuit()
     if any(not isinstance(l, Layout) for l in layouts):
         raise TypeError("Elements in 'layouts' must be Layout objects.")
-    if not isinstance(qec_round_iterator, Callable):
+    if not isinstance(qec_round_iterator, LogOpCallable):
         raise TypeError(
-            f"'qec_round_iterator' must be callable, but {type(qec_round_iterator)} was given."
-        )
-    if "log_op_type" not in dir(qec_round_iterator):
-        raise TypeError(
-            "'qec_round_iterator' must have the appropiate decorator. "
-            "See `surface_sim.circuit_blocks` for more information."
+            f"'qec_round_iterator' must be LogOpCallable, but {type(qec_round_iterator)} was given."
         )
     if qec_round_iterator.log_op_type != "qec_cycle":
         raise TypeError(
