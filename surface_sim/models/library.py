@@ -1131,11 +1131,7 @@ class NoiselessModel(Model):
 
 class IncomingNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        self._setup = setup
-        self._qubit_inds = qubit_inds
-        self._meas_order = {q: [] for q in qubit_inds}
-        self._num_meas = 0
-        return
+        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
 
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
@@ -1161,11 +1157,7 @@ class IncomingNoiseModel(NoiselessModel):
 
 class IncomingDepolNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        self._setup = setup
-        self._qubit_inds = qubit_inds
-        self._meas_order = {q: [] for q in qubit_inds}
-        self._num_meas = 0
-        return
+        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
 
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
@@ -1368,11 +1360,7 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
 
 class MeasurementNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        self._setup = setup
-        self._qubit_inds = qubit_inds
-        self._meas_order = {q: [] for q in qubit_inds}
-        self._num_meas = 0
-        return
+        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
