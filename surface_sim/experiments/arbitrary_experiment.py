@@ -2,7 +2,7 @@ from collections.abc import Callable, Sequence, Iterable
 
 import stim
 
-from ..util.circuit_operations import merge_ops, merge_qec_rounds
+from ..util.circuit_operations import merge_logical_operations, merge_qec_rounds
 from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
@@ -164,7 +164,7 @@ def experiment_from_schedule(
     Notes
     -----
     The scheduling of the gates between QEC cycles is not optimal as there could
-    be more idling than necessary. This is caused by using ``merge_ops``.
+    be more idling than necessary. This is caused by using ``merge_logical_operations``.
     """
     if not isinstance(schedule, Sequence):
         raise TypeError(
@@ -219,8 +219,8 @@ def experiment_from_schedule(
                     f"active layouts: {active_layouts}\noperations: {num_gates}"
                 )
 
-            experiment += merge_ops(
-                ops=curr_block,
+            experiment += merge_logical_operations(
+                curr_block,
                 model=model,
                 detectors=detectors,
                 log_obs_inds=log_obs_inds,
@@ -266,8 +266,8 @@ def experiment_from_schedule(
                     "Not all active layouts are participating in an operation. "
                     f"active layouts: {active_layouts}\noperations: {num_gates}"
                 )
-            experiment += merge_ops(
-                ops=curr_block,
+            experiment += merge_logical_operations(
+                curr_block,
                 model=model,
                 detectors=detectors,
                 log_obs_inds=log_obs_inds,
@@ -301,8 +301,8 @@ def experiment_from_schedule(
                 "Not all active layouts are participating in an operation. "
                 f"active layouts: {active_layouts}\noperations: {num_gates}"
             )
-        experiment += merge_ops(
-            ops=curr_block,
+        experiment += merge_logical_operations(
+            curr_block,
             model=model,
             detectors=detectors,
             log_obs_inds=log_obs_inds,

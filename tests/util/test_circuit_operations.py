@@ -2,17 +2,16 @@ import pytest
 import stim
 
 from surface_sim.util.circuit_operations import (
-    merge_tick_blocks,
+    merge_operation_layers,
     merge_circuits,
     merge_qec_rounds,
-    merge_log_meas,
-    merge_ops,
+    merge_logical_operations,
 )
 from surface_sim.circuit_blocks.unrot_surface_code_css import (
     qec_round_iterator,
     init_qubits_z0_iterator,
-    log_meas_iterator,
     log_meas_z_iterator,
+    log_meas_x_iterator,
     log_x_iterator,
 )
 from surface_sim.models import NoiselessModel
@@ -23,13 +22,13 @@ from surface_sim.layouts.library.unrot_surface_codes import (
 from surface_sim import Detectors
 
 
-def test_merge_tick_blocks():
+def test_merge_operation_layers():
     blocks = [
         stim.Circuit("X 0\nS 0"),
         stim.Circuit("X 1\nS 1"),
         stim.Circuit("X 2\nS 2"),
     ]
-    circuit = merge_tick_blocks(*blocks)
+    circuit = merge_operation_layers(*blocks)
     expected_circuit = stim.Circuit(
         """
         X 0 1 2
@@ -39,7 +38,7 @@ def test_merge_tick_blocks():
     assert circuit == expected_circuit
 
     blocks = [stim.Circuit("X 0\nS 0\nX 0\nS 0")]
-    circuit = merge_tick_blocks(*blocks)
+    circuit = merge_operation_layers(*blocks)
     assert circuit == blocks[0]
 
     return
@@ -121,7 +120,7 @@ def test_merge_qec_rounds():
     return
 
 
-def test_merge_log_meas():
+def test_merge_logical_measurements():
     layout, other_layout = unrot_surface_codes(2, distance=3)
     qubit_inds = layout.qubit_inds()
     qubit_inds.update(other_layout.qubit_inds())
@@ -131,12 +130,15 @@ def test_merge_log_meas():
     model = NoiselessModel(qubit_inds)
     detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
 
-    circuit = merge_log_meas(
-        log_meas_iterator,
+    # need to initialize the ancillas, because if not `detectors` complains
+    # that they were inactive
+    detectors.activate_detectors(anc_qubits)
+
+    circuit = merge_logical_operations(
+        [(log_meas_z_iterator, layout), (log_meas_x_iterator, other_layout)],
         model,
-        [layout, other_layout],
         detectors,
-        rot_bases=[{"L0": True}, {"L1": True}],
+        {"L0": 1, "L1": 2},
         anc_reset=True,
     )
 
@@ -145,7 +147,7 @@ def test_merge_log_meas():
     return
 
 
-def test_merge_ops():
+def test_merge_logical_operations():
     layout, other_layout = unrot_surface_codes(2, distance=3)
     qubit_inds = layout.qubit_inds()
     qubit_inds.update(other_layout.qubit_inds())
@@ -155,7 +157,7 @@ def test_merge_ops():
     model = NoiselessModel(qubit_inds)
     detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
 
-    circuit = merge_ops(
+    circuit = merge_logical_operations(
         [
             (init_qubits_z0_iterator, layout),
             (init_qubits_z0_iterator, other_layout),
@@ -169,7 +171,7 @@ def test_merge_ops():
 
     assert isinstance(circuit, stim.Circuit)
 
-    circuit = merge_ops(
+    circuit = merge_logical_operations(
         [
             (log_meas_z_iterator, layout),
             (log_x_iterator, other_layout),
@@ -184,7 +186,7 @@ def test_merge_ops():
     assert isinstance(circuit, stim.Circuit)
 
     with pytest.raises(ValueError):
-        _ = merge_ops(
+        _ = merge_logical_operations(
             [
                 (log_meas_z_iterator, layout),
                 (log_x_iterator, layout),
