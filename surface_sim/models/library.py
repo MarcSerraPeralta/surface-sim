@@ -315,12 +315,11 @@ class SI1000NoiseModel(CircuitNoiseModel):
         super().__init__(setup, qubit_inds)
         return
 
-    def tick(self) -> Circuit:
+    def flush_noise(self) -> Circuit:
         circ = Circuit()
         if self._meas_or_reset_qubits:
             idle_qubits = set(self._qubit_inds).difference(self._meas_or_reset_qubits)
             circ += self.idle_noise(idle_qubits, "extra_idle_meas_or_reset_error_prob")
-        circ += Circuit("TICK")
         self._meas_or_reset_qubits = []
         return circ
 
@@ -949,7 +948,7 @@ class DecoherenceNoiseModel(Model):
     def idle_reset(self, qubits: Iterable[str]) -> Circuit:
         return self.idle(qubits)
 
-    def tick(self) -> Circuit:
+    def flush_noise(self) -> Circuit:
         # compute idling time for each qubit
         max_duration = max(self._durations.values())
         durations = {q: max_duration - d for q, d in self._durations.items()}

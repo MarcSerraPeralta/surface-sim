@@ -11,7 +11,7 @@ class Model(object):
 
     **IMPORTANT**
 
-    It assumes that layers of operations are separated by ``Model.tick()``,
+    It assumes that operation layers are separated by ``Model.tick()``,
     and that all qubits participiate in an operation (for idling, use e.g.
     ``Model.idle``) if they are active (i.e. not measured).
 
@@ -119,7 +119,9 @@ class Model(object):
 
     # annotation operations
     def tick(self) -> Circuit:
-        return Circuit("TICK")
+        # this method should not be overwritten!
+        missing_noise = self.flush_noise()
+        return missing_noise + Circuit("TICK")
 
     def qubit_coords(self, coords: dict[str, list]) -> Circuit:
         if set(coords) > set(self._qubit_inds):
@@ -195,6 +197,10 @@ class Model(object):
 
     def idle_reset(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
+
+    # noise methods
+    def flush_noise(self) -> Circuit:
+        return Circuit()
 
     def idle_noise(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
