@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence, Iterable
+from collections.abc import Sequence, Iterable
 
 import stim
 
@@ -7,14 +7,19 @@ from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
 from ..circuit_blocks.util import qubit_coords
+from ..circuit_blocks.decorators import LogOpCallable
 
 SCHEDULE = list[
-    tuple[Callable] | tuple[Callable, Layout] | tuple[Callable, Layout, Layout]
+    tuple[LogOpCallable]
+    | tuple[LogOpCallable, Layout]
+    | tuple[LogOpCallable, Layout, Layout]
 ]
 
 
 def schedule_from_circuit(
-    circuit: stim.Circuit, layouts: list[Layout], gate_to_iterator: dict[str, Callable]
+    circuit: stim.Circuit,
+    layouts: list[Layout],
+    gate_to_iterator: dict[str, LogOpCallable],
 ) -> SCHEDULE:
     """
     Returns the equivalent schedule from a stim circuit.
@@ -41,9 +46,9 @@ def schedule_from_circuit(
     -----
     The format of the schedule is the following. Each element of the list
     is an operation to be applied to the qubits:
-    - ``tuple[Callable]`` performs a QEC cycle to all layouts
-    - ``tuple[Callable, Layout]`` performs a single-qubit operation
-    - ``tuple[Callable, Layout, Layout]`` performs a two-qubit gate.
+    - ``tuple[LogOpCallable]`` performs a QEC cycle to all layouts
+    - ``tuple[LogOpCallable, Layout]`` performs a single-qubit operation
+    - ``tuple[LogOpCallable, Layout, Layout]`` performs a two-qubit gate.
 
     For example, the following circuit
 
@@ -82,13 +87,8 @@ def schedule_from_circuit(
         raise TypeError(
             f"'gate_to_iterator' must be a dict, but {type(gate_to_iterator)} was given."
         )
-    if any(not isinstance(f, Callable) for f in gate_to_iterator.values()):
-        raise TypeError("All values of 'gate_to_iterator' must be Callable.")
-    if any("log_op_type" not in dir(f) for f in gate_to_iterator.values()):
-        raise TypeError(
-            "All values of 'gate_to_iterator' must be have the 'log_op_type' attribute. "
-            "See 'surface_sim.circuit_blocks.decorators' for more information."
-        )
+    if any(not isinstance(f, LogOpCallable) for f in gate_to_iterator.values()):
+        raise TypeError("All values of 'gate_to_iterator' must be LogOpCallable.")
     if gate_to_iterator["TICK"].log_op_type != "qec_cycle":
         raise TypeError("'TICK' must correspond to a QEC cycle.")
 
