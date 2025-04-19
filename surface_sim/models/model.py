@@ -1,5 +1,7 @@
 from collections.abc import Sequence, Iterable
 
+from copy import deepcopy
+
 from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 
 from ..setup import Setup
@@ -26,7 +28,55 @@ class Model(object):
         self._qubit_inds = qubit_inds
         self._meas_order = {q: [] for q in qubit_inds}
         self._num_meas = 0
+        self._last_op = ""
+        self._new_op = ""
         return
+
+    def __getattribute__(self, name):
+        """
+        Stores the name of the last operation called in this class.
+        The operations include: annotations, gates, measurements and resets.
+        """
+        operations = [
+            "tick",
+            "qubit_coords",
+            "x_gate",
+            "z_gate",
+            "hadamard",
+            "s_gate",
+            "s_dag_gate",
+            "cnot",
+            "cphase",
+            "swap",
+            "measure",
+            "measure_x",
+            "measure_y",
+            "measure_z",
+            "reset",
+            "reset_x",
+            "reset_y",
+            "reset_z",
+            "idle",
+            "idle_meas",
+            "idle_reset",
+        ]
+
+        attr = object.__getattribute__(self, name)
+
+        if callable(attr) and (name in operations):
+
+            def wrapper(*args, **kwargs):
+                # this function is before running the called method.
+                # if I only store the last operation it will be overwritten
+                # by the new called method, thus I need to store the last and
+                # new operations.
+                self._last_op = deepcopy(self._new_op)
+                self._new_op = name
+                return attr(*args, **kwargs)
+
+            return wrapper
+
+        return attr
 
     @property
     def setup(self) -> Setup:
@@ -119,9 +169,10 @@ class Model(object):
 
     # annotation operations
     def tick(self) -> Circuit:
-        # this method should not be overwritten!
-        missing_noise = self.flush_noise()
-        return missing_noise + Circuit("TICK")
+        if self._last_op != "tick":
+            missing_noise = self.flush_noise()
+            return missing_noise + Circuit("TICK")
+        return Circuit("TICK")
 
     def qubit_coords(self, coords: dict[str, list]) -> Circuit:
         if set(coords) > set(self._qubit_inds):
