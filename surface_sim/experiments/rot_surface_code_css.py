@@ -5,7 +5,8 @@ from ..layouts.layout import Layout
 from ..circuit_blocks.rot_surface_code_css import (
     init_qubits,
     log_meas,
-    log_meas_iterator,
+    log_meas_x_iterator,
+    log_meas_z_iterator,
     qec_round,
     qec_round_iterator,
     qubit_coords,
@@ -14,7 +15,7 @@ from ..circuit_blocks.rot_surface_code_css import (
 )
 from ..models import Model
 from ..detectors import Detectors
-from ..util import merge_circuits, merge_qec_rounds, merge_log_meas
+from ..util import merge_circuits, merge_qec_rounds, merge_logical_operations
 
 
 def memory_experiment(
@@ -322,12 +323,16 @@ def repeated_cnot_experiment(
                 anc_detectors=anc_detectors,
             )
 
-    experiment += merge_log_meas(
-        log_meas_iterator,
+    iterator = log_meas_x_iterator if rot_basis else log_meas_z_iterator
+    log_obs_inds = {
+        layout_c.get_logical_qubits()[0]: 0,
+        layout_t.get_logical_qubits()[0]: 1,
+    }
+    experiment += merge_logical_operations(
+        [(iterator, layout_c), (iterator, layout_t)],
         model,
-        [layout_c, layout_t],
         detectors,
-        rot_bases=[rot_basis, rot_basis],
+        log_obs_inds,
         anc_reset=anc_reset,
         anc_detectors=anc_detectors,
     )
