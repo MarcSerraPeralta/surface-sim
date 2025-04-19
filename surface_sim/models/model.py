@@ -13,14 +13,25 @@ class Model(object):
 
     **IMPORTANT**
 
-    It assumes that operation layers are separated by ``Model.tick()``,
-    and that all qubits participiate in an operation (for idling, use e.g.
-    ``Model.idle``) if they are active (i.e. not measured).
+    The noise models assume that operation layers are separated by ``Model.tick()``,
+    and that all qubits participiate in an operation in the opertion layers.
+    Note that ``Model.idling`` is considered an operation, i.e. ``"I"``.
 
-    When designing new noise model classes, the output should be a ``stim.Circuit``
-    that must include the operation of the corresponding class method
-    (e.g. ``"X"`` for ``Model.x_gate``) and (optionally) noise channels.
-    It should not include anything else.
+    When designing new noise model classes,
+
+    1. the method output should be a ``stim.Circuit`` that must include the operation
+    of the corresponding method (e.g. ``"X"`` for ``Model.x_gate``) and
+    (optionally) noise channels. It should not include anything else.
+
+    2. ``Model.tick``s do not contain any noise except from the one called by
+    ``Model.flush_noise``. ``Model.flush_noise`` adds all the "still-not-added"
+    noise from the previous operation layer (this is useful in e.g. ``DecoherenceNoiseModel``).
+    Note that if ``Model.tick`` are followed one after the other, ``Model.flush_noise``
+    is only called for the first one. This is done so that there are no issues when
+    merging operation layers and because TICKs are just annotations, not noise.
+    If noise wants to be present between TICKs, then idling gates must be added.
+
+    For more information, read the comments in issue #232.
     """
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
