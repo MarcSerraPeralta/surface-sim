@@ -23,7 +23,7 @@ def set_x(layout: Layout) -> None:
     gate_label = f"log_x_{log_qubit_label}"
 
     x_gates = {q: "I" for q in data_qubits}
-    for q in layout.log_x[log_qubit_label]:
+    for q in layout.logical_param("log_x", log_qubit_label):
         x_gates[q] = "X"
 
     # Store logical gate information to the data qubits
@@ -62,7 +62,7 @@ def set_z(layout: Layout) -> None:
     gate_label = f"log_z_{log_qubit_label}"
 
     z_gates = {q: "I" for q in data_qubits}
-    for q in layout.log_z[log_qubit_label]:
+    for q in layout.logical_param("log_z", log_qubit_label):
         z_gates[q] = "Z"
 
     # Store logical gate information to the data qubits

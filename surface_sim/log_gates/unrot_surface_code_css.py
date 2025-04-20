@@ -1,7 +1,6 @@
 import numpy as np
 
 from ..layouts.layout import Layout
-from ..layouts.operations import check_overlap_layouts
 from .util import set_x, set_z, set_idle, set_trans_cnot
 
 __all__ = [
@@ -11,7 +10,6 @@ __all__ = [
     "set_fold_trans_s",
     "set_fold_trans_h",
     "set_trans_cnot",
-    "set_fold_trans_cz",
     "set_fold_trans_sqrt_x",
 ]
 
@@ -295,131 +293,6 @@ def reflection(x: np.ndarray, point: np.ndarray, line_vector: np.ndarray) -> np.
     x_reflected = rot_matrix @ x_reflected_rot
 
     return x_reflected
-
-
-def set_fold_trans_cz(layout_c: Layout, layout_t: Layout, data_qubit: str) -> None:
-    """Adds the required attributes (in place) for the layout to run the
-    transversal CZ gate for the unrotated surface code.
-
-    Parameters
-    ----------
-    layout_c
-        The layout for the control of the CZ for which to add the attributes.
-    layout_t
-        The layout for the target of the CZ for which to add the attributes.
-    data_qubit
-        The data qubit of ``layout_t`` in a corner through which the folding of the surface
-        code runs.
-    """
-    if (layout_c.code != "unrotated_surface_code") or (
-        layout_t.code != "unrotated_surface_code"
-    ):
-        raise ValueError(
-            "This function is for unrotated surface codes, "
-            f"but layouts for {layout_t.code} and {layout_c.code} were given."
-        )
-    if (layout_c.distance_x != layout_t.distance_x) or (
-        layout_c.distance_z != layout_t.distance_z
-    ):
-        raise ValueError("This function requires two surface codes of the same size.")
-    if data_qubit not in layout_t.get_qubits(role="data"):
-        raise ValueError("'data_qubit' is not a data qubit from 'layout_t'.")
-    check_overlap_layouts(layout_c, layout_t)
-
-    gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
-
-    qubit_coords_c = layout_c.qubit_coords()
-    qubit_coords_t = layout_t.qubit_coords()
-    bottom_left_qubit_c = sorted(
-        qubit_coords_c.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
-    )
-    bottom_left_qubit_t = sorted(
-        qubit_coords_t.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
-    )
-    shift_vector = np.array(bottom_left_qubit_c[0][1]) - np.array(
-        bottom_left_qubit_t[0][1]
-    )
-
-    # get the reflection function
-    neighbors = layout_t.param("neighbors", data_qubit)
-    stab_x = layout_t.get_qubits(role="anc", stab_type="x_type")
-    stab_z = layout_t.get_qubits(role="anc", stab_type="z_type")
-    dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
-    dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
-
-    data_qubit_diag = layout_t.get_neighbors(anc_qubit_x, direction=dir_z)[0]
-    sym_vector = np.array(layout_t.param("coords", data_qubit_diag)) - np.array(
-        layout_t.param("coords", data_qubit)
-    )
-    point = np.array(layout_t.param("coords", data_qubit))
-    fold_reflection = lambda x: reflection(x, point, sym_vector)
-
-    coords_to_label_dict = {}
-    for node, attr in layout_c.graph.nodes.items():
-        coords = attr["coords"]
-        coords = np.round(coords, decimals=5)  # to avoid numerical issues
-        coords_to_label_dict[tuple(coords)] = node
-
-    # get the CZs and Hs from the data qubit positions
-    cz_gates = {}
-    data_qubit_coords = layout_t.data_coords()
-    for data_qubit, coords in data_qubit_coords.items():
-        pair_coords = fold_reflection(coords) + shift_vector
-        pair_coords = np.round(pair_coords, decimals=5)
-        data_pair = coords_to_label_dict[tuple(pair_coords)]
-        cz_gates[data_qubit] = data_pair
-    cz_gates_inverse = {v: k for k, v in cz_gates.items()}
-
-    # Store the logical information for the data qubits
-    data_qubits_c = set(layout_c.get_qubits(role="data"))
-    data_qubits_t = set(layout_t.get_qubits(role="data"))
-    for qubit in data_qubits_c:
-        layout_c.set_param(gate_label, qubit, {"cz": cz_gates_inverse[qubit]})
-    for qubit in data_qubits_t:
-        layout_t.set_param(gate_label, qubit, {"cz": cz_gates[qubit]})
-
-    # Compute the new stabilizer generators based on the CNOT connections
-    anc_qubit_coords = layout_t.anc_coords()
-    mapping_t_to_c, mapping_c_to_t = {}, {}
-    for anc_qubit, coords in anc_qubit_coords.items():
-        pair_coords = fold_reflection(coords) + shift_vector
-        pair_coords = np.round(pair_coords, decimals=5)
-        anc_pair = coords_to_label_dict[tuple(pair_coords)]
-        mapping_t_to_c[anc_qubit] = anc_pair
-        mapping_c_to_t[anc_pair] = anc_qubit
-
-    anc_to_new_stab = {}
-    for anc in layout_c.get_qubits(role="anc", stab_type="z_type"):
-        anc_to_new_stab[anc] = [anc]
-    for anc in layout_c.get_qubits(role="anc", stab_type="x_type"):
-        anc_to_new_stab[anc] = [anc, mapping_c_to_t[anc]]
-    for anc in layout_t.get_qubits(role="anc", stab_type="z_type"):
-        anc_to_new_stab[anc] = [anc]
-    for anc in layout_t.get_qubits(role="anc", stab_type="x_type"):
-        anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
-
-    # Store new stabilizer generators to the ancilla qubits
-    # CZ^\dagger = CZ
-    for anc in layout_c.get_qubits(role="anc"):
-        layout_c.set_param(
-            gate_label,
-            anc,
-            {
-                "new_stab_gen": anc_to_new_stab[anc],
-                "new_stab_gen_inv": anc_to_new_stab[anc],
-            },
-        )
-    for anc in layout_t.get_qubits(role="anc"):
-        layout_t.set_param(
-            gate_label,
-            anc,
-            {
-                "new_stab_gen": anc_to_new_stab[anc],
-                "new_stab_gen_inv": anc_to_new_stab[anc],
-            },
-        )
-
-    return
 
 
 def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:

@@ -26,15 +26,14 @@ class Layout:
     - ``from_yaml``
     - ``to_yaml``
 
-    Get information
-    ---------------
+    Get information from physical qubits
+    ------------------------------------
     - ``param``
     - ``get_inds``
     - ``qubit_inds``
     - ``get_max_ind``
     - ``get_min_ind``
     - ``get_qubits``
-    - ``get_logical_qubits``
     - ``get_neighbors``
     - ``get_coords``
     - ``get_support``
@@ -42,6 +41,16 @@ class Layout:
     - ``qubit_coords``
     - ``anc_coords``
     - ``data_coords``
+
+    Get information from logical qubits
+    -----------------------------------
+    - ``logical_param``
+    - ``get_logical_inds``
+    - ``logical_qubit_inds``
+    - ``get_max_logical_ind``
+    - ``get_min_logical_ind``
+    - ``get_logical_qubits``
+    - ``get_logical_labels_from_inds``
 
     Set information
     ---------------
@@ -54,6 +63,9 @@ class Layout:
     - ``projection_matrix``
 
     """
+
+    ############################
+    # initialization and storage
 
     def __init__(self, setup: dict[str, object]) -> None:
         """Initiailizes the layout for a particular code.
@@ -85,25 +97,109 @@ class Layout:
 
         self.name = setup.get("name", "")
         self.code = setup.get("code", "")
-        self._log_qubits = setup.get("logical_qubit_labels", [])
+        self._log_qubits = setup.get("logical_qubits", {})
         self.distance = setup.get("distance", -1)
         self.distance_z = setup.get("distance_z", -1)
         self.distance_x = setup.get("distance_x", -1)
-        self.log_z = setup.get("log_z", {})
-        self.log_x = setup.get("log_x", {})
         self.description = setup.get("description")
         self.interaction_order = setup.get("interaction_order", {})
-        self._qubit_inds = {}
 
-        if (set(self._log_qubits) != set(self.log_z)) or (
-            set(self._log_qubits) != set(self.log_x)
-        ):
-            raise ValueError(
-                "'logical_qubit_labels' does not match 'log_x' and/or 'log_z'."
+        self._load_layout(setup)
+        self._check_logical_qubits()
+
+        return
+
+    def _check_logical_qubits(self) -> None:
+        """Checks that the ``Layout._log_qubits`` has the correct structure."""
+        if not isinstance(self._log_qubits, dict):
+            raise TypeError(
+                f"'logical_qubits' must be a dict, but {type(self._log_qubits)} was given."
+            )
+        if any(not isinstance(l, str) for l in self._log_qubits):
+            raise TypeError(
+                "The keys in 'logical_qubits' must be str, "
+                f"but {list(self._log_qubits)} was given."
+            )
+        if any(not isinstance(l, dict) for l in self._log_qubits.values()):
+            raise TypeError(
+                "The values in 'logical_qubits' must be dict, "
+                f"but {list(self._log_qubits.values())} was given."
             )
 
+        for key in ["ind", "log_x", "log_z"]:
+            if any(key not in p for p in self._log_qubits.values()):
+                raise ValueError(f"Each logical qubit must have '{key}' specified.")
+
+        for log_p in ["log_x", "log_z"]:
+            for l, params in self._log_qubits.items():
+                if not isinstance(params[log_p], Iterable):
+                    raise TypeError(
+                        f"'{log_p}' in logical {l} must be an Iterable, "
+                        f"but {type(params[log_p])} was given."
+                    )
+                if set(params[log_p]) > set(self._qubit_inds):
+                    raise ValueError(
+                        f"'{log_p}' in logical {l} has support on qubits not present in this layout."
+                    )
+
+        return
+
+    def _load_layout(self, setup: dict[str, object]) -> None:
+        """Internal function that loads the directed graph from the
+        setup dictionary that is provided during initialization.
+
+        Parameters
+        ----------
+        setup
+            The setup dictionary that must specify the 'layout' list
+            of dictionaries, containing the qubit informaiton.
+
+        Raises
+        ------
+        ValueError
+            If there are unlabeled qubits in the any of the layout dictionaries.
+        ValueError
+            If any qubit label is repeated in the layout list.
+        """
+        layout = deepcopy(setup.get("layout"))
+        if layout is None:
+            raise ValueError("'setup' does not contain a 'layout' key.")
+
+        self._qubit_inds = {}
         self.graph = nx.DiGraph()
-        self._load_layout(setup)
+
+        for qubit_info in layout:
+            qubit = qubit_info.pop("qubit", None)
+            if qubit is None:
+                raise ValueError("Each qubit in the layout must be labeled.")
+
+            if qubit in self.graph:
+                raise ValueError("Qubit label repeated, ensure labels are unique.")
+
+            self._qubit_inds[qubit] = qubit_info.get("ind", None)
+
+            self.graph.add_node(qubit, **qubit_info)
+
+        for node, attrs in self.graph.nodes(data=True):
+            nbr_dict = attrs.get("neighbors", None)
+            if nbr_dict is None:
+                raise ValueError(
+                    "All elements in 'setup' must have the 'neighbors' attribute."
+                )
+
+            for edge_dir, nbr_qubit in nbr_dict.items():
+                if nbr_qubit is not None:
+                    self.graph.add_edge(node, nbr_qubit, direction=edge_dir)
+
+        if all((i is None) for i in self._qubit_inds.values()):
+            qubits = list(self.graph.nodes)
+            self._qubit_inds = dict(zip(qubits, range(len(qubits))))
+
+        if any((i is None) for i in self._qubit_inds.values()):
+            raise ValueError("Either all qubits have indicies or none of them.")
+
+        if len(self._qubit_inds) != len(set(self._qubit_inds.values())):
+            raise ValueError("Qubit index repeated, ensure indices are unique.")
 
         return
 
@@ -143,9 +239,7 @@ class Layout:
         setup["distance"] = self.distance
         setup["distance_z"] = self.distance_z
         setup["distance_x"] = self.distance_x
-        setup["logical_qubit_labels"] = self._log_qubits
-        setup["log_z"] = self.log_z
-        setup["log_x"] = self.log_x
+        setup["logical_qubits"] = self._log_qubits
         setup["description"] = self.description
         setup["interaction_order"] = self.interaction_order
 
@@ -167,6 +261,67 @@ class Layout:
         setup["layout"] = layout
 
         return setup
+
+    @classmethod
+    def from_yaml(cls, filename: str | Path) -> "Layout":
+        """Loads the layout class from a YAML file.
+
+        The file must define the setup dictionary that initializes
+        the layout.
+
+        Parameters
+        ----------
+        filename
+            The pathfile name of the YAML setup file.
+
+        Returns
+        -------
+        Layout
+            The initialized layout object.
+        """
+        if not path.exists(filename):
+            raise ValueError("Given path doesn't exist")
+
+        with open(filename, "r") as file:
+            layout_setup = yaml.safe_load(file)
+            return cls(layout_setup)
+
+    def to_yaml(self, filename: str | Path) -> None:
+        """Saves the layout as a YAML file.
+
+        Parameters
+        ----------
+        filename
+            The pathfile name of the YAML setup file.
+
+        """
+        setup = self.to_dict()
+        with open(filename, "w") as file:
+            yaml.dump(setup, file, default_flow_style=False)
+
+    ######################################
+    # get information from physical qubits
+
+    def param(self, param: str, qubit: str) -> object:
+        """Returns the parameter value of a given qubit
+
+        Parameters
+        ----------
+        param
+            The label of the qubit parameter.
+        qubit
+            The label of the qubit that is being queried.
+
+        Returns
+        -------
+        object
+            The value of the parameter if specified for the given qubit,
+            else ``None``.
+        """
+        if param not in self.graph.nodes[qubit]:
+            return None
+        else:
+            return self.graph.nodes[qubit][param]
 
     def get_inds(self, qubits: Iterable[str]) -> list[int]:
         """Returns the indices of the qubits.
@@ -222,10 +377,6 @@ class Layout:
 
         nodes = list(self.graph.nodes)
         return nodes
-
-    def get_logical_qubits(self) -> list[str]:
-        """Returns the logical qubit labels."""
-        return deepcopy(self._log_qubits)
 
     def get_neighbors(
         self,
@@ -313,6 +464,79 @@ class Layout:
         data_qubits = self.get_qubits(role="data")
         data_coords = self.get_coords(data_qubits)
         return {q: c for q, c in zip(data_qubits, data_coords)}
+
+    #####################################
+    # get information from logical qubits
+
+    def logical_param(self, param: str, logical_qubit: str) -> object:
+        """Returns the parameter value of a given logical qubit.
+
+        Parameters
+        ----------
+        param
+            The label of the logical qubit parameter.
+        logical_qubit
+            The label of the logical qubit that is being queried.
+
+        Returns
+        -------
+        object
+            The value of the parameter if specified for the given logical qubit,
+            else ``None``.
+        """
+        params = self._log_qubits.get(logical_qubit)
+        if params is None:
+            return None
+        return params.get(param)
+
+    def get_logical_inds(self, logical_qubits: Iterable[str]) -> list[int]:
+        """Returns the indices of the specified logical qubits."""
+        if set(logical_qubits) > set(self._log_qubits):
+            raise ValueError(
+                f"At least one of the given logical qubits ({logical_qubits}) are not present in this layout."
+            )
+        return [self._log_qubits[l]["ind"] for l in logical_qubits]
+
+    def logical_qubit_inds(self) -> dict[str, int]:
+        """Returns a dictionary mapping all the logical qubits to their indices."""
+        return {k: self._log_qubits[l]["ind"] for k in self._log_qubits}
+
+    def get_max_logical_ind(self) -> int:
+        """Returns the largest logical qubit index in the layout."""
+        return max(self.logical_qubits_inds.values())
+
+    def get_min_logical_ind(self) -> int:
+        """Returns the largest logical qubit index in the layout."""
+        return min(self.logical_qubits_inds.values())
+
+    def get_logical_qubits(self) -> list[str]:
+        """Returns the logical qubit labels."""
+        return list(self._log_qubits)
+
+    def get_logical_labels_from_inds(self, inds: Iterable[int]) -> list[str]:
+        """Returns list of logical qubit labels for the given logical qubit indicies."""
+        label_to_ind = {v: k for k, v in self.logical_qubit_inds.items()}
+        return [label_to_ind[ind] for ind in inds]
+
+    #################
+    # set information
+
+    def set_param(self, param: str, qubit: str, value: object) -> None:
+        """Sets the value of a given qubit parameter
+
+        Parameters
+        ----------
+        param
+            The label of the qubit parameter.
+        qubit
+            The label of the qubit that is being queried.
+        value
+            The new value of the qubit parameter.
+        """
+        self.graph.nodes[qubit][param] = value
+
+    ###################
+    # matrix generation
 
     def adjacency_matrix(self) -> DataArray:
         """Returns the adjaceny matrix corresponding to the layout.
@@ -403,136 +627,6 @@ class Layout:
 
         proj_mat = adj_mat.sel(from_qubit=data_qubits, to_qubit=anc_qubits)
         return proj_mat.rename(from_qubit="data_qubit", to_qubit="anc_qubit")
-
-    @classmethod
-    def from_yaml(cls, filename: str | Path) -> "Layout":
-        """Loads the layout class from a YAML file.
-
-        The file must define the setup dictionary that initializes
-        the layout.
-
-        Parameters
-        ----------
-        filename
-            The pathfile name of the YAML setup file.
-
-        Returns
-        -------
-        Layout
-            The initialized layout object.
-        """
-        if not path.exists(filename):
-            raise ValueError("Given path doesn't exist")
-
-        with open(filename, "r") as file:
-            layout_setup = yaml.safe_load(file)
-            return cls(layout_setup)
-
-    def to_yaml(self, filename: str | Path) -> None:
-        """Saves the layout as a YAML file.
-
-        Parameters
-        ----------
-        filename
-            The pathfile name of the YAML setup file.
-
-        """
-        setup = self.to_dict()
-        with open(filename, "w") as file:
-            yaml.dump(setup, file, default_flow_style=False)
-
-    def param(self, param: str, qubit: str) -> object:
-        """Returns the parameter value of a given qubit
-
-        Parameters
-        ----------
-        param
-            The label of the qubit parameter.
-        qubit
-            The label of the qubit that is being queried.
-
-        Returns
-        -------
-        object
-            The value of the parameter if specified for the given qubit,
-            else ``None``.
-        """
-        if param not in self.graph.nodes[qubit]:
-            return None
-        else:
-            return self.graph.nodes[qubit][param]
-
-    def set_param(self, param: str, qubit: str, value: object) -> None:
-        """Sets the value of a given qubit parameter
-
-        Parameters
-        ----------
-        param
-            The label of the qubit parameter.
-        qubit
-            The label of the qubit that is being queried.
-        value
-            The new value of the qubit parameter.
-        """
-        self.graph.nodes[qubit][param] = value
-
-    def _load_layout(self, setup: dict[str, object]) -> None:
-        """Internal function that loads the directed graph from the
-        setup dictionary that is provided during initialization.
-
-        Parameters
-        ----------
-        setup
-            The setup dictionary that must specify the 'layout' list
-            of dictionaries, containing the qubit informaiton.
-
-        Raises
-        ------
-        ValueError
-            If there are unlabeled qubits in the any of the layout dictionaries.
-        ValueError
-            If any qubit label is repeated in the layout list.
-        """
-        layout = deepcopy(setup.get("layout"))
-        if layout is None:
-            raise ValueError("'setup' does not contain a 'layout' key.")
-
-        self._qubit_inds = {}
-
-        for qubit_info in layout:
-            qubit = qubit_info.pop("qubit", None)
-            if qubit is None:
-                raise ValueError("Each qubit in the layout must be labeled.")
-
-            if qubit in self.graph:
-                raise ValueError("Qubit label repeated, ensure labels are unique.")
-
-            self._qubit_inds[qubit] = qubit_info.get("ind", None)
-
-            self.graph.add_node(qubit, **qubit_info)
-
-        for node, attrs in self.graph.nodes(data=True):
-            nbr_dict = attrs.get("neighbors", None)
-            if nbr_dict is None:
-                raise ValueError(
-                    "All elements in 'setup' must have the 'neighbors' attribute."
-                )
-
-            for edge_dir, nbr_qubit in nbr_dict.items():
-                if nbr_qubit is not None:
-                    self.graph.add_edge(node, nbr_qubit, direction=edge_dir)
-
-        if all((i is None) for i in self._qubit_inds.values()):
-            qubits = list(self.graph.nodes)
-            self._qubit_inds = dict(zip(qubits, range(len(qubits))))
-
-        if any((i is None) for i in self._qubit_inds.values()):
-            raise ValueError("Either all qubits have indicies or none of them.")
-
-        if len(self._qubit_inds) != len(set(self._qubit_inds.values())):
-            raise ValueError("Qubit index repeated, ensure indices are unique.")
-
-        return
 
 
 def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
