@@ -38,7 +38,8 @@ def qec_round_with_log_meas(
     """
     Returns stim circuit corresponding to a QEC cycle
     that includes the logical measurement
-    of the given model.
+    of the given model. It defines the observables for
+    all logical qubits in the layout.
 
     Parameters
     ----------
@@ -111,11 +112,10 @@ def qec_round_with_log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    log_qubits_support = getattr(layout, log_op)
-    log_qubit_label = layout.get_logical_qubits()[0]
-    log_data_qubits = log_qubits_support[log_qubit_label]
-    targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-    circuit.append("OBSERVABLE_INCLUDE", targets, 0)
+    for logical_qubit in layout.get_logical_qubits():
+        log_data_qubits = layout.logical_param(log_op, logical_qubit)
+        targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
+        circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     detectors.deactivate_detectors(layout.get_qubits(role="anc"))
 

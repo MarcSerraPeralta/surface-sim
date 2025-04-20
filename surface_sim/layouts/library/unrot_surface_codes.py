@@ -9,7 +9,6 @@ from ...log_gates.unrot_surface_code_css import (
     set_fold_trans_sqrt_x,
     set_fold_trans_h,
     set_trans_cnot,
-    set_fold_trans_cz,
     set_x,
     set_z,
     set_idle,
@@ -85,6 +84,7 @@ def unrot_surface_code_rectangle(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    init_logical_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -110,6 +110,8 @@ def unrot_surface_code_rectangle(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    init_logical_ind
+        Minimum index that is going to be associated to a logical qubit.
 
     Returns
     -------
@@ -158,17 +160,18 @@ def unrot_surface_code_rectangle(
 
     log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
     log_x = [f"D{i*(2*distance_z - 1)+init_data_qubit_id}" for i in range(distance_x)]
+    logical_qubits = {
+        logical_qubit_label: dict(log_x=log_x, log_z=log_z, ind=init_logical_ind)
+    }
 
     layout_setup = dict(
         name=name,
         code=code,
-        logical_qubit_labels=[logical_qubit_label],
+        logical_qubits=logical_qubits,
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
         interaction_order=int_order,
-        log_z={logical_qubit_label: log_z},
-        log_x={logical_qubit_label: log_x},
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
@@ -255,6 +258,7 @@ def unrot_surface_code(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    init_logical_ind: int = 0,
 ) -> Layout:
     """Generates an unrotated surface code layout.
 
@@ -278,6 +282,8 @@ def unrot_surface_code(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    init_logical_ind
+        Minimum index that is going to be associated to a logical qubit.
 
     Returns
     -------
@@ -293,6 +299,7 @@ def unrot_surface_code(
         init_zanc_qubit_id=init_zanc_qubit_id,
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
+        init_logical_ind=init_logical_ind,
     )
 
 
@@ -331,6 +338,7 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
             init_zanc_qubit_id=1 + k * num_anc // 2,
             init_xanc_qubit_id=1 + k * num_anc // 2,
             init_ind=k * (num_data + num_anc),
+            init_logical_ind=k,
         )
         layouts.append(layout)
 
@@ -346,6 +354,5 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
             if layout == other_layout:
                 continue
             set_trans_cnot(layout, other_layout)
-            set_fold_trans_cz(other_layout, layout, data_qubit=f"D{1 + k*num_data}")
 
     return layouts

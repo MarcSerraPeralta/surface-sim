@@ -24,8 +24,8 @@ def test_unrot_surface_code(show_figures):
     assert len(layout.get_qubits(role="anc")) == (5 + 4) * 4 + 4
     assert len(layout.get_logical_qubits()) == 1
     log_label = layout.get_logical_qubits()[0]
-    assert len(layout.log_z[log_label]) == 5
-    assert len(layout.log_x[log_label]) == 5
+    assert len(layout.logical_param("log_z", log_label)) == 5
+    assert len(layout.logical_param("log_x", log_label)) == 5
     assert min(layout.get_inds(layout.get_qubits())) == 10
 
     if show_figures:
@@ -52,8 +52,8 @@ def test_unrot_surface_code_rectangle(show_figures):
     assert len(layout.get_qubits(role="anc")) == (4 + 3) * 2 + 3
     assert len(layout.get_logical_qubits()) == 1
     log_label = layout.get_logical_qubits()[0]
-    assert len(layout.log_z[log_label]) == 4
-    assert len(layout.log_x[log_label]) == 3
+    assert len(layout.logical_param("log_z", log_label)) == 4
+    assert len(layout.logical_param("log_x", log_label)) == 3
     assert min(layout.get_inds(layout.get_qubits())) == 11
 
     if show_figures:
@@ -81,8 +81,6 @@ def test_unrot_surface_codes():
             "idle_L0",
             "log_trans_cnot_L0_L1",
             "log_trans_cnot_L1_L0",
-            "log_fold_trans_cz_L0_L1",
-            "log_fold_trans_cz_L1_L0",
         ]
     ) < set(layout_0.to_dict()["layout"][0].keys())
     assert set(
@@ -95,8 +93,6 @@ def test_unrot_surface_codes():
             "idle_L1",
             "log_trans_cnot_L0_L1",
             "log_trans_cnot_L1_L0",
-            "log_fold_trans_cz_L0_L1",
-            "log_fold_trans_cz_L1_L0",
         ]
     ) < set(layout_1.to_dict()["layout"][0].keys())
 

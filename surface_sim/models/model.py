@@ -7,7 +7,7 @@ from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 from ..setup import Setup
 
 
-class Model(object):
+class Model:
     """Noise model class for generating the ``stim.Circuit``s for each
     of the physical operations including noise channels.
 
@@ -34,6 +34,30 @@ class Model(object):
     For more information, read the comments in issue #232.
     """
 
+    operations = [
+        "tick",
+        "qubit_coords",
+        "x_gate",
+        "z_gate",
+        "hadamard",
+        "s_gate",
+        "s_dag_gate",
+        "cnot",
+        "cphase",
+        "swap",
+        "measure",
+        "measure_x",
+        "measure_y",
+        "measure_z",
+        "reset",
+        "reset_x",
+        "reset_y",
+        "reset_z",
+        "idle",
+        "idle_meas",
+        "idle_reset",
+    ]
+
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._setup = setup
         self._qubit_inds = qubit_inds
@@ -48,33 +72,9 @@ class Model(object):
         Stores the name of the last operation called in this class.
         The operations include: annotations, gates, measurements and resets.
         """
-        operations = [
-            "tick",
-            "qubit_coords",
-            "x_gate",
-            "z_gate",
-            "hadamard",
-            "s_gate",
-            "s_dag_gate",
-            "cnot",
-            "cphase",
-            "swap",
-            "measure",
-            "measure_x",
-            "measure_y",
-            "measure_z",
-            "reset",
-            "reset_x",
-            "reset_y",
-            "reset_z",
-            "idle",
-            "idle_meas",
-            "idle_reset",
-        ]
-
         attr = object.__getattribute__(self, name)
 
-        if callable(attr) and (name in operations):
+        if callable(attr) and (name in self.operations):
 
             def wrapper(*args, **kwargs):
                 # this function is before running the called method.

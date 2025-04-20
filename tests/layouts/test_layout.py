@@ -6,12 +6,16 @@ from surface_sim import Layout
 LAYOUT_DICT = {
     "name": "Rotated dx-1 dz-2 surface code layout.",
     "code": "rotated_surface_code",
-    "logical_qubit_labels": ["L0"],
+    "logical_qubits": {
+        "L0": {
+            "ind": 0,
+            "log_z": ["D1", "D2"],
+            "log_x": ["D1"],
+        }
+    },
     "distance": -1,
     "distance_z": 2,
     "distance_x": 1,
-    "log_z": {"L0": ["D1", "D2"]},
-    "log_x": {"L0": ["D1"]},
     "description": None,
     "interaction_order": {
         "x_type": ["north_east", "north_west", "south_east", "south_west"],
@@ -68,6 +72,9 @@ def test_layout_input_output(tmp_path):
     layout = Layout(LAYOUT_DICT)
 
     assert layout.to_dict() == LAYOUT_DICT
+
+    loaded_layout = Layout.from_dict(layout.to_dict())
+    assert layout.to_dict() == loaded_layout.to_dict()
 
     file_name = tmp_path / "test.yaml"
     layout.to_yaml(file_name)

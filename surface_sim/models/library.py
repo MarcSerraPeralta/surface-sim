@@ -315,6 +315,28 @@ class SI1000NoiseModel(CircuitNoiseModel):
         super().__init__(setup, qubit_inds)
         return
 
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
+
+        meas_reset_ops = [
+            "measure",
+            "measure_x",
+            "measure_y",
+            "measure_z",
+            "reset",
+            "reset_x",
+            "reset_y",
+            "reset_z",
+        ]
+        if callable(attr) and (name in meas_reset_ops):
+
+            def wrapper(qubits: Iterable[str], *args, **kargs):
+                self._meas_or_reset_qubits += list(qubits)
+                return attr(qubits, *args, **kargs)
+
+            return wrapper
+        return attr
+
     def flush_noise(self) -> Circuit:
         circ = Circuit()
         if self._meas_or_reset_qubits:
@@ -322,38 +344,6 @@ class SI1000NoiseModel(CircuitNoiseModel):
             circ += self.idle_noise(idle_qubits, "extra_idle_meas_or_reset_error_prob")
         self._meas_or_reset_qubits = []
         return circ
-
-    def reset(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().reset(qubits)
-
-    def reset_x(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().reset_x(qubits)
-
-    def reset_y(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().reset_y(qubits)
-
-    def reset_z(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().reset_z(qubits)
-
-    def measure(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().measure(qubits)
-
-    def measure_x(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().measure_x(qubits)
-
-    def measure_y(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().measure_y(qubits)
-
-    def measure_z(self, qubits: Iterable[str]) -> Circuit:
-        self._meas_or_reset_qubits += list(qubits)
-        return super().measure_z(qubits)
 
 
 class BiasedCircuitNoiseModel(Model):

@@ -84,6 +84,7 @@ def rot_surface_code_rectangle(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    init_logical_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -109,6 +110,8 @@ def rot_surface_code_rectangle(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    init_logical_ind
+        Minimum index that is going to be associated to a logical qubit.
 
     Returns
     -------
@@ -159,18 +162,19 @@ def rot_surface_code_rectangle(
 
     log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
     log_x = [f"D{i*distance_z+init_data_qubit_id}" for i in range(distance_x)]
+    logical_qubits = {
+        logical_qubit_label: dict(log_x=log_x, log_z=log_z, ind=init_logical_ind)
+    }
 
     layout_setup = dict(
         name=name,
         code=code,
-        logical_qubit_labels=[logical_qubit_label],
+        logical_qubits=logical_qubits,
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
         freq_order=freq_order,
         interaction_order=int_order,
-        log_z={logical_qubit_label: log_z},
-        log_x={logical_qubit_label: log_x},
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
@@ -290,6 +294,7 @@ def rot_surface_code(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    init_logical_ind: int = 0,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -313,6 +318,8 @@ def rot_surface_code(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    init_logical_ind
+        Minimum index that is going to be associated to a logical qubit.
 
     Returns
     -------
@@ -328,4 +335,5 @@ def rot_surface_code(
         init_zanc_qubit_id=init_zanc_qubit_id,
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
+        init_logical_ind=init_logical_ind,
     )

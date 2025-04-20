@@ -314,8 +314,11 @@ def logical_artists(layout: Layout) -> Iterable[Wedge]:
     if len(logical_qubits) == 0:
         return
     angle = 360 / len(logical_qubits)
-    support = {"z": layout.log_z, "x": layout.log_x}
-    support_x = [q for l in layout.log_x.values() for q in l]
+    support = {
+        "z": {l: layout.logical_param("log_z", l) for l in logical_qubits},
+        "x": {l: layout.logical_param("log_x", l) for l in logical_qubits},
+    }
+    support_x = [q for supp in support["x"].values() for q in supp]
 
     for k, logical_qubit in enumerate(logical_qubits):
         for pauli in ["z", "x"]:
