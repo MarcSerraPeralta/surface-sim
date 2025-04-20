@@ -69,6 +69,9 @@ def test_layout_input_output(tmp_path):
 
     assert layout.to_dict() == LAYOUT_DICT
 
+    loaded_layout = Layout.from_dict(layout.to_dict())
+    assert layout.to_dict() == loaded_layout.to_dict()
+
     file_name = tmp_path / "test.yaml"
     layout.to_yaml(file_name)
     loaded_layout = Layout.from_yaml(file_name)

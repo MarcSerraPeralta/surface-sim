@@ -21,6 +21,7 @@ class Layout:
     --------------------------
     - ``__init__``
     - ``__copy__``
+    - ``from_dict``
     - ``to_dict``
     - ``from_yaml``
     - ``to_yaml``
@@ -110,6 +111,22 @@ class Layout:
         """Copies the Layout."""
         return Layout(self.to_dict())
 
+    @classmethod
+    def from_dict(cls, setup: dict[str, object]) -> "Layout":
+        """Loads the layout class from a dictionary.
+
+        Parameters
+        ----------
+        setup
+            The layout setup, see ``Layout.__init__``.
+
+        Returns
+        -------
+        Layout
+            The initialized layout object.
+        """
+        return cls(setup)
+
     def to_dict(self) -> dict[str, object]:
         """Return a setup dictonary for the layout.
 
@@ -148,6 +165,7 @@ class Layout:
 
             layout.append(node_dict)
         setup["layout"] = layout
+
         return setup
 
     def get_inds(self, qubits: Iterable[str]) -> list[int]:
@@ -402,13 +420,6 @@ class Layout:
         -------
         Layout
             The initialized layout object.
-
-        Raises
-        ------
-        ValueError
-            If the specified file does not exist.
-        ValueError
-            If the specified file is not a string.
         """
         if not path.exists(filename):
             raise ValueError("Given path doesn't exist")
