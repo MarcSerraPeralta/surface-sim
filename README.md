@@ -93,9 +93,9 @@ layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
 # merge qubit indicies, coordinates, ... of all layouts
 qubit_inds, anc_coords, anc_qubits = {}, {}, []
 for layout in layouts:
-    qubit_inds.update(layout.qubit_inds())
+    qubit_inds |= layout.qubit_inds()  # updates dict
+    anc_coords |= layout.anc_coords()
     anc_qubits += layout.get_qubits(role="anc")
-    anc_coords.update(layout.anc_coords())
 
 setup = CircuitNoiseSetup()
 setup.set_var_param("prob", 1e-3)
