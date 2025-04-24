@@ -9,12 +9,12 @@ def test_set_x():
         set_x(layout)
         gate_label = f"log_x_{layout.get_logical_qubits()[0]}"
 
-        stabs = layout.get_qubits(role="anc")
+        stabs = layout.anc_qubits
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
             new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
             assert new_stabs == [[s] for s in stabs]
 
-        data_qubits = layout.get_qubits(role="data")
+        data_qubits = layout.data_qubits
         local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
         assert len([g for g in local_gates if g == "X"]) % 2 == 1
 
@@ -32,12 +32,12 @@ def test_set_z():
         set_z(layout)
         gate_label = f"log_z_{layout.get_logical_qubits()[0]}"
 
-        stabs = layout.get_qubits(role="anc")
+        stabs = layout.anc_qubits
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
             new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
             assert new_stabs == [[s] for s in stabs]
 
-        data_qubits = layout.get_qubits(role="data")
+        data_qubits = layout.data_qubits
         local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
         assert len([g for g in local_gates if g == "Z"]) % 2 == 1
 
@@ -55,12 +55,12 @@ def test_set_idle():
         set_idle(layout)
         gate_label = f"idle_{layout.get_logical_qubits()[0]}"
 
-        stabs = layout.get_qubits(role="anc")
+        stabs = layout.anc_qubits
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
             new_stabs = [layout.param(gate_label, s)[key] for s in stabs]
             assert new_stabs == [[s] for s in stabs]
 
-        data_qubits = layout.get_qubits(role="data")
+        data_qubits = layout.data_qubits
         local_gates = [layout.param(gate_label, d)["local"] for d in data_qubits]
         assert len([g for g in local_gates if g != "I"]) == 0
 
@@ -108,13 +108,13 @@ def test_set_trans_cnot():
         new_stab_z = [layout_c.param(gate_label, z_stab)[key] for z_stab in z_stabs]
         assert new_stab_z == [[i] for i in z_stabs]
 
-    data_qubits = layout_c.get_qubits(role="data")
+    data_qubits = layout_c.data_qubits
     cz_gates = [layout_c.param(gate_label, d)["cz"] for d in data_qubits]
     assert cz_gates == [f"D{int(i[1:])+1000-1}" for i in data_qubits]
     idle_gates = [layout_c.param(gate_label, d)["local"] for d in data_qubits]
     assert idle_gates == ["I" for _ in data_qubits]
 
-    data_qubits = layout_t.get_qubits(role="data")
+    data_qubits = layout_t.data_qubits
     idle_gates = [layout_t.param(gate_label, d)["local"] for d in data_qubits]
     assert idle_gates == ["H" for _ in data_qubits]
 

@@ -10,14 +10,14 @@ from surface_sim import Detectors
 def test_sample_memory_experiment():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds())
-    detectors = Detectors(layout.get_qubits(role="anc"), frame="pre-gate")
+    detectors = Detectors(layout.anc_qubits, frame="pre-gate")
     circuit = memory_experiment(
         model=model,
         layout=layout,
         detectors=detectors,
         num_rounds=10,
         anc_reset=False,
-        data_init={q: 0 for q in layout.get_qubits(role="data")},
+        data_init={q: 0 for q in layout.data_qubits},
         rot_basis=True,
     )
 
@@ -44,8 +44,8 @@ def test_sample_memory_experiment():
     }
     assert (dataset.qec_round.values == np.arange(1, 10 + 1)).all()
     assert (dataset.shot.values == np.arange(100)).all()
-    assert (dataset.anc_qubit.values == np.array(layout.get_qubits(role="anc"))).all()
-    assert (dataset.data_qubit.values == np.array(layout.get_qubits(role="data"))).all()
+    assert (dataset.anc_qubit.values == np.array(layout.anc_qubits)).all()
+    assert (dataset.data_qubit.values == np.array(layout.data_qubits)).all()
     assert dataset.seed == 123
 
     return

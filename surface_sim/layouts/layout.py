@@ -38,6 +38,12 @@ class Layout:
     - ``get_coords``
     - ``get_support``
     - ``get_labels_from_inds``
+    - ``qubits``
+    - ``data_qubits``
+    - ``anc_qubits``
+    - ``num_qubits``
+    - ``num_data_qubits``
+    - ``num_anc_qubits``
     - ``qubit_coords``
     - ``anc_coords``
     - ``data_coords``
@@ -106,6 +112,26 @@ class Layout:
 
         self._load_layout(setup)
         self._check_logical_qubits()
+
+        # precompute specific attributes
+        # make then tuples so that they areunmutable
+        self.qubits = tuple(self.get_qubits())
+        self.data_qubits = tuple(self.get_qubits(role="data"))
+        self.anc_qubits = tuple(self.get_qubits(role="anc"))
+
+        self.num_qubits = len(self.qubits)
+        self.num_data_qubits = len(self.data_qubits)
+        self.num_anc_qubits = len(self.anc_qubits)
+
+        self._qubit_coords = {
+            q: c for q, c in zip(self.qubits, self.get_coords(self.qubits))
+        }
+        self._data_qubit_coords = {
+            q: c for q, c in zip(self.data_qubits, self.get_coords(self.data_qubits))
+        }
+        self._anc_qubit_coords = {
+            q: c for q, c in zip(self.anc_qubits, self.get_coords(self.anc_qubits))
+        }
 
         return
 
@@ -323,7 +349,7 @@ class Layout:
         else:
             return self.graph.nodes[qubit][param]
 
-    def get_inds(self, qubits: Iterable[str]) -> list[int]:
+    def get_inds(self, qubits: Iterable[str]) -> tuple[int]:
         """Returns the indices of the qubits.
 
         Parameters
@@ -335,7 +361,7 @@ class Layout:
         -------
         The list of qubit indices.
         """
-        return [self._qubit_inds[qubit] for qubit in qubits]
+        return tuple(self._qubit_inds[qubit] for qubit in qubits)
 
     def qubit_inds(self) -> dict[str, int]:
         """Returns a dictionary mapping all the qubits to their indices."""
@@ -349,7 +375,7 @@ class Layout:
         """Returns the smallest qubit index in the layout."""
         return min(self._qubit_inds.values())
 
-    def get_qubits(self, **conds: object) -> list[str]:
+    def get_qubits(self, **conds: object) -> tuple[str]:
         """Return the qubit labels that meet a set of conditions.
 
         Parameters
@@ -372,18 +398,19 @@ class Layout:
         """
         if conds:
             node_view = self.graph.nodes(data=True)
-            nodes = [node for node, attrs in node_view if valid_attrs(attrs, **conds)]
+            nodes = tuple(
+                node for node, attrs in node_view if valid_attrs(attrs, **conds)
+            )
             return nodes
 
-        nodes = list(self.graph.nodes)
-        return nodes
+        return tuple(self.graph.nodes)
 
     def get_neighbors(
         self,
         qubits: Iterable[str],
         direction: str | None = None,
         as_pairs: bool = False,
-    ) -> list[str] | list[tuple[str, str]]:
+    ) -> tuple[str] | tuple[tuple[str, str]]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
 
@@ -418,10 +445,10 @@ class Layout:
                 end_nodes.append(end_node)
 
         if as_pairs:
-            return list(zip(start_nodes, end_nodes))
-        return end_nodes
+            return tuple(zip(start_nodes, end_nodes))
+        return tuple(end_nodes)
 
-    def get_coords(self, qubits: Iterable[str]) -> list[list[float | int]]:
+    def get_coords(self, qubits: Iterable[str]) -> tuple[tuple[float | int]]:
         """Returns the coordinates of the given qubits.
 
         Parameters
@@ -438,32 +465,31 @@ class Layout:
         if set(qubits) > set(all_coords):
             raise ValueError("Some of the given qubits do not have coordinates.")
 
-        return [all_coords[q] for q in qubits]
+        return tuple(tuple(all_coords[q]) for q in qubits)
 
-    def get_support(self, qubits: Iterable[str]) -> dict[str, list[str]]:
+    def get_support(self, qubits: Iterable[str]) -> dict[str, tuple[str]]:
         """Returns a dictionary mapping the qubits to their support."""
         return {q: self.get_neighbors([q]) for q in qubits}
 
-    def get_labels_from_inds(self, inds: Iterable[int]) -> list[str]:
+    def get_labels_from_inds(self, inds: Iterable[int]) -> tuple[str]:
         """Returns list of qubit labels for the given qubit indicies."""
         label_to_ind = {v: k for k, v in self._qubit_inds.items()}
-        return [label_to_ind[ind] for ind in inds]
+        return tuple(label_to_ind[ind] for ind in inds)
 
-    def qubit_coords(self) -> dict[str, list[float | int]]:
+    @property
+    def qubit_coords(self) -> dict[str, tuple[float | int]]:
         """Returns a dictionary mapping all the qubits to their coordinates."""
-        return nx.get_node_attributes(self.graph, "coords")
+        return {k: v for k, v in self._qubit_coords.items()}
 
-    def anc_coords(self) -> dict[str, list[float | int]]:
+    @property
+    def anc_coords(self) -> dict[str, tuple[float | int]]:
         """Returns a dictionary mapping all ancilla qubits to their coordinates."""
-        anc_qubits = self.get_qubits(role="anc")
-        anc_coords = self.get_coords(anc_qubits)
-        return {q: c for q, c in zip(anc_qubits, anc_coords)}
+        return {k: v for k, v in self._anc_qubit_coords.items()}
 
-    def data_coords(self) -> dict[str, list[float | int]]:
+    @property
+    def data_coords(self) -> dict[str, tuple[float | int]]:
         """Returns a dictionary mapping all data qubits to their coordinates."""
-        data_qubits = self.get_qubits(role="data")
-        data_coords = self.get_coords(data_qubits)
-        return {q: c for q, c in zip(data_qubits, data_coords)}
+        return {k: v for k, v in self._data_qubit_coords.items()}
 
     #####################################
     # get information from logical qubits
@@ -489,13 +515,13 @@ class Layout:
             return None
         return params.get(param)
 
-    def get_logical_inds(self, logical_qubits: Iterable[str]) -> list[int]:
+    def get_logical_inds(self, logical_qubits: Iterable[str]) -> tuple[int]:
         """Returns the indices of the specified logical qubits."""
         if set(logical_qubits) > set(self._log_qubits):
             raise ValueError(
                 f"At least one of the given logical qubits ({logical_qubits}) are not present in this layout."
             )
-        return [self._log_qubits[l]["ind"] for l in logical_qubits]
+        return tuple(self._log_qubits[l]["ind"] for l in logical_qubits)
 
     def logical_qubit_inds(self) -> dict[str, int]:
         """Returns a dictionary mapping all the logical qubits to their indices."""
@@ -509,14 +535,14 @@ class Layout:
         """Returns the largest logical qubit index in the layout."""
         return min(self.logical_qubits_inds.values())
 
-    def get_logical_qubits(self) -> list[str]:
+    def get_logical_qubits(self) -> tuple[str]:
         """Returns the logical qubit labels."""
-        return list(self._log_qubits)
+        return tuple(self._log_qubits)
 
-    def get_logical_labels_from_inds(self, inds: Iterable[int]) -> list[str]:
+    def get_logical_labels_from_inds(self, inds: Iterable[int]) -> tuple[str]:
         """Returns list of logical qubit labels for the given logical qubit indicies."""
         label_to_ind = {v: k for k, v in self.logical_qubit_inds.items()}
-        return [label_to_ind[ind] for ind in inds]
+        return tuple(label_to_ind[ind] for ind in inds)
 
     #################
     # set information
@@ -549,7 +575,7 @@ class Layout:
         ajd_matrix
             The adjacency matrix.
         """
-        qubits = self.get_qubits()
+        qubits = list(self.qubits)
         adj_matrix = nx.adjacency_matrix(self.graph)
 
         data_arr = DataArray(
@@ -575,18 +601,16 @@ class Layout:
         """
         node_view = self.graph.nodes(data=True)
 
-        anc_qubits = [node for node, data in node_view if data["role"] == "anc"]
-        coords = [node_view[anc]["coords"] for anc in anc_qubits]
+        coords = [node_view[anc]["coords"] for anc in self.anc_qubits]
 
         rows, cols = zip(*coords)
 
         row_inds, num_rows = index_coords(rows, reverse=True)
         col_inds, num_cols = index_coords(cols)
 
-        num_anc = len(anc_qubits)
-        anc_inds = range(num_anc)
+        anc_inds = range(self.num_anc_qubits)
 
-        tensor = np.zeros((num_anc, num_rows, num_cols), dtype=bool)
+        tensor = np.zeros((self.num_anc_qubits, num_rows, num_cols), dtype=bool)
         tensor[anc_inds, row_inds, col_inds] = True
         expanded_tensor = np.expand_dims(tensor, axis=1)
 
@@ -594,7 +618,7 @@ class Layout:
             expanded_tensor,
             dims=["anc_qubit", "channel", "row", "col"],
             coords=dict(
-                anc_qubit=anc_qubits,
+                anc_qubit=list(self.anc_qubits),
             ),
         )
         return expansion_tensor
@@ -622,10 +646,9 @@ class Layout:
         """
         adj_mat = self.adjacency_matrix()
 
-        anc_qubits = self.get_qubits(role="anc", stab_type=stab_type)
-        data_qubits = self.get_qubits(role="data")
+        anc_qubits = list(self.get_qubits(role="anc", stab_type=stab_type))
 
-        proj_mat = adj_mat.sel(from_qubit=data_qubits, to_qubit=anc_qubits)
+        proj_mat = adj_mat.sel(from_qubit=list(self.data_qubits), to_qubit=anc_qubits)
         return proj_mat.rename(from_qubit="data_qubit", to_qubit="anc_qubit")
 
 
@@ -651,7 +674,7 @@ def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
     return True
 
 
-def index_coords(coords: list[int], reverse: bool = False) -> tuple[list[int], int]:
+def index_coords(coords: tuple[int], reverse: bool = False) -> tuple[tuple[int], int]:
     """Indexes a list of coordinates.
 
     Parameters
@@ -676,5 +699,5 @@ def index_coords(coords: list[int], reverse: bool = False) -> tuple[list[int], i
 
     mapping = dict(zip(unique_vals, unique_inds))
 
-    indicies = [mapping[coord] for coord in coords]
+    indicies = tuple(mapping[coord] for coord in coords)
     return indicies, num_unique_vals

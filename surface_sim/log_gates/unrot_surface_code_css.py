@@ -46,9 +46,9 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
         )
     if layout.distance_z != layout.distance_x:
         raise ValueError("The transversal S gate requires d_z = d_x.")
-    if data_qubit not in layout.get_qubits(role="data"):
+    if data_qubit not in layout.data_qubits:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
-    if set(map(len, layout.get_coords(layout.get_qubits()))) != {2}:
+    if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
     if len(layout.get_logical_qubits()) != 1:
         raise ValueError(
@@ -56,8 +56,8 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
     gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
@@ -169,9 +169,9 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
         )
     if layout.distance_z != layout.distance_x:
         raise ValueError("The transversal SQRT_X gate requires d_z = d_x.")
-    if data_qubit not in layout.get_qubits(role="data"):
+    if data_qubit not in layout.data_qubits:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
-    if set(map(len, layout.get_coords(layout.get_qubits()))) != {2}:
+    if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
     if len(layout.get_logical_qubits()) != 1:
         raise ValueError(
@@ -179,8 +179,8 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
     gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
@@ -326,9 +326,9 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
         )
     if layout.distance_z != layout.distance_x:
         raise ValueError("The transversal H gate requires d_z = d_x.")
-    if data_qubit not in layout.get_qubits(role="data"):
+    if data_qubit not in layout.data_qubits:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
-    if set(map(len, layout.get_coords(layout.get_qubits()))) != {2}:
+    if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
     if len(layout.get_logical_qubits()) != 1:
         raise ValueError(
@@ -336,8 +336,8 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
     gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"

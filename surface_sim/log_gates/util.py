@@ -17,8 +17,8 @@ def set_x(layout: Layout) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     log_qubit_label = layout.get_logical_qubits()[0]
     gate_label = f"log_x_{log_qubit_label}"
 
@@ -56,8 +56,8 @@ def set_z(layout: Layout) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     log_qubit_label = layout.get_logical_qubits()[0]
     gate_label = f"log_z_{log_qubit_label}"
 
@@ -95,8 +95,8 @@ def set_idle(layout: Layout) -> None:
             f"it has {len(layout.get_logical_qubits())}."
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     log_qubit_label = layout.get_logical_qubits()[0]
     gate_label = f"idle_{log_qubit_label}"
 
@@ -141,8 +141,8 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
 
     gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
-    qubit_coords_c = layout_c.qubit_coords()
-    qubit_coords_t = layout_t.qubit_coords()
+    qubit_coords_c = layout_c.qubit_coords
+    qubit_coords_t = layout_t.qubit_coords
     bottom_left_qubit_c = sorted(
         qubit_coords_c.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
     )
@@ -156,8 +156,8 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         mapping_c_to_t[qc] = qt
 
     # Store the logical information for the data qubits
-    data_qubits_c = set(layout_c.get_qubits(role="data"))
-    data_qubits_t = set(layout_t.get_qubits(role="data"))
+    data_qubits_c = set(layout_c.data_qubits)
+    data_qubits_t = set(layout_t.data_qubits)
     for qubit in data_qubits_c:
         layout_c.set_param(
             gate_label, qubit, {"cz": mapping_c_to_t[qubit], "local": "I"}
@@ -180,7 +180,7 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
 
     # Store new stabilizer generators to the ancilla qubits
     # CNOT^\dagger = CNOT
-    for anc in layout_c.get_qubits(role="anc"):
+    for anc in layout_c.anc_qubits:
         layout_c.set_param(
             gate_label,
             anc,
@@ -189,7 +189,7 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
                 "new_stab_gen_inv": anc_to_new_stab[anc],
             },
         )
-    for anc in layout_t.get_qubits(role="anc"):
+    for anc in layout_t.anc_qubits:
         layout_t.set_param(
             gate_label,
             anc,

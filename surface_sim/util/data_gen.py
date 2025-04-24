@@ -34,10 +34,9 @@ def sample_memory_experiment(
         and ``ideal_data_meas``; and with coordinates ``seed``, ``shot``,
         ``qec_round``, ``anc_qubit`` and ``data_qubit``.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-
-    num_anc = len(anc_qubits)
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
+    num_anc = layout.num_anc_qubits
 
     shots = list(range(num_shots))
     qec_rounds = list(range(1, num_rounds + 1))
@@ -76,8 +75,8 @@ def sample_memory_experiment(
             seed=seed,
             shot=shots,
             qec_round=qec_rounds,
-            anc_qubit=anc_qubits,
-            data_qubit=data_qubits,
+            anc_qubit=list(anc_qubits),
+            data_qubit=list(data_qubits),
         ),
     )
 

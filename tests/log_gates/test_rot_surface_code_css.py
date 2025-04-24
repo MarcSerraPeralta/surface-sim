@@ -25,7 +25,7 @@ def test_set_fold_trans_s():
         new_stab_z = [layout.param(gate_label, z_stab)[key] for z_stab in z_stab]
         assert new_stab_z == [["Z1"], ["Z2"], ["Z3"], ["Z4"], ["Z5"]]
 
-    data_qubits = sorted(layout.get_qubits(role="data"))
+    data_qubits = sorted(layout.data_qubits)
     cz_gates = [layout.param(gate_label, d)["cz"] for d in data_qubits]
     assert cz_gates == [
         "D2",

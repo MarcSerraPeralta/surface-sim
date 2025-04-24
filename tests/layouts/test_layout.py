@@ -90,19 +90,19 @@ def test_layout_get_information():
     assert layout.param("fdsakljsfdj", "D1") is None
     assert layout.param("role", "D1") == "data"
 
-    assert layout.get_inds(["X1", "D2"]) == [2, 1]
+    assert layout.get_inds(["X1", "D2"]) == (2, 1)
 
     assert layout.qubit_inds() == {"D1": 0, "D2": 1, "X1": 2}
 
     assert layout.get_max_ind() == 2
     assert layout.get_min_ind() == 0
 
-    assert layout.get_labels_from_inds([2]) == ["X1"]
+    assert layout.get_labels_from_inds([2]) == ("X1",)
 
-    assert layout.get_qubits(role="anc") == ["X1"]
-    assert layout.get_qubits(role="anc", stab_type="z_type") == []
+    assert layout.anc_qubits == ("X1",)
+    assert layout.get_qubits(role="anc", stab_type="z_type") == tuple()
 
-    assert layout.get_logical_qubits() == ["L0"]
+    assert layout.get_logical_qubits() == ("L0",)
 
     assert set(layout.get_neighbors(["D1", "X1"])) == set(["X1", "D1", "D2"])
     assert set(layout.get_neighbors(["D1"], as_pairs=True)) == set([("D1", "X1")])
@@ -110,11 +110,11 @@ def test_layout_get_information():
 
     assert set(layout.get_support(["D1"])["D1"]) == set(["X1"])
 
-    assert layout.get_coords(["X1", "D2"]) == [[0, 2], [1, 3]]
+    assert layout.get_coords(["X1", "D2"]) == ((0, 2), (1, 3))
 
-    assert layout.qubit_coords() == {"D1": [1, 1], "D2": [1, 3], "X1": [0, 2]}
+    assert layout.qubit_coords == {"D1": (1, 1), "D2": (1, 3), "X1": (0, 2)}
 
-    assert layout.anc_coords() == {"X1": [0, 2]}
+    assert layout.anc_coords == {"X1": (0, 2)}
 
     return
 

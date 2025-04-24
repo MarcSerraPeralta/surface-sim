@@ -86,7 +86,7 @@ def qec_round(
     )
 
     # add detectors
-    anc_qubits = layout.get_qubits(role="anc")
+    anc_qubits = layout.anc_qubits
     if anc_detectors is None:
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
@@ -124,9 +124,9 @@ def qec_round_iterator(
             "The given layout is not a rotated surface code, " f"but a {layout.code}"
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
-    qubits = set(data_qubits + anc_qubits)
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
+    qubits = set(layout.qubits)
 
     int_order = layout.interaction_order
     stab_types = list(int_order.keys())

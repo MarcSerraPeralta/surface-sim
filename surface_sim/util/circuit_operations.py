@@ -213,7 +213,7 @@ def merge_logical_operations(
         for k, _ in enumerate(curr_block):
             if curr_block[k] is not None:
                 continue
-            qubits = list(chain(*[l.get_qubits() for l in op_iterators[k][1:]]))
+            qubits = list(chain(*[l.qubits for l in op_iterators[k][1:]]))
             curr_block[k] = model.idle(qubits)
 
         circuit += merge_operation_layers(*curr_block)
@@ -360,7 +360,7 @@ def merge_qec_rounds(
         )
     if anc_detectors is not None:
         data_qubits = [l.get_qubits(role="data") for l in layouts]
-        if set(anc_detectors).intersection(sum(data_qubits, start=[])) != set():
+        if set(anc_detectors).intersection(sum(data_qubits, start=tuple())) != set():
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
     tick_instr = stim.Circuit("TICK")[0]

@@ -9,8 +9,8 @@ def test_readme_example_memory_experiment():
     layout = rot_surface_code(distance=3)
 
     qubit_inds = layout.qubit_inds()
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
 
     setup = CircuitNoiseSetup()
     model = CircuitNoiseModel(setup, qubit_inds)
@@ -66,8 +66,8 @@ def test_readme_example_arbitrary_circuit():
     qubit_inds, anc_coords, anc_qubits = {}, {}, []
     for layout in layouts:
         qubit_inds |= layout.qubit_inds()  # updates dict
-        anc_coords |= layout.anc_coords()
-        anc_qubits += layout.get_qubits(role="anc")
+        anc_coords |= layout.anc_coords
+        anc_qubits += layout.anc_qubits
 
     setup = CircuitNoiseSetup()
     setup.set_var_param("prob", 1e-3)

@@ -72,7 +72,7 @@ def memory_experiment(
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
+        anc_detectors = layout.anc_qubits
 
     model.new_circuit()
     detectors.new_circuit()
@@ -162,7 +162,7 @@ def repeated_s_experiment(
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
+        anc_detectors = layout.anc_qubits
 
     model.new_circuit()
     detectors.new_circuit()
@@ -254,7 +254,7 @@ def repeated_sqrt_x_experiment(
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
+        anc_detectors = layout.anc_qubits
 
     model.new_circuit()
     detectors.new_circuit()
@@ -346,7 +346,7 @@ def repeated_h_experiment(
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
+        anc_detectors = layout.anc_qubits
 
     model.new_circuit()
     detectors.new_circuit()
@@ -452,8 +452,8 @@ def repeated_cnot_experiment(
     if not isinstance(layout_t, Layout):
         raise TypeError(f"'layout_t' must be a Layout, but {type(layout_t)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout_c.get_qubits(role="anc")
-        anc_detectors += layout_t.get_qubits(role="anc")
+        anc_detectors = layout_c.anc_qubits
+        anc_detectors += layout_t.anc_qubits
 
     if cnot_orientation not in ["constant", "alternating"]:
         raise TypeError(
@@ -461,8 +461,8 @@ def repeated_cnot_experiment(
             f" but {cnot_orientation} was given."
         )
 
-    data_init_c = {k: v for k, v in data_init.items() if k in layout_c.get_qubits()}
-    data_init_t = {k: v for k, v in data_init.items() if k in layout_t.get_qubits()}
+    data_init_c = {k: v for k, v in data_init.items() if k in layout_c.qubits}
+    data_init_t = {k: v for k, v in data_init.items() if k in layout_t.qubits}
 
     model.new_circuit()
     detectors.new_circuit()

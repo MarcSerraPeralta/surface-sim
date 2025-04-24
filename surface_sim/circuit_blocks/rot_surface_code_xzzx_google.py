@@ -63,13 +63,13 @@ def qec_round_with_log_meas(
             "The given layout is not a rotated surface code, " f"but a {layout.code}"
         )
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
-    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        anc_detectors = layout.anc_qubits
+    if set(anc_detectors) > set(layout.anc_qubits):
         raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
 
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(data_qubits + anc_qubits)
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
 
     # a-h
     circuit = coherent_qec_part(model=model, layout=layout)
@@ -117,7 +117,7 @@ def qec_round_with_log_meas(
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
-    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+    detectors.deactivate_detectors(layout.anc_qubits)
 
     return circuit
 
@@ -127,11 +127,11 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     Returns stim circuit corresponding to the steps "a" to "h" from the QEC cycle
     described in Google's paper for the given model.
     """
-    data_qubits = layout.get_qubits(role="data")
+    data_qubits = layout.data_qubits
     x_anc = layout.get_qubits(role="anc", stab_type="x_type")
     z_anc = layout.get_qubits(role="anc", stab_type="z_type")
     anc_qubits = x_anc + z_anc
-    qubits = set(data_qubits + anc_qubits)
+    qubits = set(layout.qubits)
 
     circuit = Circuit()
 
@@ -139,11 +139,8 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     circuit += model.tick()
 
     # a
-    rot_qubits = set(anc_qubits)
-    circuit += model.hadamard(rot_qubits)
-
-    x_qubits = set(data_qubits)
-    circuit += model.x_gate(x_qubits)
+    circuit += model.hadamard(anc_qubits)
+    circuit += model.x_gate(data_qubits)
     circuit += model.tick()
 
     # b
@@ -157,11 +154,8 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     circuit += model.tick()
 
     # c
-    rot_qubits = set(data_qubits)
-    circuit += model.hadamard(rot_qubits)
-
-    x_qubits = set(anc_qubits)
-    circuit += model.x_gate(x_qubits)
+    circuit += model.hadamard(data_qubits)
+    circuit += model.x_gate(anc_qubits)
     circuit += model.tick()
 
     # d
@@ -177,8 +171,7 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     circuit += model.tick()
 
     # e
-    x_qubits = qubits
-    circuit += model.x_gate(x_qubits)
+    circuit += model.x_gate(qubits)
     circuit += model.tick()
 
     # f
@@ -194,11 +187,8 @@ def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     circuit += model.tick()
 
     # g
-    rot_qubits = set(data_qubits)
-    circuit += model.hadamard(rot_qubits)
-
-    x_qubits = set(anc_qubits)
-    circuit += model.x_gate(x_qubits)
+    circuit += model.hadamard(data_qubits)
+    circuit += model.x_gate(anc_qubits)
     circuit += model.tick()
 
     # h
@@ -242,16 +232,14 @@ def qec_round(
             "The given layout is not a rotated surface code, " f"but a {layout.code}"
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
 
     # a-h
     circuit = coherent_qec_part(model=model, layout=layout)
 
     # i
-    rot_qubits = set(anc_qubits)
-    circuit += model.hadamard(rot_qubits)
-
+    circuit += model.hadamard(anc_qubits)
     circuit += model.x_gate(data_qubits)
     circuit += model.tick()
 

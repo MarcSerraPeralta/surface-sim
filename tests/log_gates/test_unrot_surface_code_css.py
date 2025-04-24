@@ -30,7 +30,7 @@ def test_set_fold_trans_s():
         new_stab_z = [layout.param(gate_label, z_stab)[key] for z_stab in z_stabs]
         assert new_stab_z == [["Z1"], ["Z2"], ["Z3"], ["Z4"], ["Z5"], ["Z6"]]
 
-    data_qubits = sorted(layout.get_qubits(role="data"), key=lambda x: int(x[1:]))
+    data_qubits = sorted(layout.data_qubits, key=lambda x: int(x[1:]))
     cz_gates = [layout.param(gate_label, d)["cz"] for d in data_qubits]
     assert cz_gates == [
         None,
@@ -92,7 +92,7 @@ def test_set_fold_trans_h():
         new_stab_z = [layout.param(gate_label, z_stab)[key] for z_stab in z_stabs]
         assert new_stab_z == [["X1"], ["X3"], ["X5"], ["X2"], ["X4"], ["X6"]]
 
-    data_qubits = sorted(layout.get_qubits(role="data"), key=lambda x: int(x[1:]))
+    data_qubits = sorted(layout.data_qubits, key=lambda x: int(x[1:]))
     swap_gates = [layout.param(gate_label, d)["swap"] for d in data_qubits]
     assert swap_gates == [
         None,
