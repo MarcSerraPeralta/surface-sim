@@ -547,7 +547,7 @@ def get_new_stab_dict_from_layout(
     if not isinstance(log_gate, str):
         raise TypeError(f"'log_gate' must be a str, but {type(log_gate)} was given.")
 
-    anc_qubits = layout.get_qubits(role="anc")
+    anc_qubits = layout.anc_qubits
     new_stab_gens = {}
     new_stab_gens_inv = {}
     for anc_qubit in anc_qubits:

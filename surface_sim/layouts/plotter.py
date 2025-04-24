@@ -197,8 +197,7 @@ def qubit_labels(layout: Layout, label_fontsize: float | int = 11) -> Iterable[T
         horizontalalignment="center",
         fontsize=label_fontsize,
     )
-    qubits = layout.get_qubits()
-    for qubit in qubits:
+    for qubit in layout.qubits:
         coords = layout.param("coords", qubit)
         if len(coords) != 2:
             raise ValueError(
@@ -226,9 +225,8 @@ def qubit_connections(layout: Layout) -> Iterable[Line2D]:
     default_params = dict(
         linestyle="--",
     )
-    anc_qubits = layout.get_qubits(role="anc")
 
-    for anc_qubit in anc_qubits:
+    for anc_qubit in layout.anc_qubits:
         anc_coords = layout.param("coords", anc_qubit)
         if len(anc_coords) != 2:
             raise ValueError(
@@ -266,9 +264,8 @@ def qubit_artists(layout: Layout) -> Iterable[Circle]:
     """
     default_radius = 0.3
     default_params = dict(edgecolor="black")
-    qubits = layout.get_qubits()
 
-    for qubit in qubits:
+    for qubit in layout.qubits:
         coords = layout.param("coords", qubit)
         if len(coords) != 2:
             raise ValueError(
@@ -357,8 +354,7 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
         The layout to draw the patches of.
     """
     default_params = dict(edgecolor="black")
-    anc_qubits = layout.get_qubits(role="anc")
-    for anc_qubit in anc_qubits:
+    for anc_qubit in layout.anc_qubits:
         anc_coords = layout.param("coords", anc_qubit)
         if len(anc_coords) != 2:
             raise ValueError(
@@ -405,9 +401,7 @@ def get_coord_range(layout: Layout) -> tuple[CoordRange, CoordRange]:
     -------
     [(x_min, x_max), (y_min, y_max)].
     """
-    qubits = layout.get_qubits()
-
-    list_coords = [layout.param("coords", qubit) for qubit in qubits]
+    list_coords = [layout.param("coords", qubit) for qubit in layout.qubits]
     for coords in list_coords:
         if len(coords) != 2:
             raise ValueError(

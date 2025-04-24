@@ -16,13 +16,13 @@ def test_rot_surface_code(show_figures):
     )
 
     assert isinstance(layout, Layout)
-    assert len(layout.get_qubits(role="data")) == 25
-    assert len(layout.get_qubits(role="anc")) == 24
+    assert len(layout.data_qubits) == 25
+    assert len(layout.anc_qubits) == 24
     assert len(layout.get_logical_qubits()) == 1
     log_label = layout.get_logical_qubits()[0]
     assert len(layout.logical_param("log_z", log_label)) == 5
     assert len(layout.logical_param("log_x", log_label)) == 5
-    assert min(layout.get_inds(layout.get_qubits())) == 10
+    assert min(layout.get_inds(layout.qubits)) == 10
 
     if show_figures:
         _, ax = plt.subplots()
@@ -44,13 +44,13 @@ def test_rot_surface_code_rectangle(show_figures):
     )
 
     assert isinstance(layout, Layout)
-    assert len(layout.get_qubits(role="data")) == 12
-    assert len(layout.get_qubits(role="anc")) == 11
+    assert len(layout.data_qubits) == 12
+    assert len(layout.anc_qubits) == 11
     assert len(layout.get_logical_qubits()) == 1
     log_label = layout.get_logical_qubits()[0]
     assert len(layout.logical_param("log_z", log_label)) == 4
     assert len(layout.logical_param("log_x", log_label)) == 3
-    assert min(layout.get_inds(layout.get_qubits())) == 11
+    assert min(layout.get_inds(layout.qubits)) == 11
 
     if show_figures:
         _, ax = plt.subplots()

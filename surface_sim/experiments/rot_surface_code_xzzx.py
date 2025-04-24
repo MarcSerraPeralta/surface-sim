@@ -61,7 +61,7 @@ def memory_experiment(
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
+        anc_detectors = layout.anc_qubits
 
     model.new_circuit()
     detectors.new_circuit()

@@ -20,7 +20,7 @@ def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates of the qubits."""
     coord_dict = {}
     for layout in layouts:
-        coord_dict.update(layout.qubit_coords())
+        coord_dict.update(layout.qubit_coords)
     return model.qubit_coords(coord_dict)
 
 
@@ -37,8 +37,8 @@ def idle_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     layout
         Code layout.
     """
-    data_qubits = layout.get_qubits(role="data")
-    qubits = layout.get_qubits()
+    data_qubits = layout.data_qubits
+    qubits = layout.qubits
 
     yield model.incoming_noise(data_qubits)
     yield model.tick()
@@ -80,7 +80,7 @@ def log_meas(
         If ``None``, adds all detectors.
         By default ``None``.
     """
-    anc_qubits = layout.get_qubits(role="anc")
+    anc_qubits = layout.anc_qubits
     if anc_detectors is None:
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
@@ -111,7 +111,7 @@ def log_meas(
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
     # deactivate detectors
-    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+    detectors.deactivate_detectors(layout.anc_qubits)
 
     return circuit
 
@@ -136,8 +136,8 @@ def log_meas_iterator(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
 
     if rot_basis:
         yield model.hadamard(data_qubits) + model.idle(anc_qubits)
@@ -196,7 +196,7 @@ def init_qubits(
     # the order of activating the detectors or applying the circuit
     # does not matter because this will be done in a layer of logical operations,
     # so no QEC cycles are run simultaneously
-    anc_qubits = layout.get_qubits(role="anc")
+    anc_qubits = layout.anc_qubits
     detectors.activate_detectors(anc_qubits)
     return sum(
         init_qubits_iterator(
@@ -221,9 +221,9 @@ def init_qubits_iterator(
     By default, the logical initialization is in the Z basis.
     If rot_basis, the logical initialization is in the X basis.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(data_qubits + anc_qubits)
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
 
     yield model.reset(qubits)
     yield model.tick()
@@ -253,7 +253,7 @@ def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    data_init = {q: 0 for q in layout.data_qubits}
     yield from init_qubits_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=False
     )
@@ -270,7 +270,7 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.get_qubits(role="data")
+    data_qubits = layout.data_qubits
     data_init = {q: 1 for q in data_qubits}
     if len(data_qubits) % 2 == 0:
         # ensure that the bistring corresponds to the |1> state
@@ -292,7 +292,7 @@ def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    data_init = {q: 0 for q in layout.data_qubits}
     yield from init_qubits_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=True
     )
@@ -309,7 +309,7 @@ def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.get_qubits(role="data")
+    data_qubits = layout.data_qubits
     data_init = {q: 1 for q in data_qubits}
     if len(data_qubits) % 2 == 0:
         # ensure that the bistring corresponds to the |-> state
@@ -335,8 +335,8 @@ def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     Yields stim circuits corresponding to a logical X gate
     of the given model.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
     log_qubit_label = layout.get_logical_qubits()[0]
@@ -365,8 +365,8 @@ def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     Yields stim circuits corresponding to a logical Z gate
     of the given model.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
     log_qubit_label = layout.get_logical_qubits()[0]
@@ -414,8 +414,8 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
             f"but a {layout.code}"
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    anc_qubits = layout.get_qubits(role="anc")
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
     gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
@@ -477,8 +477,8 @@ def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
             f"The given layout is not an unrotated surface code, but a {layout.code}"
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(layout.get_qubits())
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
     gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
 
     swap_pairs = set()
@@ -538,8 +538,8 @@ def log_fold_trans_sqrt_x_iterator(model: Model, layout: Layout) -> Iterator[Cir
             f"The given layout is not an unrotated surface code, but a {layout.code}"
         )
 
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(layout.get_qubits())
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
     gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
 
     cz_pairs = set()
@@ -647,9 +647,9 @@ def log_trans_cnot_iterator(
             f"but a {layout_t.code}"
         )
 
-    data_qubits_c = layout_c.get_qubits(role="data")
-    data_qubits_t = layout_t.get_qubits(role="data")
-    qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
+    data_qubits_c = layout_c.data_qubits
+    data_qubits_t = layout_t.data_qubits
+    qubits = set(layout_c.qubits + layout_t.qubits)
     gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     cz_pairs = set()
@@ -741,9 +741,9 @@ def log_fold_trans_cz_iterator(
             f"but a {layout_t.code}"
         )
 
-    data_qubits_c = layout_c.get_qubits(role="data")
-    data_qubits_t = layout_t.get_qubits(role="data")
-    qubits = set(layout_c.get_qubits() + layout_t.get_qubits())
+    data_qubits_c = layout_c.data_qubits
+    data_qubits_t = layout_t.data_qubits
+    qubits = set(layout_c.qubits + layout_t.qubits)
     gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
 
     cz_pairs = set()
@@ -806,8 +806,8 @@ def log_meas_xzzx(
         )
 
     if anc_detectors is None:
-        anc_detectors = layout.get_qubits(role="anc")
-    if set(anc_detectors) > set(layout.get_qubits(role="anc")):
+        anc_detectors = layout.anc_qubits
+    if set(anc_detectors) > set(layout.anc_qubits):
         raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
 
     circuit = sum(
@@ -834,7 +834,7 @@ def log_meas_xzzx(
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
 
-    detectors.deactivate_detectors(layout.get_qubits(role="anc"))
+    detectors.deactivate_detectors(layout.anc_qubits)
 
     return circuit
 
@@ -859,9 +859,9 @@ def log_meas_xzzx_iterator(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(data_qubits + anc_qubits)
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
 
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -912,8 +912,8 @@ def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     Yields stim circuits corresponding to a logical X gate
     of the given model.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
 
     log_qubit_label = layout.get_logical_qubits()[0]
     log_x_qubits = layout.logical_param("log_x", log_qubit_label)
@@ -948,8 +948,8 @@ def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     Yields stim circuits corresponding to a logical Z gate
     of the given model.
     """
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
 
     log_qubit_label = layout.get_logical_qubits()[0]
     log_z_qubits = layout.logical_param("log_z", log_qubit_label)
@@ -986,7 +986,7 @@ def init_qubits_xzzx(
     # the order of activating the detectors or applying the circuit
     # does not matter because this will be done in a layer of logical operations,
     # so no QEC cycles are run simultaneously
-    anc_qubits = layout.get_qubits(role="anc")
+    anc_qubits = layout.anc_qubits
     detectors.activate_detectors(anc_qubits)
     return sum(
         init_qubits_xzzx_iterator(
@@ -1013,9 +1013,7 @@ def init_qubits_xzzx_iterator(
             f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
-    anc_qubits = layout.get_qubits(role="anc")
-    data_qubits = layout.get_qubits(role="data")
-    qubits = set(data_qubits + anc_qubits)
+    qubits = set(layout.qubits)
 
     yield model.reset(qubits)
     yield model.tick()
@@ -1053,7 +1051,7 @@ def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    data_init = {q: 0 for q in layout.data_qubits}
     yield from init_qubits_xzzx_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=False
     )
@@ -1070,7 +1068,7 @@ def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.get_qubits(role="data")
+    data_qubits = layout.data_qubits
     data_init = {q: 1 for q in data_qubits}
     if len(data_qubits) % 2 == 0:
         # ensure that the bistring corresponds to the |1> state
@@ -1092,7 +1090,7 @@ def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_init = {q: 0 for q in layout.get_qubits(role="data")}
+    data_init = {q: 0 for q in layout.data_qubits}
     yield from init_qubits_xzzx_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=True
     )
@@ -1109,7 +1107,7 @@ def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.get_qubits(role="data")
+    data_qubits = layout.data_qubits
     data_init = {q: 1 for q in data_qubits}
     if len(data_qubits) % 2 == 0:
         # ensure that the bistring corresponds to the |-> state

@@ -189,7 +189,7 @@ def experiment_from_schedule(
     if anc_detectors is None:
         anc_detectors = []
         for layout in layouts:
-            anc_detectors += layout.get_qubits(role="anc")
+            anc_detectors += layout.anc_qubits
     if not isinstance(anc_detectors, Sequence):
         raise TypeError(
             f"'anc_detectors' must be a sequence, but {type(anc_detectors)} was given."
