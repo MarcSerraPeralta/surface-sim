@@ -12,6 +12,7 @@ class Detectors:
         anc_qubits: Sequence[str],
         frame: str,
         anc_coords: dict[str, Sequence[float | int]] | None = None,
+        include_gauge_dets: bool = False,
     ) -> None:
         """Initalises the ``Detectors`` class.
 
@@ -27,6 +28,9 @@ class Detectors:
             Ancilla qubit coordinates that are added to the detectors if specified.
             The coordinates of the detectors will be ``(*ancilla_coords[i], r)``,
             with ``r`` the number of rounds (starting at 0).
+        include_gauge_dets
+            Flag to include or not the definition of gauge detectors.
+            By default, ``False``.
 
         Notes
         -----
@@ -66,6 +70,7 @@ class Detectors:
         self.anc_qubit_labels = anc_qubits
         self.frame = frame
         self.anc_coords = anc_coords
+        self.include_gauge_dets = include_gauge_dets
 
         self.new_circuit()
 
@@ -90,10 +95,22 @@ class Detectors:
         self.num_rounds = {a: 0 for a in self.anc_qubit_labels}
         self.total_num_rounds = 0
         self.update_dict_list = []
+        self.gauge_detectors = set()
         return
 
-    def activate_detectors(self, anc_qubits: Iterable[str]):
-        """Activates the given ancilla detectors."""
+    def activate_detectors(
+        self, anc_qubits: Iterable[str], gauge_dets: Iterable[str] = []
+    ):
+        """Activates the given ancilla detectors.
+
+        Parameters
+        ----------
+        anc_qubits
+            List of ancilla detectors to activate.
+        gauge_dets
+            List of ancilla detectors that do not have a deterministic
+            outcome in their first QEC cycle.
+        """
         if not isinstance(anc_qubits, Iterable):
             raise TypeError(
                 f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
@@ -102,13 +119,24 @@ class Detectors:
             raise ValueError(
                 "Elements in 'anc_qubits' are not ancilla qubits in this object."
             )
+        if not set(anc_qubits).isdisjoint(self.detectors):
+            raise ValueError("Ancilla(s) were already active.")
+        if not isinstance(gauge_dets, Iterable):
+            raise TypeError(
+                f"'gauge_dets' must be an Iterable, but {type(gauge_dets)} was given."
+            )
+        if set(gauge_dets) > set(self.anc_qubit_labels):
+            raise ValueError(
+                "Elements in 'gauge_dets' are not ancilla qubits in this object."
+            )
+        if not set(gauge_dets).isdisjoint(self.gauge_detectors):
+            raise ValueError("Ancilla(s) were already set as gauge detectors.")
 
         for anc in anc_qubits:
-            if anc in self.detectors:
-                raise ValueError(f"Ancilla {anc} was already active.")
-
             self.detectors[anc] = set([anc])
             self.num_rounds[anc] = 0
+
+        self.gauge_detectors.update(gauge_dets)
 
         return
 
@@ -251,6 +279,8 @@ class Detectors:
         # the 'TICK'/QEC cycle will try to build the detectors for logical qubit 0,
         # which have been deactivated by the measurement.
         anc_qubits = [q for q in anc_qubits if q in self.detectors]
+        if not self.include_gauge_dets:
+            anc_qubits = [q for q in anc_qubits if q not in self.gauge_detectors]
         anc_qubits = set(anc_qubits)
 
         self.total_num_rounds += 1
@@ -325,6 +355,7 @@ class Detectors:
         # reset detectors and update_dict list
         self.detectors = {q: set([q]) for q in self.detectors}
         self.update_dict_list = []
+        self.gauge_detectors = set()
 
         return detectors_stim
 
