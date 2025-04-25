@@ -6,6 +6,7 @@ logical operation layer | QEC cycle | logical operation layer | QEC cycle | ...
 ```
 
 where in a logical operation layer each logical qubit MUST performs ONE logical operation.
+A logical operation is a logical reset, measurement, or unitary gate.
 Logical idling is considered an operaion. This means that a circuit can never
 have a logical reset followed directly by a logical measurement. 
 There will be always a QEC cycle between them. 
