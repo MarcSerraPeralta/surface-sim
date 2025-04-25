@@ -1,5 +1,6 @@
 from __future__ import annotations
-from collections.abc import Iterable
+from collections.abc import Sequence
+from typing import TypedDict, overload, Literal
 
 from copy import deepcopy
 from os import path
@@ -12,6 +13,25 @@ from xarray import DataArray
 
 IntDirections = list[str]
 IntOrder = IntDirections | dict[str, IntDirections]
+
+
+class LogQubitsDict(TypedDict):
+    ind: int
+    log_x: Sequence[str]
+    log_z: Sequence[str]
+
+
+class QubitDict(TypedDict):
+    qubit: str
+    ind: int
+    neighbors: dict[str, str]
+
+
+class LayoutDict(TypedDict):
+    code: str
+    logical_qubits: dict[str, LogQubitsDict]
+    interaction_order: dict[str, list]
+    layout: Sequence[QubitDict]
 
 
 class Layout:
@@ -68,12 +88,18 @@ class Layout:
     - ``expansion_matrix``
     - ``projection_matrix``
 
+    Notes
+    -----
+    The parameters of the layout must be updated or set by the appropiate
+    methods of this class to guarantee a correct behavior.
+    In this sense, the qubits and their connections
+    cannot be updated once the layout object has been created.
     """
 
     ############################
     # initialization and storage
 
-    def __init__(self, setup: dict[str, object]) -> None:
+    def __init__(self, setup: LayoutDict) -> None:
         """Initiailizes the layout for a particular code.
 
         Parameters
@@ -118,10 +144,12 @@ class Layout:
         self.qubits = tuple(self.get_qubits())
         self.data_qubits = tuple(self.get_qubits(role="data"))
         self.anc_qubits = tuple(self.get_qubits(role="anc"))
+        self.logical_qubits = tuple(self._log_qubits)
 
         self.num_qubits = len(self.qubits)
         self.num_data_qubits = len(self.data_qubits)
         self.num_anc_qubits = len(self.anc_qubits)
+        self.num_logical_qubits = len(self.logical_qubits)
 
         self._qubit_coords = {
             q: c for q, c in zip(self.qubits, self.get_coords(self.qubits))
@@ -131,6 +159,11 @@ class Layout:
         }
         self._anc_qubit_coords = {
             q: c for q, c in zip(self.anc_qubits, self.get_coords(self.anc_qubits))
+        }
+
+        self._qubit_label_to_ind = {v: k for k, v in self.qubit_inds.items()}
+        self._logical_qubit_label_to_ind = {
+            v: k for k, v in self.logical_qubit_inds.items()
         }
 
         return
@@ -158,9 +191,9 @@ class Layout:
 
         for log_p in ["log_x", "log_z"]:
             for l, params in self._log_qubits.items():
-                if not isinstance(params[log_p], Iterable):
+                if not isinstance(params[log_p], Sequence):
                     raise TypeError(
-                        f"'{log_p}' in logical {l} must be an Iterable, "
+                        f"'{log_p}' in logical {l} must be an Sequence, "
                         f"but {type(params[log_p])} was given."
                     )
                 if set(params[log_p]) > set(self._qubit_inds):
@@ -170,7 +203,7 @@ class Layout:
 
         return
 
-    def _load_layout(self, setup: dict[str, object]) -> None:
+    def _load_layout(self, setup: LayoutDict) -> None:
         """Internal function that loads the directed graph from the
         setup dictionary that is provided during initialization.
 
@@ -202,7 +235,12 @@ class Layout:
             if qubit in self.graph:
                 raise ValueError("Qubit label repeated, ensure labels are unique.")
 
-            self._qubit_inds[qubit] = qubit_info.get("ind", None)
+            ind = qubit_info.get("ind", None)
+            if ind is None:
+                raise ValueError(
+                    "Each qubit in the layout must be indexed (have 'ind' param)."
+                )
+            self._qubit_inds[qubit] = ind
 
             self.graph.add_node(qubit, **qubit_info)
 
@@ -234,7 +272,7 @@ class Layout:
         return Layout(self.to_dict())
 
     @classmethod
-    def from_dict(cls, setup: dict[str, object]) -> "Layout":
+    def from_dict(cls, setup: LayoutDict) -> "Layout":
         """Loads the layout class from a dictionary.
 
         Parameters
@@ -249,7 +287,7 @@ class Layout:
         """
         return cls(setup)
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> LayoutDict:
         """Return a setup dictonary for the layout.
 
         Returns
@@ -349,7 +387,7 @@ class Layout:
         else:
             return self.graph.nodes[qubit][param]
 
-    def get_inds(self, qubits: Iterable[str]) -> tuple[int]:
+    def get_inds(self, qubits: Sequence[str]) -> tuple[int, ...]:
         """Returns the indices of the qubits.
 
         Parameters
@@ -406,12 +444,28 @@ class Layout:
 
         return tuple(self.graph.nodes)
 
+    @overload
     def get_neighbors(
         self,
-        qubits: Iterable[str],
+        qubits: Sequence[str],
+        direction: str | None = None,
+        as_pairs: Literal[False] = False,
+    ) -> tuple[str, ...]: ...
+
+    @overload
+    def get_neighbors(
+        self,
+        qubits: Sequence[str],
+        direction: str | None = None,
+        as_pairs: Literal[True] = True,
+    ) -> tuple[str, ...]: ...
+
+    def get_neighbors(
+        self,
+        qubits: Sequence[str],
         direction: str | None = None,
         as_pairs: bool = False,
-    ) -> tuple[str] | tuple[tuple[str, str]]:
+    ) -> tuple[str, ...] | tuple[tuple[str, str], ...]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
 
@@ -449,7 +503,7 @@ class Layout:
             return tuple(zip(start_nodes, end_nodes))
         return tuple(end_nodes)
 
-    def get_coords(self, qubits: Iterable[str]) -> tuple[tuple[float | int]]:
+    def get_coords(self, qubits: Sequence[str]) -> tuple[tuple[float | int], ...]:
         """Returns the coordinates of the given qubits.
 
         Parameters
@@ -468,27 +522,26 @@ class Layout:
 
         return tuple(tuple(all_coords[q]) for q in qubits)
 
-    def get_support(self, qubits: Iterable[str]) -> dict[str, tuple[str]]:
+    def get_support(self, qubits: Sequence[str]) -> dict[str, tuple[str, ...]]:
         """Returns a dictionary mapping the qubits to their support."""
         return {q: self.get_neighbors([q]) for q in qubits}
 
-    def get_labels_from_inds(self, inds: Iterable[int]) -> tuple[str]:
+    def get_labels_from_inds(self, inds: Sequence[int]) -> tuple[str, ...]:
         """Returns list of qubit labels for the given qubit indicies."""
-        label_to_ind = {v: k for k, v in self._qubit_inds.items()}
-        return tuple(label_to_ind[ind] for ind in inds)
+        return tuple(self._qubit_label_to_ind[ind] for ind in inds)
 
     @property
-    def qubit_coords(self) -> dict[str, tuple[float | int]]:
+    def qubit_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all the qubits to their coordinates."""
         return {k: v for k, v in self._qubit_coords.items()}
 
     @property
-    def anc_coords(self) -> dict[str, tuple[float | int]]:
+    def anc_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all ancilla qubits to their coordinates."""
         return {k: v for k, v in self._anc_qubit_coords.items()}
 
     @property
-    def data_coords(self) -> dict[str, tuple[float | int]]:
+    def data_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all data qubits to their coordinates."""
         return {k: v for k, v in self._data_qubit_coords.items()}
 
@@ -516,7 +569,7 @@ class Layout:
             return None
         return params.get(param)
 
-    def get_logical_inds(self, logical_qubits: Iterable[str]) -> tuple[int]:
+    def get_logical_inds(self, logical_qubits: Sequence[str]) -> tuple[int, ...]:
         """Returns the indices of the specified logical qubits."""
         if set(logical_qubits) > set(self._log_qubits):
             raise ValueError(
@@ -524,23 +577,20 @@ class Layout:
             )
         return tuple(self._log_qubits[l]["ind"] for l in logical_qubits)
 
+    @property
     def logical_qubit_inds(self) -> dict[str, int]:
         """Returns a dictionary mapping all the logical qubits to their indices."""
-        return {k: self._log_qubits[l]["ind"] for k in self._log_qubits}
+        return {k: self._log_qubits[k]["ind"] for k in self._log_qubits}
 
     def get_max_logical_ind(self) -> int:
         """Returns the largest logical qubit index in the layout."""
-        return max(self.logical_qubits_inds.values())
+        return max(self.logical_qubit_inds.values())
 
     def get_min_logical_ind(self) -> int:
         """Returns the largest logical qubit index in the layout."""
-        return min(self.logical_qubits_inds.values())
+        return min(self.logical_qubit_inds.values())
 
-    def get_logical_qubits(self) -> tuple[str]:
-        """Returns the logical qubit labels."""
-        return tuple(self._log_qubits)
-
-    def get_logical_labels_from_inds(self, inds: Iterable[int]) -> tuple[str]:
+    def get_logical_labels_from_inds(self, inds: Sequence[int]) -> tuple[str, ...]:
         """Returns list of logical qubit labels for the given logical qubit indicies."""
         label_to_ind = {v: k for k, v in self.logical_qubit_inds.items()}
         return tuple(label_to_ind[ind] for ind in inds)
@@ -675,7 +725,9 @@ def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
     return True
 
 
-def index_coords(coords: tuple[int], reverse: bool = False) -> tuple[tuple[int], int]:
+def index_coords(
+    coords: tuple[int, ...], reverse: bool = False
+) -> tuple[tuple[int, ...], int]:
     """Indexes a list of coordinates.
 
     Parameters
@@ -687,8 +739,10 @@ def index_coords(coords: tuple[int], reverse: bool = False) -> tuple[tuple[int],
 
     Returns
     -------
-    tuple[list[int], int]
-        The list of indexed coordinates and the number of unique coordinates.
+    indices
+        The list of indexed coordinates.
+    num_unique_vals
+        The number of unique coordinates.
     """
     unique_vals = set(coords)
     num_unique_vals = len(unique_vals)

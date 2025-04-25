@@ -9,7 +9,7 @@ from surface_sim.detectors import get_new_stab_dict_from_layout
 def test_set_fold_trans_s():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_s(layout, "D1")
-    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
     for key in ["new_stab_gen", "new_stab_gen_inv"]:
@@ -78,7 +78,7 @@ def test_set_fold_trans_s():
 def test_set_fold_trans_h():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_h(layout, "D1")
-    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
 
     x_stabs = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
     for key in ["new_stab_gen", "new_stab_gen_inv"]:

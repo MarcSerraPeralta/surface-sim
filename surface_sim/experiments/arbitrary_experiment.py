@@ -184,7 +184,7 @@ def experiment_from_schedule(
             raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
         layouts.update(set(op[1:]))
     layout_order = list(layouts)
-    layout_order.sort(key=lambda x: min(x.get_logical_qubits()))
+    layout_order.sort(key=lambda x: min(x.logical_qubits))
 
     if anc_detectors is None:
         anc_detectors = []
@@ -283,7 +283,7 @@ def experiment_from_schedule(
 
         if func.log_op_type == "measurement":
             active_layouts[op[1]] = False
-            log_obs_inds[op[1].get_logical_qubits()[0]] = num_log_meas
+            log_obs_inds[op[1].logical_qubits[0]] = num_log_meas
             num_log_meas += 1
         if func.log_op_type == "qubit_init":
             active_layouts[op[1]] = True

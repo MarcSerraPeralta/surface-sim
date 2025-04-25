@@ -11,15 +11,15 @@ def set_x(layout: Layout) -> None:
     layout
         The layout in which to add the attributes.
     """
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     gate_label = f"log_x_{log_qubit_label}"
 
     x_gates = {q: "I" for q in data_qubits}
@@ -50,15 +50,15 @@ def set_z(layout: Layout) -> None:
     layout
         The layout in which to add the attributes.
     """
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     gate_label = f"log_z_{log_qubit_label}"
 
     z_gates = {q: "I" for q in data_qubits}
@@ -89,15 +89,15 @@ def set_idle(layout: Layout) -> None:
     layout
         The layout in which to add the attributes.
     """
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     gate_label = f"idle_{log_qubit_label}"
 
     # Store logical gate information to the data qubits
@@ -139,7 +139,9 @@ def set_trans_cnot(layout_c: Layout, layout_t: Layout) -> None:
         raise ValueError("This function requires two surface codes of the same size.")
     check_overlap_layouts(layout_c, layout_t)
 
-    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = (
+        f"log_trans_cnot_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+    )
 
     qubit_coords_c = layout_c.qubit_coords
     qubit_coords_t = layout_t.qubit_coords

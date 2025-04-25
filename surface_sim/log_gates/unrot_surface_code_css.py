@@ -50,17 +50,17 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
     if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)
@@ -173,17 +173,17 @@ def set_fold_trans_sqrt_x(layout: Layout, data_qubit: str) -> None:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
     if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_sqrt_x_{layout.logical_qubits[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)
@@ -330,17 +330,17 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
         raise ValueError(f"{data_qubit} is not a data qubit from the given layout.")
     if set(map(len, layout.get_coords(layout.qubits))) != {2}:
         raise ValueError("The qubit coordinates must be 2D.")
-    if len(layout.get_logical_qubits()) != 1:
+    if len(layout.logical_qubits) != 1:
         raise ValueError(
             "The given surface code does not have a logical qubit, "
-            f"it has {len(layout.get_logical_qubits())}."
+            f"it has {len(layout.logical_qubits)}."
         )
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
     stab_x = layout.get_qubits(role="anc", stab_type="x_type")
     stab_z = layout.get_qubits(role="anc", stab_type="z_type")
-    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
 
     # get the reflection function
     neighbors = layout.param("neighbors", data_qubit)

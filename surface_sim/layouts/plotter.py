@@ -307,7 +307,7 @@ def logical_artists(layout: Layout) -> Iterable[Wedge]:
     width = 0.1
     default_params = dict(edgecolor="none")
 
-    logical_qubits = layout.get_logical_qubits()
+    logical_qubits = layout.logical_qubits
     if len(logical_qubits) == 0:
         return
     angle = 360 / len(logical_qubits)

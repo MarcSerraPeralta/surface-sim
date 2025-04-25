@@ -227,7 +227,7 @@ def merge_logical_operations(
             continue
 
         gate_label = func.__name__.replace("_iterator", "_")
-        gate_label += "_".join([l.get_logical_qubits()[0] for l in layouts])
+        gate_label += "_".join([l.logical_qubits[0] for l in layouts])
         new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layouts[0], gate_label)
         if len(layouts) == 2:
             new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(
@@ -265,7 +265,7 @@ def merge_logical_operations(
 
         # add logicals
         for layout, rot_basis in zip(layouts, rot_bases):
-            for log_qubit_label in layout.get_logical_qubits():
+            for log_qubit_label in layout.logical_qubits:
                 log_op = "log_x" if rot_basis else "log_z"
                 log_data_qubits = layout.logical_param(log_op, log_qubit_label)
                 targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]

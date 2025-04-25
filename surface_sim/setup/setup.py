@@ -1,11 +1,16 @@
 from __future__ import annotations
 from collections.abc import Sequence
+from typing import TypedDict
 from copy import deepcopy
 from pathlib import Path
 
 import yaml
 
 Param = float | int | bool | str | None
+
+
+class SetupDict(TypedDict):
+    setup: Sequence[dict[str, object]]
 
 
 class Setup:
@@ -52,7 +57,7 @@ class Setup:
 
         return
 
-    def _load_setup(self, setup: dict[str, object]) -> None:
+    def _load_setup(self, setup: SetupDict) -> None:
         params = setup.get("setup")
         if not params:
             raise ValueError("'setup['setup']' not found or contains no information.")
@@ -105,7 +110,7 @@ class Setup:
             setup = yaml.safe_load(file)
             return cls(setup)
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> SetupDict:
         """Returns a dictionary that can be used to initialize ``Setup``."""
         setup = dict()
 

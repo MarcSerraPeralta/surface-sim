@@ -22,8 +22,8 @@ def test_unrot_surface_code(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 5**2 + 4**2
     assert len(layout.anc_qubits) == (5 + 4) * 4 + 4
-    assert len(layout.get_logical_qubits()) == 1
-    log_label = layout.get_logical_qubits()[0]
+    assert len(layout.logical_qubits) == 1
+    log_label = layout.logical_qubits[0]
     assert len(layout.logical_param("log_z", log_label)) == 5
     assert len(layout.logical_param("log_x", log_label)) == 5
     assert min(layout.get_inds(layout.qubits)) == 10
@@ -50,8 +50,8 @@ def test_unrot_surface_code_rectangle(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 4 * 3 + 3 * 2
     assert len(layout.anc_qubits) == (4 + 3) * 2 + 3
-    assert len(layout.get_logical_qubits()) == 1
-    log_label = layout.get_logical_qubits()[0]
+    assert len(layout.logical_qubits) == 1
+    log_label = layout.logical_qubits[0]
     assert len(layout.logical_param("log_z", log_label)) == 4
     assert len(layout.logical_param("log_x", log_label)) == 3
     assert min(layout.get_inds(layout.qubits)) == 11
