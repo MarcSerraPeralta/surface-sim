@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Callable, Iterable, Sequence
 from copy import deepcopy
 import stim
@@ -69,6 +70,17 @@ class Detectors:
         self.new_circuit()
 
         return
+
+    @classmethod
+    def from_layouts(cls: type[Detectors], frame: str, *layouts: Layout) -> "Detectors":
+        """Creates a ``Detectors`` object using the information from the layouts.
+        It loads all the ancilla qubits and their coordinates.
+        """
+        anc_coords, anc_qubits = {}, []
+        for layout in layouts:
+            anc_coords |= layout.anc_coords  # updates dict
+            anc_qubits += layout.anc_qubits
+        return cls(anc_qubits=anc_qubits, frame=frame, anc_coords=anc_coords)
 
     def new_circuit(self):
         """Resets all the current generators and number of rounds in order
