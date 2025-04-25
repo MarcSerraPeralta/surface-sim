@@ -16,7 +16,36 @@ def test_detectors_new_circuit():
     assert set(detectors.num_rounds.values()) == set([0])
     assert detectors.total_num_rounds == 0
     assert detectors.update_dict_list == []
+    assert detectors.gauge_detectors == set()
 
+    return
+
+
+def test_detectors_gauge_dets():
+    anc_qubits = ["X1", "Z1"]
+    meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
+    detectors.activate_detectors(anc_qubits, gauge_dets=["X1", "Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim[0].targets_copy()) == 0
+    assert len(detectors_stim[1].targets_copy()) == 0
+
+    detectors.deactivate_detectors(anc_qubits)
+    detectors.activate_detectors(anc_qubits, gauge_dets=["Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim[0].targets_copy()) != 0
+    assert len(detectors_stim[1].targets_copy()) == 0
+
+    detectors = Detectors(
+        anc_qubits=anc_qubits, frame="pre-gate", include_gauge_dets=True
+    )
+    detectors.activate_detectors(anc_qubits, gauge_dets=["X1", "Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim[0].targets_copy()) != 0
+    assert len(detectors_stim[1].targets_copy()) != 0
     return
 
 
