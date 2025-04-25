@@ -91,18 +91,23 @@ def test_layout_get_information():
     assert layout.param("role", "D1") == "data"
 
     assert layout.get_inds(["X1", "D2"]) == (2, 1)
-
     assert layout.qubit_inds == {"D1": 0, "D2": 1, "X1": 2}
+    assert layout.num_qubits == 3
 
     assert layout.get_max_ind() == 2
     assert layout.get_min_ind() == 0
 
     assert layout.get_labels_from_inds([2]) == ("X1",)
 
+    assert layout.data_qubits == ("D1", "D2")
+    assert layout.num_data_qubits == 2
+
     assert layout.anc_qubits == ("X1",)
+    assert layout.num_anc_qubits == 1
     assert layout.get_qubits(role="anc", stab_type="z_type") == tuple()
 
-    assert layout.get_logical_qubits() == ("L0",)
+    assert layout.logical_qubits == ("L0",)
+    assert layout.num_logical_qubits == 1
 
     assert set(layout.get_neighbors(["D1", "X1"])) == set(["X1", "D1", "D2"])
     assert set(layout.get_neighbors(["D1"], as_pairs=True)) == set([("D1", "X1")])

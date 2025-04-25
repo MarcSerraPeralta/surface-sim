@@ -112,7 +112,7 @@ def qec_round_with_log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    for logical_qubit in layout.get_logical_qubits():
+    for logical_qubit in layout.logical_qubits:
         log_data_qubits = layout.logical_param(log_op, logical_qubit)
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)

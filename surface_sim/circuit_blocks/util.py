@@ -105,7 +105,7 @@ def log_meas(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    for logical_qubit in layout.get_logical_qubits():
+    for logical_qubit in layout.logical_qubits:
         log_data_qubits = layout.logical_param(log_op, logical_qubit)
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
@@ -337,7 +337,7 @@ def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     log_x_qubits = layout.logical_param("log_x", log_qubit_label)
 
     yield model.incoming_noise(data_qubits)
@@ -367,7 +367,7 @@ def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     log_z_qubits = layout.logical_param("log_z", log_qubit_label)
 
     yield model.incoming_noise(data_qubits)
@@ -389,7 +389,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
     https://doi.org/10.1088/1367-2630/17/8/083026
     """
     # update the stabilizer generators
-    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update(new_stabs, new_stabs_inv)
     return sum(log_fold_trans_s_iterator(model=model, layout=layout), start=Circuit())
@@ -414,7 +414,7 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
-    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     cz_pairs = set()
     qubits_s_gate = set()
@@ -457,7 +457,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
     https://arxiv.org/pdf/2406.17653
     """
     # update the stabilizer generators
-    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update(new_stabs, new_stabs_inv)
     return sum(log_fold_trans_h_iterator(model=model, layout=layout), start=Circuit())
@@ -477,7 +477,7 @@ def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
 
     data_qubits = layout.data_qubits
     qubits = set(layout.qubits)
-    gate_label = f"log_fold_trans_h_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
 
     swap_pairs = set()
     qubits_h_gate = set()
@@ -518,7 +518,7 @@ def log_fold_trans_sqrt_x(
     The gate is implemented as HSH.
     """
     # update the stabilizer generators
-    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_sqrt_x_{layout.logical_qubits[0]}"
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
     detectors.update(new_stabs, new_stabs_inv)
     return sum(
@@ -538,7 +538,7 @@ def log_fold_trans_sqrt_x_iterator(model: Model, layout: Layout) -> Iterator[Cir
 
     data_qubits = layout.data_qubits
     qubits = set(layout.qubits)
-    gate_label = f"log_fold_trans_sqrt_x_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_sqrt_x_{layout.logical_qubits[0]}"
 
     cz_pairs = set()
     qubits_h_gate = set()
@@ -605,7 +605,9 @@ def log_trans_cnot(
         Detector definitions to use.
     """
     # update the stabilizer generators
-    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = (
+        f"log_trans_cnot_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+    )
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout_c, gate_label)
     new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(layout_t, gate_label)
     new_stabs.update(new_stabs_2)
@@ -648,7 +650,9 @@ def log_trans_cnot_iterator(
     data_qubits_c = layout_c.data_qubits
     data_qubits_t = layout_t.data_qubits
     qubits = set(layout_c.qubits + layout_t.qubits)
-    gate_label = f"log_trans_cnot_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = (
+        f"log_trans_cnot_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+    )
 
     cz_pairs = set()
     qubits_h_gate = set(data_qubits_t)
@@ -699,7 +703,9 @@ def log_fold_trans_cz(
         Detector definitions to use.
     """
     # update the stabilizer generators
-    gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = (
+        f"log_fold_trans_cz_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+    )
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout_c, gate_label)
     new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(layout_t, gate_label)
     new_stabs.update(new_stabs_2)
@@ -742,7 +748,9 @@ def log_fold_trans_cz_iterator(
     data_qubits_c = layout_c.data_qubits
     data_qubits_t = layout_t.data_qubits
     qubits = set(layout_c.qubits + layout_t.qubits)
-    gate_label = f"log_fold_trans_cz_{layout_c.get_logical_qubits()[0]}_{layout_t.get_logical_qubits()[0]}"
+    gate_label = (
+        f"log_fold_trans_cz_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+    )
 
     cz_pairs = set()
     for data_qubit in data_qubits_c:
@@ -827,7 +835,7 @@ def log_meas_xzzx(
     circuit += detectors_stim
 
     log_op = "log_x" if rot_basis else "log_z"
-    for logical_qubit in layout.get_logical_qubits():
+    for logical_qubit in layout.logical_qubits:
         log_data_qubits = layout.logical_param(log_op, logical_qubit)
         targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
         circuit.append("OBSERVABLE_INCLUDE", targets, 0)
@@ -913,7 +921,7 @@ def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     anc_qubits = layout.anc_qubits
     data_qubits = layout.data_qubits
 
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     log_x_qubits = layout.logical_param("log_x", log_qubit_label)
 
     yield model.incoming_noise(data_qubits)
@@ -949,7 +957,7 @@ def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     anc_qubits = layout.anc_qubits
     data_qubits = layout.data_qubits
 
-    log_qubit_label = layout.get_logical_qubits()[0]
+    log_qubit_label = layout.logical_qubits[0]
     log_z_qubits = layout.logical_param("log_z", log_qubit_label)
 
     yield model.incoming_noise(data_qubits)

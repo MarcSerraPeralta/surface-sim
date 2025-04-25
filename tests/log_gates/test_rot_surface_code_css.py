@@ -6,7 +6,7 @@ from surface_sim.detectors import get_new_stab_dict_from_layout
 def test_set_fold_trans_s():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_fold_trans_s(layout, "D1")
-    gate_label = f"log_fold_trans_s_{layout.get_logical_qubits()[0]}"
+    gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     x_stab = sorted(layout.get_qubits(role="anc", stab_type="x_type"))
     for key in ["new_stab_gen", "new_stab_gen_inv"]:
