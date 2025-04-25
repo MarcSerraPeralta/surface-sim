@@ -363,6 +363,7 @@ class Layout:
         """
         return tuple(self._qubit_inds[qubit] for qubit in qubits)
 
+    @property
     def qubit_inds(self) -> dict[str, int]:
         """Returns a dictionary mapping all the qubits to their indices."""
         return {k: v for k, v in self._qubit_inds.items()}

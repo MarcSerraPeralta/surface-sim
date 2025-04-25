@@ -41,7 +41,7 @@ anc_coords = {}
 anc_qubits = []
 stab_coords = {}
 for l, layout in enumerate(layouts):
-    qubit_inds.update(layout.qubit_inds())
+    qubit_inds.update(layout.qubit_inds)
     anc_qubits += layout.anc_qubits
     coords = layout.anc_coords
     anc_coords.update(coords)

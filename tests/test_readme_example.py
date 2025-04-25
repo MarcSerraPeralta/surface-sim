@@ -7,18 +7,13 @@ def test_readme_example_memory_experiment():
 
     # prepare the layout, model, and detectors objects
     layout = rot_surface_code(distance=3)
-
-    qubit_inds = layout.qubit_inds()
-    anc_qubits = layout.anc_qubits
-    data_qubits = layout.data_qubits
-
     setup = CircuitNoiseSetup()
-    model = CircuitNoiseModel(setup, qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate")
+    model = CircuitNoiseModel(setup, layout.qubit_inds)
+    detectors = Detectors(layout.anc_qubits, frame="pre-gate")
 
     # create a memory experiment
     NUM_ROUNDS = 10
-    DATA_INIT = {q: 0 for q in data_qubits}
+    DATA_INIT = {q: 0 for q in layout.data_qubits}
     ROT_BASIS = True  # X basis
     MEAS_RESET = True  # reset after ancilla measurements
     PROB = 1e-5
@@ -65,7 +60,7 @@ def test_readme_example_arbitrary_circuit():
     # merge qubit indicies, coordinates, ... of all layouts
     qubit_inds, anc_coords, anc_qubits = {}, {}, []
     for layout in layouts:
-        qubit_inds |= layout.qubit_inds()  # updates dict
+        qubit_inds |= layout.qubit_inds  # updates dict
         anc_coords |= layout.anc_coords
         anc_qubits += layout.anc_qubits
 

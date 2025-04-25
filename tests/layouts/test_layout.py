@@ -92,7 +92,7 @@ def test_layout_get_information():
 
     assert layout.get_inds(["X1", "D2"]) == (2, 1)
 
-    assert layout.qubit_inds() == {"D1": 0, "D2": 1, "X1": 2}
+    assert layout.qubit_inds == {"D1": 0, "D2": 1, "X1": 2}
 
     assert layout.get_max_ind() == 2
     assert layout.get_min_ind() == 0

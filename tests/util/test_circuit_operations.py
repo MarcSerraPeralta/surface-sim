@@ -103,7 +103,7 @@ def test_merge_circuits():
 
 def test_merge_qec_rounds():
     layout = unrot_surface_code(distance=3)
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(
         layout.anc_qubits, frame="pre-gate", anc_coords=layout.anc_coords
     )
@@ -122,8 +122,8 @@ def test_merge_qec_rounds():
 
 def test_merge_logical_measurements():
     layout, other_layout = unrot_surface_codes(2, distance=3)
-    qubit_inds = layout.qubit_inds()
-    qubit_inds.update(other_layout.qubit_inds())
+    qubit_inds = layout.qubit_inds
+    qubit_inds.update(other_layout.qubit_inds)
     anc_qubits = layout.anc_qubits + other_layout.anc_qubits
     anc_coords = layout.anc_coords
     anc_coords.update(other_layout.anc_coords)
@@ -149,8 +149,8 @@ def test_merge_logical_measurements():
 
 def test_merge_logical_operations():
     layout, other_layout = unrot_surface_codes(2, distance=3)
-    qubit_inds = layout.qubit_inds()
-    qubit_inds.update(other_layout.qubit_inds())
+    qubit_inds = layout.qubit_inds
+    qubit_inds.update(other_layout.qubit_inds)
     anc_qubits = layout.anc_qubits + other_layout.anc_qubits
     anc_coords = layout.anc_coords
     anc_coords.update(other_layout.anc_coords)

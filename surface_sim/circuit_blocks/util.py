@@ -270,11 +270,10 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.data_qubits
-    data_init = {q: 1 for q in data_qubits}
-    if len(data_qubits) % 2 == 0:
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
         # ensure that the bistring corresponds to the |1> state
-        data_init[data_qubits[-1]] = 0
+        data_init[layout.data_qubits[-1]] = 0
 
     yield from init_qubits_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=False
@@ -309,11 +308,10 @@ def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.data_qubits
-    data_init = {q: 1 for q in data_qubits}
-    if len(data_qubits) % 2 == 0:
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
         # ensure that the bistring corresponds to the |-> state
-        data_init[data_qubits[-1]] = 0
+        data_init[layout.data_qubits[-1]] = 0
 
     yield from init_qubits_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=True
@@ -1068,11 +1066,10 @@ def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.data_qubits
-    data_init = {q: 1 for q in data_qubits}
-    if len(data_qubits) % 2 == 0:
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
         # ensure that the bistring corresponds to the |1> state
-        data_init[data_qubits[-1]] = 0
+        data_init[layout.data_qubits[-1]] = 0
 
     yield from init_qubits_xzzx_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=False
@@ -1107,11 +1104,10 @@ def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     The ``data_init`` bitstring used for the initialization is not important
     when doing stabilizer simulation.
     """
-    data_qubits = layout.data_qubits
-    data_init = {q: 1 for q in data_qubits}
-    if len(data_qubits) % 2 == 0:
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
         # ensure that the bistring corresponds to the |-> state
-        data_init[data_qubits[-1]] = 0
+        data_init[layout.data_qubits[-1]] = 0
 
     yield from init_qubits_xzzx_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=True
