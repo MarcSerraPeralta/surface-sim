@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Sequence, Iterable
 
 from copy import deepcopy
@@ -5,6 +6,7 @@ from copy import deepcopy
 from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 
 from ..setup import Setup
+from ..layouts import Layout
 
 
 class Model:
@@ -66,6 +68,14 @@ class Model:
         self._last_op = ""
         self._new_op = ""
         return
+
+    @classmethod
+    def from_layouts(cls: type[Model], setup: Setup, *layouts: Layout) -> "Model":
+        """Creates a ``Model`` object using the information from the layouts."""
+        qubit_inds = {}
+        for layout in layouts:
+            qubit_inds |= layout.qubit_inds  # updates dict
+        return cls(setup=setup, qubit_inds=qubit_inds)
 
     def __getattribute__(self, name):
         """

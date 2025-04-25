@@ -84,18 +84,11 @@ circuit = stim.Circuit(
 )
 
 layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
-
-# merge qubit indicies, coordinates, ... of all layouts
-qubit_inds, anc_coords, anc_qubits = {}, {}, []
-for layout in layouts:
-    qubit_inds |= layout.qubit_inds  # updates dict
-    anc_coords |= layout.anc_coords
-    anc_qubits += layout.anc_qubits
-
 setup = CircuitNoiseSetup()
+model = CircuitNoiseModel.from_layouts(setup, *layouts)
+detectors = Detectors.from_layouts("pre-gate", *layouts)
+
 setup.set_var_param("prob", 1e-3)
-model = CircuitNoiseModel(setup=setup, qubit_inds=qubit_inds)
-detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
 
 schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 stim_circuit = experiment_from_schedule(

@@ -30,8 +30,8 @@ class Setup:
         "idle_reset_error_prob": "idle_error_prob",
     }
 
-    def __init__(self, setup: dict[str, object]) -> None:
-        """Initialises teh ``Setup`` class.
+    def __init__(self, setup: SetupDict) -> None:
+        """Initialises the ``Setup`` class.
 
         Parameters
         ----------
