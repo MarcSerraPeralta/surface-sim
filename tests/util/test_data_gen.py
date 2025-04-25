@@ -9,7 +9,7 @@ from surface_sim import Detectors
 
 def test_sample_memory_experiment():
     layout = rot_surface_code(distance=3)
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(layout.anc_qubits, frame="pre-gate")
     circuit = memory_experiment(
         model=model,

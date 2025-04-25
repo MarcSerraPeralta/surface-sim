@@ -21,7 +21,7 @@ from surface_sim.log_gates.unrot_surface_code_css import (
 
 def test_memory_experiment():
     layout = unrot_surface_code(distance=3)
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(
         layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
     )
@@ -58,7 +58,7 @@ def test_memory_experiment():
 def test_repeated_s_experiment():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_s(layout, "D1")
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(
         layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
     )
@@ -96,7 +96,7 @@ def test_repeated_s_experiment():
 def test_repeated_sqrt_x_experiment():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_sqrt_x(layout, "D1")
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(
         layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
     )
@@ -134,7 +134,7 @@ def test_repeated_sqrt_x_experiment():
 def test_repeated_h_experiment():
     layout = unrot_surface_code(distance=3)
     set_fold_trans_h(layout, "D1")
-    model = NoiselessModel(layout.qubit_inds())
+    model = NoiselessModel(layout.qubit_inds)
     detectors = Detectors(
         layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
     )
@@ -182,8 +182,8 @@ def test_repeated_cnot_experiment():
     )
     set_trans_cnot(layout_c, layout_t)
     set_trans_cnot(layout_t, layout_c)
-    qubit_inds = layout_c.qubit_inds()
-    qubit_inds.update(layout_t.qubit_inds())
+    qubit_inds = layout_c.qubit_inds
+    qubit_inds.update(layout_t.qubit_inds)
     anc_coords = layout_c.anc_coords
     anc_coords.update(layout_t.anc_coords)
     model = NoiselessModel(qubit_inds)

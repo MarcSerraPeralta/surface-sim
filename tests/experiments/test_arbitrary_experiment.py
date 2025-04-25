@@ -43,7 +43,7 @@ def test_experiment_from_schedule():
     anc_coords = []
     anc_qubits = []
     for layout in layouts:
-        qubit_inds.update(layout.qubit_inds())
+        qubit_inds.update(layout.qubit_inds)
         anc_qubits += layout.anc_qubits
         anc_coords += layout.anc_coords
 
@@ -91,7 +91,7 @@ def test_experiment_from_schedule_no_gauge_detectors():
     anc_coords = []
     anc_qubits = []
     for layout in layouts:
-        qubit_inds.update(layout.qubit_inds())
+        qubit_inds.update(layout.qubit_inds)
         anc_qubits += layout.anc_qubits
         anc_coords += layout.anc_coords
 
@@ -135,7 +135,7 @@ def test_equivalence():
     anc_coords = []
     anc_qubits = []
     for layout in layouts:
-        qubit_inds.update(layout.qubit_inds())
+        qubit_inds.update(layout.qubit_inds)
         anc_qubits += layout.anc_qubits
         anc_coords += layout.anc_coords
     setup = CircuitNoiseSetup()
@@ -281,7 +281,7 @@ def test_module_2_operations_in_detectors():
     anc_coords = []
     anc_qubits = []
     for layout in layouts:
-        qubit_inds.update(layout.qubit_inds())
+        qubit_inds.update(layout.qubit_inds)
         anc_qubits += layout.anc_qubits
         anc_coords += layout.anc_coords
     setup = CircuitNoiseSetup()
