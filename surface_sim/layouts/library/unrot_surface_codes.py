@@ -6,7 +6,6 @@ from ..layout import Layout
 from .util import is_valid, invert_shift, _check_distance
 from ...log_gates.unrot_surface_code_css import (
     set_fold_trans_s,
-    set_fold_trans_sqrt_x,
     set_fold_trans_h,
     set_trans_cnot,
     set_x,
@@ -346,7 +345,6 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
     for k, layout in enumerate(layouts):
         set_fold_trans_h(layout, data_qubit=f"D{1 + k*num_data}")
         set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
-        set_fold_trans_sqrt_x(layout, data_qubit=f"D{1 + k*num_data}")
         set_x(layout)
         set_z(layout)
         set_idle(layout)

@@ -32,10 +32,6 @@ from .util import (
     log_fold_trans_h_iterator,
     log_trans_cnot,
     log_trans_cnot_iterator,
-    log_fold_trans_cz,
-    log_fold_trans_cz_iterator,
-    log_fold_trans_sqrt_x,
-    log_fold_trans_sqrt_x_iterator,
 )
 
 __all__ = [
@@ -61,10 +57,6 @@ __all__ = [
     "log_fold_trans_h_iterator",
     "log_trans_cnot",
     "log_trans_cnot_iterator",
-    "log_fold_trans_cz",
-    "log_fold_trans_cz_iterator",
-    "log_fold_trans_sqrt_x",
-    "log_fold_trans_sqrt_x_iterator",
     "qec_round",
     "qec_round_iterator",
     "gate_to_iterator",
@@ -273,10 +265,8 @@ gate_to_iterator = {
     "H": log_fold_trans_h_iterator,
     "X": log_x_iterator,
     "Z": log_z_iterator,
-    "SQRT_X": log_fold_trans_sqrt_x_iterator,
     "CX": log_trans_cnot_iterator,
     "CNOT": log_trans_cnot_iterator,
-    "CZ": log_fold_trans_cz_iterator,
     "R": init_qubits_z0_iterator,
     "RZ": init_qubits_z0_iterator,
     "RX": init_qubits_x0_iterator,
