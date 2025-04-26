@@ -15,10 +15,7 @@ from surface_sim.circuit_blocks.unrot_surface_code_css import (
     log_x_iterator,
 )
 from surface_sim.models import NoiselessModel
-from surface_sim.layouts.library.unrot_surface_codes import (
-    unrot_surface_code,
-    unrot_surface_codes,
-)
+from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_codes
 from surface_sim import Detectors
 
 
@@ -102,16 +99,19 @@ def test_merge_circuits():
 
 
 def test_merge_qec_rounds():
-    layout = unrot_surface_code(distance=3)
-    model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(
-        layout.anc_qubits, frame="pre-gate", anc_coords=layout.anc_coords
-    )
+    layout, other_layout = unrot_surface_codes(2, distance=3)
+    qubit_inds = layout.qubit_inds
+    qubit_inds.update(other_layout.qubit_inds)
+    anc_qubits = layout.anc_qubits + other_layout.anc_qubits
+    anc_coords = layout.anc_coords
+    anc_coords.update(other_layout.anc_coords)
+    model = NoiselessModel(qubit_inds)
+    detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
 
     circuit = merge_qec_rounds(
         qec_round_iterator,
         model,
-        [layout, layout],
+        [layout, other_layout],
         detectors,
     )
 
@@ -138,7 +138,7 @@ def test_merge_logical_measurements():
         [(log_meas_z_iterator, layout), (log_meas_x_iterator, other_layout)],
         model,
         detectors,
-        {"L0": 1, "L1": 2},
+        init_log_obs_ind=1,
         anc_reset=True,
     )
 
@@ -164,8 +164,6 @@ def test_merge_logical_operations():
         ],
         model,
         detectors,
-        log_obs_inds=0,
-        anc_reset=True,
         anc_detectors=["X1"],
     )
 
@@ -178,7 +176,7 @@ def test_merge_logical_operations():
         ],
         model,
         detectors,
-        log_obs_inds=0,
+        init_log_obs_ind=0,
         anc_reset=True,
         anc_detectors=["X1"],
     )
@@ -193,7 +191,7 @@ def test_merge_logical_operations():
             ],
             model,
             detectors,
-            log_obs_inds=0,
+            init_log_obs_ind=0,
             anc_reset=True,
             anc_detectors=["X1"],
         )

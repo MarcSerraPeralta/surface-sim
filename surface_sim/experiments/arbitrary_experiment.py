@@ -201,8 +201,6 @@ def experiment_from_schedule(
     detectors.new_circuit()
     active_layouts = {l: False for l in layouts}
     num_gates = {l: 0 for l in layouts}
-    num_log_meas = 0
-    log_obs_inds = {}
     curr_block = []
     curr_anc_detectors = anc_detectors.copy()
 
@@ -223,13 +221,11 @@ def experiment_from_schedule(
                 curr_block,
                 model=model,
                 detectors=detectors,
-                log_obs_inds=log_obs_inds,
+                init_log_obs_ind=experiment.num_observables,
                 anc_reset=anc_reset,
                 anc_detectors=anc_detectors,
             )
             num_gates = {l: 0 for l in layouts}
-            num_log_meas = 0
-            log_obs_inds = {}
             curr_block = []
 
             # run QEC cycle
@@ -270,21 +266,17 @@ def experiment_from_schedule(
                 curr_block,
                 model=model,
                 detectors=detectors,
-                log_obs_inds=log_obs_inds,
+                init_log_obs_ind=experiment.num_observables,
                 anc_reset=anc_reset,
                 anc_detectors=curr_anc_detectors,
             )
             num_gates = {l: 0 for l in layouts}
-            num_log_meas = 0
-            log_obs_inds = {}
             curr_block = [op]
         else:
             curr_block.append(op)
 
         if func.log_op_type == "measurement":
             active_layouts[op[1]] = False
-            log_obs_inds[op[1].logical_qubits[0]] = num_log_meas
-            num_log_meas += 1
         if func.log_op_type == "qubit_init":
             active_layouts[op[1]] = True
             if not gauge_detectors:
@@ -305,7 +297,7 @@ def experiment_from_schedule(
             curr_block,
             model=model,
             detectors=detectors,
-            log_obs_inds=log_obs_inds,
+            init_log_obs_ind=experiment.num_observables,
             anc_reset=anc_reset,
             anc_detectors=curr_anc_detectors,
         )
