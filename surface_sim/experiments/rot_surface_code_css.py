@@ -324,15 +324,11 @@ def repeated_cnot_experiment(
             )
 
     iterator = log_meas_x_iterator if rot_basis else log_meas_z_iterator
-    log_obs_inds = {
-        layout_c.logical_qubits[0]: 0,
-        layout_t.logical_qubits[0]: 1,
-    }
     experiment += merge_logical_operations(
         [(iterator, layout_c), (iterator, layout_t)],
         model,
         detectors,
-        log_obs_inds,
+        init_log_obs_ind=0,
         anc_reset=anc_reset,
         anc_detectors=anc_detectors,
     )
