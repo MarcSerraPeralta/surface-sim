@@ -1,3 +1,4 @@
+import pytest
 import stim
 
 from surface_sim import Layout
@@ -5,6 +6,7 @@ from surface_sim.setup import CircuitNoiseSetup
 from surface_sim.models import NoiselessModel, CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
+from surface_sim.experiments.arbitrary_experiment import blocks_from_schedule
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.layouts import unrot_surface_codes
 import surface_sim.experiments.unrot_surface_code_css as exp
@@ -33,6 +35,64 @@ def test_schedule_from_circuit():
         assert all(isinstance(l, Layout) for l in op[1:])
         if num_layouts != 0:
             assert op[0].log_op_type != "qec_cycle"
+
+    return
+
+
+def test_blocks_from_schedule():
+    layouts = unrot_surface_codes(4, distance=3)
+    circuit = stim.Circuit("X 0")
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+
+    with pytest.raises(ValueError):
+        _ = blocks_from_schedule(schedule)
+
+    circuit = stim.Circuit("R 0\nM 0\nX 0")
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+
+    with pytest.raises(ValueError):
+        _ = blocks_from_schedule(schedule)
+
+    circuit = stim.Circuit(
+        """
+        R 0 1 2 3
+        TICK
+        X 0
+        M 1
+        TICK
+        CX 2 3
+        """
+    )
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+
+    blocks = blocks_from_schedule(schedule)
+
+    expected_blocks = [
+        [
+            (gate_to_iterator["R"], layouts[0]),
+            (gate_to_iterator["R"], layouts[1]),
+            (gate_to_iterator["R"], layouts[2]),
+            (gate_to_iterator["R"], layouts[3]),
+        ],
+        [
+            (gate_to_iterator["TICK"], *layouts),
+        ],
+        [
+            (gate_to_iterator["X"], layouts[0]),
+            (gate_to_iterator["M"], layouts[1]),
+            (gate_to_iterator["I"], layouts[2]),
+            (gate_to_iterator["I"], layouts[3]),
+        ],
+        [
+            (gate_to_iterator["TICK"], layouts[0], layouts[2], layouts[3]),
+        ],
+        [
+            (gate_to_iterator["CX"], layouts[2], layouts[3]),
+            (gate_to_iterator["I"], layouts[0]),
+        ],
+    ]
+
+    assert blocks == expected_blocks
 
     return
 

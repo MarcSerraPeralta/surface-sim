@@ -6,21 +6,19 @@ from ..util.circuit_operations import merge_logical_operations, merge_qec_rounds
 from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
-from ..circuit_blocks.util import qubit_coords
+from ..circuit_blocks.util import qubit_coords, idle_iterator
 from ..circuit_blocks.decorators import LogOpCallable
 
-SCHEDULE = list[
-    tuple[LogOpCallable]
-    | tuple[LogOpCallable, Layout]
-    | tuple[LogOpCallable, Layout, Layout]
-]
+Layouts = tuple[Layout, ...]
+LogicalOperation = tuple[LogOpCallable, *Layouts]
+Schedule = list[tuple[LogOpCallable] | LogicalOperation]
 
 
 def schedule_from_circuit(
     circuit: stim.Circuit,
     layouts: list[Layout],
     gate_to_iterator: dict[str, LogOpCallable],
-) -> SCHEDULE:
+) -> Schedule:
     """
     Returns the equivalent schedule from a stim circuit.
 
@@ -117,8 +115,129 @@ def schedule_from_circuit(
     return schedule
 
 
+def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
+    """Groups the logical operations in a schedule by blocks.
+    In each block, layouts only participate in a single operation and
+    QEC cycles are only performed to active layouts. Addling is automatically
+    added to layouts not participating in a logical operation.
+
+    Parameters
+    ----------
+    schedule
+        List of operations to be applied to a single qubit or pair of qubits.
+        See ``schedule_from_circuit`` for more information about the format.
+
+    Returns
+    -------
+    blocks
+        List of blocks from the schedule. Each block contains a set of logical
+        operations for the active layouts. Each layout only performs a single
+        logical operation in each block. If a layout is not performing any
+        logical operation while others are (and it is not a QEC cycle), then
+        ``idle_iterator`` is inserted with this layout.
+
+    Notes
+    -----
+    Adding ``idle_iterator`` is needed to have ``Model.incoming_noise``
+    for a layout that is idling.
+    As an example, the code
+
+    .. code:
+        [
+            (reset_z_iterator, layout_0),
+            (reset_z_iterator, layout_1),
+            (qec_round_iterator,),
+            (log_x_iterator, layout_1),
+            (qec_round_iterator,),
+        ]
+
+    is transformed into
+
+    .. code:
+        [
+            [
+                (reset_z_iterator, layout_0),
+                (reset_z_iterator, layout_1),
+            ],
+            [
+                (qec_round_iterator, layout_0, layout_1),
+            ],
+            [
+                (log_x_iterator, layout_1),
+                (idle_iterator, layout_0),
+            ],
+            [
+                (qec_round_iterator, layout_0),
+            ],
+        ]
+    """
+    blocks = []
+    curr_block = []
+    counter = {}
+
+    def flush(blocks, curr_block, counter):
+        # if necessary, add idling
+        for l, k in counter.items():
+            if k == 0:
+                curr_block.append((idle_iterator, l))
+
+        # add current block and reset variables
+        blocks.append(curr_block)
+        curr_block = []
+        counter = {l: 0 for l in counter}
+        return blocks, curr_block, counter
+
+    for operation in schedule:
+        op = operation[0]
+        if op.log_op_type == "qec_cycle":
+            # flush all logical operations and
+            # add a QEC round for all active layouts
+            blocks, curr_block, counter = flush(blocks, curr_block, counter)
+            blocks.append([(operation[0], *counter.keys())])
+            continue
+
+        # activate layouts. If not the check for layouts in current operation are
+        # active does not work for resets (because the layout is inactive previously).
+        if op.log_op_type == "qubit_init":
+            layouts = operation[1:]
+            if any(l in counter for l in layouts):
+                raise ValueError(
+                    "An activate layout cannot be resetted, it needs to be measured first."
+                )
+
+            curr_block.append(operation)
+            for l in layouts:
+                counter[l] = 1
+            continue
+
+        # check if the layouts of the current operation are active.
+        layouts = operation[1:]
+        if not all(l in counter for l in layouts):
+            raise ValueError("An inactive layout is perfoming a logical operation.")
+        # check if a layout is already participating in an operation,
+        # if true, flush the operations as if not it would be participating
+        # in more than one in the current block
+        if any(counter[l] == 1 for l in layouts):
+            blocks, curr_block, counter = flush(blocks, curr_block, counter)
+
+        curr_block.append(operation)
+        if op.log_op_type == "measurement":
+            for l in layouts:
+                counter.pop(l)
+        elif op.log_op_type in ["sq_unitary_gate", "tq_unitary_gate"]:
+            for l in layouts:
+                counter[l] += 1
+        else:
+            raise ValueError(f"Do not know how to process '{op.log_op_type}'.")
+
+    # flush remaining operations
+    blocks, curr_block, counter = flush(blocks, curr_block, counter)
+
+    return blocks
+
+
 def experiment_from_schedule(
-    schedule: SCHEDULE,
+    schedule: Schedule,
     model: Model,
     detectors: Detectors,
     anc_reset: bool = True,
