@@ -6,7 +6,7 @@ import stim
 from ..layouts.layout import Layout
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
-from ..circuit_blocks.decorators import LogOpCallable, qec_circuit
+from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation, qec_circuit
 
 
 MEAS_INSTR = [
@@ -23,8 +23,6 @@ MEAS_INSTR = [
     "MZZ",
     "MPP",
 ]
-Layouts = tuple[Layout, ...]
-LogicalOperation = tuple[LogOpCallable, *Layouts]
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:

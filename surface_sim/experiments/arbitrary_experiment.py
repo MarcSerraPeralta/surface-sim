@@ -7,10 +7,8 @@ from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
 from ..circuit_blocks.util import qubit_coords, idle_iterator
-from ..circuit_blocks.decorators import LogOpCallable
+from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation
 
-Layouts = tuple[Layout, ...]
-LogicalOperation = tuple[LogOpCallable, *Layouts]
 Schedule = list[tuple[LogOpCallable] | LogicalOperation]
 
 
