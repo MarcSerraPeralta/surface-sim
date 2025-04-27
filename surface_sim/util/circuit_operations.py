@@ -6,7 +6,7 @@ import stim
 from ..layouts.layout import Layout
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
-from ..circuit_blocks.decorators import LogOpCallable, qec_circuit
+from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation, qec_circuit
 
 
 MEAS_INSTR = [
@@ -128,9 +128,7 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
 
 
 def merge_iterators(
-    iterators: Sequence[
-        tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
-    ],
+    iterators: Sequence[LogicalOperation],
     model: Model,
 ) -> stim.Circuit:
     """Merges a list of iterators that yield operation layers when initialized
@@ -200,14 +198,12 @@ def merge_iterators(
 
 
 def merge_logical_operations(
-    op_iterators: list[
-        tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
-    ],
+    op_iterators: list[LogicalOperation],
     model: Model,
     detectors: Detectors,
     init_log_obs_ind: int | None = None,
     anc_reset: bool | None = None,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> stim.Circuit:
     """
     Returns a circuit in which the given logical operation iterators have been
@@ -223,7 +219,7 @@ def merge_logical_operations(
         in a two-qubit gate, then there must be one entry per pair.
         Each layout can only appear once, i.e. it can only perform one
         operation. Operations do not include QEC cycles (see
-        ``merge_qec_cycles`` to merge cycles).
+        ``merge_qec_rounds`` to merge cycles).
         The TICK instructions must appear at the same time in all iterators
         when iterating through them.
     model
@@ -249,7 +245,7 @@ def merge_logical_operations(
     if any(i[0].log_op_type == "qec_cycle" for i in op_iterators):
         raise TypeError(
             "This function only accepts to merge non-QEC-cycle operations. "
-            "To merge QEC cycles, use `merge_qec_rounds`."
+            "To merge QEC cycles, use 'merge_qec_rounds'."
         )
 
     circuit = merge_iterators(op_iterators, model)

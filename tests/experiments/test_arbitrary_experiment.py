@@ -94,6 +94,27 @@ def test_blocks_from_schedule():
 
     assert blocks == expected_blocks
 
+    circuit = stim.Circuit(
+        """
+        R 0
+        TICK
+        TICK
+        M 0
+        """
+    )
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+
+    blocks = blocks_from_schedule(schedule)
+
+    expected_blocks = [
+        [(gate_to_iterator["R"], layouts[0])],
+        [(gate_to_iterator["TICK"], layouts[0])],
+        [(gate_to_iterator["TICK"], layouts[0])],
+        [(gate_to_iterator["M"], layouts[0])],
+    ]
+
+    assert blocks == expected_blocks
+
     return
 
 
@@ -168,7 +189,7 @@ def test_experiment_from_schedule_no_gauge_detectors():
         """
     )
     model = NoiselessModel(qubit_inds=qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate")
+    detectors = Detectors(anc_qubits, frame="pre-gate", include_gauge_dets=False)
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
@@ -177,7 +198,6 @@ def test_experiment_from_schedule_no_gauge_detectors():
         detectors,
         anc_reset=True,
         anc_detectors=None,
-        gauge_detectors=False,
     )
 
     assert isinstance(experiment, stim.Circuit)
