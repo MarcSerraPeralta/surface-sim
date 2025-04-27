@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    name: manual-tests
     runs-on: ubuntu-latest
     steps:
       - name: print information
