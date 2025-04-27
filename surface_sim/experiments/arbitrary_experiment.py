@@ -134,7 +134,8 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
         operations for the active layouts. Each layout only performs a single
         logical operation in each block. If a layout is not performing any
         logical operation while others are (and it is not a QEC cycle), then
-        ``idle_iterator`` is inserted with this layout.
+        ``idle_iterator`` is inserted with this layout. QEC rounds and logical
+        operations cannot be mixed together.
 
     Notes
     -----
@@ -171,12 +172,29 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
             ],
         ]
     """
+    if not isinstance(schedule, Sequence):
+        raise TypeError(
+            f"'schedule' must be a sequence, but {type(schedule)} was given."
+        )
+    if any(not isinstance(op, Sequence) for op in schedule):
+        raise TypeError("Elements of 'schedule' must be sequences.")
+    for op in schedule:
+        if not isinstance(op[0], LogOpCallable):
+            raise TypeError("Elements in 'schedule[i][0]' must be LogOpCallable.")
+        if any(not isinstance(l, Layout) for l in op[1:]):
+            raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
+
     blocks = []
     curr_block = []
     counter = {}
 
     def flush(blocks, curr_block, counter):
-        # if necessary, add idling
+        # if necessary, add idling.
+        # only add idling if at least one layout is performing an operation.
+        # the situation where no layout is performing anything can happen when
+        # performing more than one QEC cycle between logical gates
+        if len(curr_block) == 0:
+            return blocks, curr_block, counter
         for l, k in counter.items():
             if k == 0:
                 curr_block.append((idle_iterator, l))
@@ -236,14 +254,21 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
     return blocks
 
 
+def get_layouts_from_schedule(schedule: Schedule) -> list[Layout]:
+    """Returns a list of all layouts present in the given schedule."""
+    layouts = []
+    for op in schedule:
+        if len(op) > 1:
+            layouts += list(op[1:])
+    return layouts
+
+
 def experiment_from_schedule(
     schedule: Schedule,
     model: Model,
     detectors: Detectors,
     anc_reset: bool = True,
     anc_detectors: Sequence[str] | None = None,
-    ensure_idling: bool = True,
-    gauge_detectors: bool = True,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -265,14 +290,6 @@ def experiment_from_schedule(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    ensure_idling
-        Flag to check that all active layouts are participating in one operation
-        in each time slice. This ensures that idling time has not been forgotten
-        when building the schedule.
-        By default ``True``.
-    gauge_detectors
-        Flag to define gauge detectors.
-        By default ``True``.
 
     Returns
     -------
@@ -285,141 +302,41 @@ def experiment_from_schedule(
     The scheduling of the gates between QEC cycles is not optimal as there could
     be more idling than necessary. This is caused by using ``merge_logical_operations``.
     """
-    if not isinstance(schedule, Sequence):
-        raise TypeError(
-            f"'schedule' must be a sequence, but {type(schedule)} was given."
-        )
-    if any(not isinstance(op, Sequence) for op in schedule):
-        raise TypeError("Elements of 'schedule' must be sequences.")
     if not isinstance(model, Model):
         raise TypeError(f"'model' must be a Model, but {type(model)} was given.")
     if not isinstance(detectors, Detectors):
         raise TypeError(
             f"'detectors' must be a Detectors, but {type(detectors)} was given."
         )
-    layouts = set()
-    for op in schedule:
-        if any(not isinstance(l, Layout) for l in op[1:]):
-            raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
-        layouts.update(set(op[1:]))
-    layout_order = list(layouts)
-    layout_order.sort(key=lambda x: min(x.logical_qubits))
 
-    if anc_detectors is None:
-        anc_detectors = []
-        for layout in layouts:
-            anc_detectors += layout.anc_qubits
-    if not isinstance(anc_detectors, Sequence):
-        raise TypeError(
-            f"'anc_detectors' must be a sequence, but {type(anc_detectors)} was given."
-        )
-    anc_detectors = list(anc_detectors)
+    blocks = blocks_from_schedule(schedule)
+    layouts = get_layouts_from_schedule(schedule)
 
     experiment = stim.Circuit()
     model.new_circuit()
     detectors.new_circuit()
-    active_layouts = {l: False for l in layouts}
-    num_gates = {l: 0 for l in layouts}
-    curr_block = []
-    curr_anc_detectors = anc_detectors.copy()
 
     experiment += qubit_coords(model, *layouts)
-    for op in schedule:
-        func = op[0]
 
-        if func.log_op_type == "qec_cycle":
-            # flush all stored operations in current block
-            curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-            if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
-                raise ValueError(
-                    "Not all active layouts are participating in an operation. "
-                    f"active layouts: {active_layouts}\noperations: {num_gates}"
-                )
-
+    for block in blocks:
+        if block[0][0].log_op_type == "qec_cycle":
+            experiment += merge_qec_rounds(
+                qec_round_iterator=block[0][0],
+                model=model,
+                layouts=block[0][1:],
+                detectors=detectors,
+                anc_reset=anc_reset,
+                anc_detectors=anc_detectors,
+            )
+        else:
             experiment += merge_logical_operations(
-                curr_block,
+                block,
                 model=model,
                 detectors=detectors,
                 init_log_obs_ind=experiment.num_observables,
                 anc_reset=anc_reset,
                 anc_detectors=anc_detectors,
             )
-            num_gates = {l: 0 for l in layouts}
-            curr_block = []
-
-            # run QEC cycle
-            curr_layouts = [l for l, a in active_layouts.items() if a]
-            curr_layouts.sort(key=lambda x: layout_order.index(x))
-            experiment += merge_qec_rounds(
-                qec_round_iterator=func,
-                model=model,
-                layouts=curr_layouts,
-                detectors=detectors,
-                anc_reset=anc_reset,
-                anc_detectors=curr_anc_detectors,
-            )
-            curr_anc_detectors = anc_detectors.copy()
-            continue
-
-        # update the number of gates so that we know if we need to flush the
-        # current operations or if we need to store the current one in 'curr_block'
-        for l in op[1:]:
-            if (not active_layouts[l]) and (func.log_op_type != "qubit_init"):
-                raise ValueError(
-                    "It is not possible to perform an operation on an inactive layout."
-                )
-            num_gates[l] += 1
-
-        # check for flushing the operations in case a layout would be doing more
-        # more than one operation. If not, store current operation in 'curr_block'
-        if any(n > 1 for n in num_gates.values()):
-            for l in op[1:]:
-                num_gates[l] -= 1
-            curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-            if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
-                raise ValueError(
-                    "Not all active layouts are participating in an operation. "
-                    f"active layouts: {active_layouts}\noperations: {num_gates}"
-                )
-            experiment += merge_logical_operations(
-                curr_block,
-                model=model,
-                detectors=detectors,
-                init_log_obs_ind=experiment.num_observables,
-                anc_reset=anc_reset,
-                anc_detectors=curr_anc_detectors,
-            )
-            num_gates = {l: 0 for l in layouts}
-            curr_block = [op]
-        else:
-            curr_block.append(op)
-
-        if func.log_op_type == "measurement":
-            active_layouts[op[1]] = False
-        if func.log_op_type == "qubit_init":
-            active_layouts[op[1]] = True
-            if not gauge_detectors:
-                # stab_type to remove
-                stab_type = "z_type" if func.rot_basis else "x_type"
-                for a in op[1].get_qubits(role="anc", stab_type=stab_type):
-                    curr_anc_detectors.remove(a)
-
-    # flush remaining operations
-    if len(curr_block) != 0:
-        curr_num_gates = set(n for l, n in num_gates.items() if active_layouts[l])
-        if ensure_idling and not (curr_num_gates in [set([1]), set([0]), set()]):
-            raise ValueError(
-                "Not all active layouts are participating in an operation. "
-                f"active layouts: {active_layouts}\noperations: {num_gates}"
-            )
-        experiment += merge_logical_operations(
-            curr_block,
-            model=model,
-            detectors=detectors,
-            init_log_obs_ind=experiment.num_observables,
-            anc_reset=anc_reset,
-            anc_detectors=curr_anc_detectors,
-        )
 
     return experiment
 
