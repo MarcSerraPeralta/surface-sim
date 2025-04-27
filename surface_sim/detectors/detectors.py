@@ -452,7 +452,9 @@ class Detectors:
         # we have only measured the data qubits in an specific basis), so we
         # do not have access to all stabilizers.
         reconstructable_stabs = set(reconstructable_stabs)
-        anc_qubits = [anc for anc in anc_qubits if anc in reconstructable_stabs]
+        anc_qubits = [q for q in anc_qubits if q in reconstructable_stabs]
+        if not self.include_gauge_dets:
+            anc_qubits = [q for q in anc_qubits if q not in self.gauge_detectors]
 
         # Logical measurement is not considered a QEC cycle but a logical operation.
         # therefore, it does not increase the number of rounds.
