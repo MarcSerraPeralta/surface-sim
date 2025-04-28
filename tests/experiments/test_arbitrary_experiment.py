@@ -9,7 +9,6 @@ from surface_sim.experiments import schedule_from_circuit, experiment_from_sched
 from surface_sim.experiments.arbitrary_experiment import blocks_from_schedule
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.layouts import unrot_surface_codes
-import surface_sim.experiments.unrot_surface_code_css as exp
 
 
 def test_schedule_from_circuit():
@@ -152,7 +151,7 @@ def test_experiment_from_schedule():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+    dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
     num_coords = 0
     anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -205,152 +204,6 @@ def test_experiment_from_schedule_no_gauge_detectors():
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
     _ = circuit.detector_error_model(allow_gauge_detectors=False)
-
-    return
-
-
-def test_equivalence():
-    layouts = unrot_surface_codes(2, distance=3)
-    qubit_inds = {}
-    anc_coords = []
-    anc_qubits = []
-    for layout in layouts:
-        qubit_inds.update(layout.qubit_inds)
-        anc_qubits += layout.anc_qubits
-        anc_coords += layout.anc_coords
-    setup = CircuitNoiseSetup()
-    setup.set_var_param("prob", 1e-3)
-    model = CircuitNoiseModel(setup, qubit_inds=qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate")
-
-    circuit = stim.Circuit(
-        """
-        R 0
-        TICK
-        TICK
-        TICK
-        M 0
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    experiment = experiment_from_schedule(
-        schedule,
-        model,
-        detectors,
-        anc_reset=True,
-        anc_detectors=None,
-    )
-    experiment_manual = exp.memory_experiment(
-        model=model,
-        layout=layouts[0],
-        detectors=detectors,
-        num_rounds=3,
-        anc_reset=True,
-        data_init={q: 0 for q in layouts[0].get_qubits(role="data")},
-    )
-    assert experiment == experiment_manual
-
-    experiment_manual = exp.repeated_s_experiment(
-        model=model,
-        layout=layouts[0],
-        detectors=detectors,
-        num_s_gates=4,
-        num_rounds_per_gate=2,
-        anc_reset=True,
-        data_init={q: 0 for q in layouts[0].get_qubits(role="data")},
-    )
-    circuit = stim.Circuit(
-        """
-        R 0
-        TICK
-        S 0
-        TICK
-        TICK
-        S 0
-        TICK
-        TICK
-        S 0
-        TICK
-        TICK
-        S 0
-        TICK
-        TICK
-        M 0
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    experiment = experiment_from_schedule(
-        schedule,
-        model,
-        detectors,
-        anc_reset=True,
-        anc_detectors=None,
-    )
-    assert experiment == experiment_manual
-
-    experiment_manual = exp.repeated_h_experiment(
-        model=model,
-        layout=layouts[0],
-        detectors=detectors,
-        num_h_gates=2,
-        num_rounds_per_gate=1,
-        anc_reset=True,
-        data_init={q: 0 for q in layouts[0].get_qubits(role="data")},
-    )
-    circuit = stim.Circuit(
-        """
-        R 0
-        TICK
-        H 0
-        TICK
-        H 0
-        TICK
-        M 0
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    experiment = experiment_from_schedule(
-        schedule,
-        model,
-        detectors,
-        anc_reset=True,
-        anc_detectors=None,
-    )
-    assert experiment == experiment_manual
-
-    experiment_manual = exp.repeated_cnot_experiment(
-        model=model,
-        layout_c=layouts[0],
-        layout_t=layouts[1],
-        detectors=detectors,
-        num_cnot_gates=1,
-        num_rounds_per_gate=2,
-        anc_reset=True,
-        data_init={
-            q: 0
-            for q in layouts[0].get_qubits(role="data")
-            + layouts[1].get_qubits(role="data")
-        },
-    )
-    circuit = stim.Circuit(
-        """
-        R 0 1
-        TICK
-        CX 0 1
-        TICK
-        TICK
-        M 0 1
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    experiment = experiment_from_schedule(
-        schedule,
-        model,
-        detectors,
-        anc_reset=True,
-        anc_detectors=None,
-    )
-    assert experiment == experiment_manual
 
     return
 

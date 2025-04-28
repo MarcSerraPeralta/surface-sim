@@ -197,7 +197,9 @@ def init_qubits(
     # does not matter because this will be done in a layer of logical operations,
     # so no QEC cycles are run simultaneously
     anc_qubits = layout.anc_qubits
-    detectors.activate_detectors(anc_qubits)
+    stab_type = "z_type" if rot_basis else "x_type"
+    gauge_dets = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors.activate_detectors(anc_qubits, gauge_dets=gauge_dets)
     return sum(
         init_qubits_iterator(
             model=model,
@@ -229,7 +231,7 @@ def init_qubits_iterator(
     yield model.tick()
 
     init_circ = Circuit()
-    exc_qubits = set([q for q, s in data_init.items() if s])
+    exc_qubits = set([q for q, s in data_init.items() if s and (q in data_qubits)])
     if exc_qubits:
         init_circ += model.x_gate(exc_qubits)
 
@@ -829,7 +831,9 @@ def init_qubits_xzzx(
     # does not matter because this will be done in a layer of logical operations,
     # so no QEC cycles are run simultaneously
     anc_qubits = layout.anc_qubits
-    detectors.activate_detectors(anc_qubits)
+    stab_type = "z_type" if rot_basis else "x_type"
+    gauge_dets = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors.activate_detectors(anc_qubits, gauge_dets=gauge_dets)
     return sum(
         init_qubits_xzzx_iterator(
             model=model, layout=layout, data_init=data_init, rot_basis=rot_basis
@@ -861,7 +865,9 @@ def init_qubits_xzzx_iterator(
     yield model.tick()
 
     init_circ = Circuit()
-    exc_qubits = set([q for q, s in data_init.items() if s])
+    exc_qubits = set(
+        [q for q, s in data_init.items() if s and (q in layout.data_qubits)]
+    )
     if exc_qubits:
         init_circ += model.x_gate(exc_qubits)
 

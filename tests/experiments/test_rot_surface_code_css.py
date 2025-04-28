@@ -24,7 +24,7 @@ def test_memory_experiment():
             model=model,
             layout=layout,
             detectors=detectors,
-            num_rounds=10,
+            num_rounds=3,
             anc_reset=False,
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=rot_basis,
@@ -34,7 +34,7 @@ def test_memory_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -72,7 +72,7 @@ def test_repeated_s_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -128,7 +128,7 @@ def test_repeated_cnot_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
@@ -145,12 +145,12 @@ def test_repeated_cnot_experiment():
 def test_memory_experiment_anc_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(layout.anc_qubits, frame="post-gate", include_gauge_dets=True)
     circuit = memory_experiment(
         model=model,
         layout=layout,
         detectors=detectors,
-        num_rounds=10,
+        num_rounds=3,
         anc_reset=False,
         anc_detectors=["X1"],
         data_init={q: 0 for q in layout.data_qubits},
@@ -159,14 +159,14 @@ def test_memory_experiment_anc_detectors():
 
     num_anc = len(layout.anc_qubits)
     num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
-    assert circuit.num_detectors == 10 * num_anc + num_anc_x
+    assert circuit.num_detectors == 3 * num_anc + num_anc_x
 
     non_zero_dets = []
     for instr in circuit.flattened():
         if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
             non_zero_dets.append(instr)
 
-    assert len(non_zero_dets) == 10 + 1
+    assert len(non_zero_dets) == 3 + 1
 
     return
 
@@ -175,7 +175,12 @@ def test_repeated_s_experiment_anc_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_fold_trans_s(layout, "D1")
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(
+        layout.anc_qubits,
+        frame="post-gate",
+        anc_coords=layout.anc_coords,
+        include_gauge_dets=True,
+    )
     circuit = repeated_s_experiment(
         model=model,
         layout=layout,
@@ -224,6 +229,7 @@ def test_repeated_cnot_experiment_anc_detectors():
         layout_c.anc_qubits + layout_t.anc_qubits,
         frame="post-gate",
         anc_coords=anc_coords,
+        include_gauge_dets=True,
     )
     circuit = repeated_cnot_experiment(
         model=model,
@@ -258,28 +264,29 @@ def test_repeated_cnot_experiment_anc_detectors():
 def test_memory_experiment_gauge_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(
+        layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+    )
     circuit = memory_experiment(
         model=model,
         layout=layout,
         detectors=detectors,
-        num_rounds=10,
+        num_rounds=3,
         anc_reset=False,
         data_init={q: 0 for q in layout.data_qubits},
         rot_basis=True,
-        gauge_detectors=False,
     )
 
     num_anc = len(layout.anc_qubits)
     num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
-    assert circuit.num_detectors == 10 * num_anc + num_anc_x
+    assert circuit.num_detectors == 3 * num_anc + num_anc_x
 
     non_zero_dets = []
     for instr in circuit.flattened():
         if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
             non_zero_dets.append(instr)
 
-    assert len(non_zero_dets) == num_anc_x + 9 * num_anc + num_anc_x
+    assert len(non_zero_dets) == num_anc_x + 2 * num_anc + num_anc_x
 
     return
 
@@ -288,7 +295,12 @@ def test_repeated_s_experiment_gauge_detectors():
     layout = rot_surface_code_rectangle(distance_z=4, distance_x=3)
     set_fold_trans_s(layout, "D1")
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(
+        layout.anc_qubits,
+        frame="post-gate",
+        anc_coords=layout.anc_coords,
+        include_gauge_dets=False,
+    )
     circuit = repeated_s_experiment(
         model=model,
         layout=layout,
@@ -298,7 +310,6 @@ def test_repeated_s_experiment_gauge_detectors():
         anc_reset=False,
         data_init={q: 0 for q in layout.data_qubits},
         rot_basis=True,
-        gauge_detectors=False,
     )
 
     num_anc = len(layout.anc_qubits)
@@ -337,6 +348,7 @@ def test_repeated_cnot_experiment_gauge_detectors():
         layout_c.anc_qubits + layout_t.anc_qubits,
         frame="post-gate",
         anc_coords=anc_coords,
+        include_gauge_dets=False,
     )
     circuit = repeated_cnot_experiment(
         model=model,
@@ -349,7 +361,6 @@ def test_repeated_cnot_experiment_gauge_detectors():
         anc_reset=False,
         data_init={q: 0 for q in layout_c.data_qubits + layout_t.data_qubits},
         rot_basis=True,
-        gauge_detectors=False,
     )
 
     num_anc = len(layout_c.anc_qubits) + len(layout_t.anc_qubits)

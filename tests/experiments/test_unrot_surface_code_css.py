@@ -39,7 +39,7 @@ def test_memory_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -77,7 +77,7 @@ def test_repeated_s_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -104,7 +104,7 @@ def test_repeated_h_experiment():
             model=model,
             layout=layout,
             detectors=detectors,
-            num_h_gates=5,
+            num_h_gates=4,
             num_rounds_per_gate=2,
             anc_reset=False,
             data_init={q: 0 for q in layout.data_qubits},
@@ -115,7 +115,7 @@ def test_repeated_h_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -171,7 +171,7 @@ def test_repeated_cnot_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}

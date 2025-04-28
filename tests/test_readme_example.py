@@ -23,7 +23,7 @@ def test_readme_example_memory_experiment():
         model, layout, detectors, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET
     )
 
-    stim_circuit.detector_error_model(allow_gauge_detectors=True)
+    stim_circuit.detector_error_model()
 
     return
 
@@ -65,6 +65,6 @@ def test_readme_example_arbitrary_circuit():
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     stim_circuit = experiment_from_schedule(schedule, model, detectors, anc_reset=True)
 
-    stim_circuit.detector_error_model(allow_gauge_detectors=True)
+    stim_circuit.detector_error_model()
 
     return

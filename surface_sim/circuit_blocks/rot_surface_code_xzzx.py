@@ -218,7 +218,7 @@ def qec_round_iterator(
     yield model.tick()
 
     # g
-    cz_circit = Circuit()
+    cz_circuit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -252,3 +252,17 @@ def qec_round_iterator(
     # i
     yield model.measure(anc_qubits) + model.idle_meas(data_qubits)
     yield model.tick()
+
+
+gate_to_iterator = {
+    "TICK": qec_round_iterator,
+    "I": idle_iterator,
+    "X": log_x_iterator,
+    "Z": log_z_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}

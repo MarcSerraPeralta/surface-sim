@@ -207,8 +207,12 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
         op = operation[0]
         if op.log_op_type == "qec_cycle":
             # flush all logical operations and
-            # add a QEC round for all active layouts
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
+            # if there are no active layouts, raise error as it is not possible
+            # to perform a QEC cycle nothing
+            if len(counter) == 0:
+                raise ValueError("No active layout found when performing a QEC cycle.")
+            # add a QEC round for all active layouts
             blocks.append([(operation[0], *counter.keys())])
             continue
 
