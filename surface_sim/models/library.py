@@ -1,8 +1,10 @@
+from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 from stim import CircuitInstruction, Circuit
 
 from ..setup import Setup
+from ..layouts import Layout
 from .model import Model
 from .util import biased_prefactors, grouper, idle_error_probs
 
@@ -1021,6 +1023,14 @@ class NoiselessModel(Model):
     ) -> None:
         return super().__init__(setup=setup, qubit_inds=qubit_inds)
 
+    @classmethod
+    def from_layouts(cls: type[NoiselessModel], *layouts: Layout) -> "NoiselessModel":
+        """Creates a ``Model`` object using the information from the layouts."""
+        qubit_inds = {}
+        for layout in layouts:
+            qubit_inds |= layout.qubit_inds  # updates dict
+        return cls(qubit_inds=qubit_inds)
+
     def x_gate(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("X", self.get_inds(qubits)))
@@ -1123,6 +1133,16 @@ class IncomingNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
 
+    @classmethod
+    def from_layouts(
+        cls: type[IncomingNoiseModel], setup: Setup, *layouts: Layout
+    ) -> "IncomingNoiseModel":
+        """Creates a ``Model`` object using the information from the layouts."""
+        qubit_inds = {}
+        for layout in layouts:
+            qubit_inds |= layout.qubit_inds  # updates dict
+        return cls(setup=setup, qubit_inds=qubit_inds)
+
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
         circ = Circuit()
@@ -1148,6 +1168,16 @@ class IncomingNoiseModel(NoiselessModel):
 class IncomingDepolNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
+
+    @classmethod
+    def from_layouts(
+        cls: type[IncomingDepolNoiseModel], setup: Setup, *layouts: Layout
+    ) -> "IncomingDepolNoiseModel":
+        """Creates a ``Model`` object using the information from the layouts."""
+        qubit_inds = {}
+        for layout in layouts:
+            qubit_inds |= layout.qubit_inds  # updates dict
+        return cls(setup=setup, qubit_inds=qubit_inds)
 
     def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)
@@ -1351,6 +1381,16 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
 class MeasurementNoiseModel(NoiselessModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
+
+    @classmethod
+    def from_layouts(
+        cls: type[MeasurementNoiseModel], setup: Setup, *layouts: Layout
+    ) -> "MeasurementNoiseModel":
+        """Creates a ``Model`` object using the information from the layouts."""
+        qubit_inds = {}
+        for layout in layouts:
+            qubit_inds |= layout.qubit_inds  # updates dict
+        return cls(setup=setup, qubit_inds=qubit_inds)
 
     def measure(self, qubits: Iterable[str]) -> Circuit:
         inds = self.get_inds(qubits)

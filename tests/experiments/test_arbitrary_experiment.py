@@ -119,13 +119,6 @@ def test_blocks_from_schedule():
 
 def test_experiment_from_schedule():
     layouts = unrot_surface_codes(3, distance=3)
-    qubit_inds = {}
-    anc_coords = []
-    anc_qubits = []
-    for layout in layouts:
-        qubit_inds.update(layout.qubit_inds)
-        anc_qubits += layout.anc_qubits
-        anc_coords += layout.anc_coords
 
     circuit = stim.Circuit(
         """
@@ -139,8 +132,8 @@ def test_experiment_from_schedule():
         TICK
         """
     )
-    model = NoiselessModel(qubit_inds=qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate")
+    model = NoiselessModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
@@ -154,7 +147,10 @@ def test_experiment_from_schedule():
     dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
     num_coords = 0
-    anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
+    anc_coords = {}
+    for layout in layouts:
+        anc_coords |= layout.anc_coords
+    anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
     for dem_instr in dem:
         if dem_instr.type == "detector":
             assert dem_instr.args_copy()[:-1] in anc_coords.values()
@@ -167,13 +163,6 @@ def test_experiment_from_schedule():
 
 def test_experiment_from_schedule_no_gauge_detectors():
     layouts = unrot_surface_codes(3, distance=3)
-    qubit_inds = {}
-    anc_coords = []
-    anc_qubits = []
-    for layout in layouts:
-        qubit_inds.update(layout.qubit_inds)
-        anc_qubits += layout.anc_qubits
-        anc_coords += layout.anc_coords
 
     circuit = stim.Circuit(
         """
@@ -187,8 +176,8 @@ def test_experiment_from_schedule_no_gauge_detectors():
         TICK
         """
     )
-    model = NoiselessModel(qubit_inds=qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate", include_gauge_dets=False)
+    model = NoiselessModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts("pre-gate", *layouts, include_gauge_dets=False)
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
@@ -210,17 +199,10 @@ def test_experiment_from_schedule_no_gauge_detectors():
 
 def test_module_2_operations_in_detectors():
     layouts = unrot_surface_codes(2, distance=3)
-    qubit_inds = {}
-    anc_coords = []
-    anc_qubits = []
-    for layout in layouts:
-        qubit_inds.update(layout.qubit_inds)
-        anc_qubits += layout.anc_qubits
-        anc_coords += layout.anc_coords
     setup = CircuitNoiseSetup()
     setup.set_var_param("prob", 1e-3)
-    model = CircuitNoiseModel(setup, qubit_inds=qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate")
+    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     circuit = stim.Circuit(
         """

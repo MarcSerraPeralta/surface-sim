@@ -77,7 +77,12 @@ class Detectors:
         return
 
     @classmethod
-    def from_layouts(cls: type[Detectors], frame: str, *layouts: Layout) -> "Detectors":
+    def from_layouts(
+        cls: type[Detectors],
+        frame: str,
+        *layouts: Layout,
+        include_gauge_dets: bool = False,
+    ) -> "Detectors":
         """Creates a ``Detectors`` object using the information from the layouts.
         It loads all the ancilla qubits and their coordinates.
         """
@@ -85,7 +90,12 @@ class Detectors:
         for layout in layouts:
             anc_coords |= layout.anc_coords  # updates dict
             anc_qubits += layout.anc_qubits
-        return cls(anc_qubits=anc_qubits, frame=frame, anc_coords=anc_coords)
+        return cls(
+            anc_qubits=anc_qubits,
+            frame=frame,
+            anc_coords=anc_coords,
+            include_gauge_dets=include_gauge_dets,
+        )
 
     def new_circuit(self):
         """Resets all the current generators and number of rounds in order
