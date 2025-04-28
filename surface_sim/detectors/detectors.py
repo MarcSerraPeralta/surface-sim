@@ -171,7 +171,8 @@ class Detectors:
         self, new_stab_gens: dict[str, set[str]], new_stab_gens_inv: dict[str, set[str]]
     ) -> None:
         """Update the current stabilizer generators with the dictionary
-        descriving the effect of the logical gate.
+        descriving the effect of the logical gate. It allows to perform
+        more than one logical gate between QEC cycles.
 
         See module ``surface_sim.log_gates`` to see how to prepare
         the layout to run logical gates.
@@ -179,18 +180,20 @@ class Detectors:
         Note that it does not really update the stabilizer generators but it
         stores the change. They are only updated when calling ``build_from_anc``
         and ``build_from_data`` functions due to the ``"post-gate"`` frame.
+        This behavior is due to the ``"post-gate"`` frame.
 
         Parameters
         ---------
         new_stab_gens
-            Dictionary that maps ancilla qubits (representing the new stabilizer
-            generators) to a list of ancilla qubits (representing the old
-            stabilizer generators).
+            Dictionary that maps ancilla qubits (representing the stabilizer
+            generators) to a list of ancilla qubits (representing the decomposition
+            of propagated stabilizer generators through the logical gate
+            in terms of the stabilizer generators).
             If the dictionary is missing ancillas, their stabilizer generators
             are assumed to not be transformed by the logical gate.
             See ``get_new_stab_dict_from_layout`` for more information.
             For example, ``{"X1": ["X1", "Z1"]}`` is interpreted as that the
-            logical gate has transformed X1 to X1*Z1.
+            logical gate has transformed ``X1`` to ``X1*Z1``.
         new_stab_gens_inv:
             Same as ``new_stab_gens`` for the logical gate inverse.
 
@@ -241,7 +244,10 @@ class Detectors:
             # this is useful for updating the self.detector progations
             propagation.symmetric_difference_update([anc])
 
-        self.update_dict_list.append(update_dict)
+        if self.frame == "pre-gate":
+            self.update_dict_list.append(update_dict)  # insert at the end
+        elif self.frame == "post-gate":
+            self.update_dict_list.insert(0, update_dict)  # insert at beginning
 
         return
 
@@ -270,6 +276,14 @@ class Detectors:
         -------
         detectors_stim
             Detectors defined in a ``stim`` circuit.
+
+        Notes
+        -----
+        This function assumes that all QEC cycles happen at the same time
+        for all logical qubits. It is not possible to have some qubits
+        performing some logical gates and some qubits performing QEC cycles.
+        This is because the dicts for updating the qubits are stored globally,
+        not per ancilla qubit.
         """
         if anc_qubits is None:
             # use only active detectors
@@ -306,9 +320,6 @@ class Detectors:
                     dets.append((anc, meas_comp))
                 detectors[anc] = dets
         else:
-            if self.frame == "post-gate":
-                self.update_dict_list.reverse()
-
             # update the detectors given the logical gates
             for update_dict in self.update_dict_list:
                 for propagation in self.detectors.values():
@@ -484,7 +495,8 @@ class Detectors:
                 anc_detectors[anc] = dets
         else:
             # always use the "post-gate" frame
-            self.update_dict_list.reverse()
+            if self.frame == "pre-gate":
+                self.update_dict_list.reverse()
 
             # update the detectors given the logical gates
             for update_dict in self.update_dict_list:
@@ -562,9 +574,10 @@ class Detectors:
         # reset detectors, but the update_dict_list is not updated
         # as there could qubits performing the QEC cycle that have undergone
         # some logical gates. However, it needs to be reversed to counteract
-        # the reverse suffered during this function.
+        # the reverse suffered during this function (only for the pre-gate frame).
         self.detectors = {q: set([q]) for q in self.detectors}
-        self.update_dict_list.reverse()
+        if self.frame == "pre-gate":
+            self.update_dict_list.reverse()
 
         return detectors_stim
 
