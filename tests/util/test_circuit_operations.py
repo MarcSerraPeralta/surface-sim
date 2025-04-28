@@ -132,7 +132,7 @@ def test_merge_logical_measurements():
 
     # need to initialize the ancillas, because if not `detectors` complains
     # that they were inactive
-    detectors.activate_detectors(anc_qubits)
+    detectors.activate_detectors(anc_qubits, [])
 
     circuit = merge_logical_operations(
         [(log_meas_z_iterator, layout), (log_meas_x_iterator, other_layout)],

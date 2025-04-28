@@ -218,7 +218,7 @@ def qec_round_iterator(
     yield model.tick()
 
     # g
-    cz_circit = Circuit()
+    cz_circuit = Circuit()
     interacted_qubits = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)

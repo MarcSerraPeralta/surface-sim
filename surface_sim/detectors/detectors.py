@@ -99,7 +99,7 @@ class Detectors:
         return
 
     def activate_detectors(
-        self, anc_qubits: Iterable[str], gauge_dets: Iterable[str] = []
+        self, anc_qubits: Iterable[str], gauge_dets: Iterable[str] | None = None
     ):
         """Activates the given ancilla detectors.
 
@@ -109,7 +109,8 @@ class Detectors:
             List of ancilla detectors to activate.
         gauge_dets
             List of ancilla detectors that do not have a deterministic
-            outcome in their first QEC cycle.
+            outcome in their first QEC cycle. This is only important if
+            ``include_gauge_dets = False`` was set when initializing this object.
         """
         if not isinstance(anc_qubits, Iterable):
             raise TypeError(
@@ -121,6 +122,12 @@ class Detectors:
             )
         if not set(anc_qubits).isdisjoint(self.detectors):
             raise ValueError("Ancilla(s) were already active.")
+        if (gauge_dets is None) and (not self.include_gauge_dets):
+            raise ValueError(
+                "When not including gauge detectors, one must specify 'gauge_dets'."
+            )
+        if gauge_dets is None:
+            gauge_dets = []
         if not isinstance(gauge_dets, Iterable):
             raise TypeError(
                 f"'gauge_dets' must be an Iterable, but {type(gauge_dets)} was given."
