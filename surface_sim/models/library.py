@@ -1024,7 +1024,7 @@ class NoiselessModel(Model):
         return super().__init__(setup=setup, qubit_inds=qubit_inds)
 
     @classmethod
-    def from_layout(cls: type[NoiselessModel], *layouts: Layout) -> "NoiselessModel":
+    def from_layouts(cls: type[NoiselessModel], *layouts: Layout) -> "NoiselessModel":
         """Creates a ``Model`` object using the information from the layouts."""
         qubit_inds = {}
         for layout in layouts:

@@ -36,22 +36,11 @@ CIRCUIT = stim.Circuit(
 )
 
 layouts = unrot_surface_codes(CIRCUIT.num_qubits, distance=DISTANCE)
-qubit_inds = {}
-anc_coords = {}
-anc_qubits = []
-stab_coords = {}
-for l, layout in enumerate(layouts):
-    qubit_inds.update(layout.qubit_inds)
-    anc_qubits += layout.anc_qubits
-    coords = layout.anc_coords
-    anc_coords.update(coords)
-    stab_coords[f"Z{l}"] = [v for k, v in coords.items() if k[0] == "Z"]
-    stab_coords[f"X{l}"] = [v for k, v in coords.items() if k[0] == "X"]
 
 setup = CircuitNoiseSetup()
 setup.set_var_param("prob", PROB)
-model = NOISE_MODEL(setup=setup, qubit_inds=qubit_inds)
-detectors = Detectors(anc_qubits, frame=FRAME, anc_coords=anc_coords)
+model = NOISE_MODEL.from_layouts(setup=setup, *layouts)
+detectors = Detectors.from_layouts(FRAME, *layouts)
 
 schedule = schedule_from_circuit(CIRCUIT, layouts, gate_to_iterator)
 experiment = experiment_from_schedule(
