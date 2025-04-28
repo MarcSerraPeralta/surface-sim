@@ -25,6 +25,9 @@ class LogOpCallable(Protocol):
     ) -> Generator[stim.Circuit]: ...
 
 
+LogicalOperation = tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
+
+
 def qec_circuit(func):
     """
     Decorator for adding the attribute ``"log_op_type"`` and setting it to

@@ -12,6 +12,7 @@ class Detectors:
         anc_qubits: Sequence[str],
         frame: str,
         anc_coords: dict[str, Sequence[float | int]] | None = None,
+        include_gauge_dets: bool = False,
     ) -> None:
         """Initalises the ``Detectors`` class.
 
@@ -27,6 +28,9 @@ class Detectors:
             Ancilla qubit coordinates that are added to the detectors if specified.
             The coordinates of the detectors will be ``(*ancilla_coords[i], r)``,
             with ``r`` the number of rounds (starting at 0).
+        include_gauge_dets
+            Flag to include or not the definition of gauge detectors.
+            By default, ``False``.
 
         Notes
         -----
@@ -66,13 +70,19 @@ class Detectors:
         self.anc_qubit_labels = anc_qubits
         self.frame = frame
         self.anc_coords = anc_coords
+        self.include_gauge_dets = include_gauge_dets
 
         self.new_circuit()
 
         return
 
     @classmethod
-    def from_layouts(cls: type[Detectors], frame: str, *layouts: Layout) -> "Detectors":
+    def from_layouts(
+        cls: type[Detectors],
+        frame: str,
+        *layouts: Layout,
+        include_gauge_dets: bool = False,
+    ) -> "Detectors":
         """Creates a ``Detectors`` object using the information from the layouts.
         It loads all the ancilla qubits and their coordinates.
         """
@@ -80,7 +90,12 @@ class Detectors:
         for layout in layouts:
             anc_coords |= layout.anc_coords  # updates dict
             anc_qubits += layout.anc_qubits
-        return cls(anc_qubits=anc_qubits, frame=frame, anc_coords=anc_coords)
+        return cls(
+            anc_qubits=anc_qubits,
+            frame=frame,
+            anc_coords=anc_coords,
+            include_gauge_dets=include_gauge_dets,
+        )
 
     def new_circuit(self):
         """Resets all the current generators and number of rounds in order
@@ -90,10 +105,23 @@ class Detectors:
         self.num_rounds = {a: 0 for a in self.anc_qubit_labels}
         self.total_num_rounds = 0
         self.update_dict_list = []
+        self.gauge_detectors = set()
         return
 
-    def activate_detectors(self, anc_qubits: Iterable[str]):
-        """Activates the given ancilla detectors."""
+    def activate_detectors(
+        self, anc_qubits: Iterable[str], gauge_dets: Iterable[str] | None = None
+    ):
+        """Activates the given ancilla detectors.
+
+        Parameters
+        ----------
+        anc_qubits
+            List of ancilla detectors to activate.
+        gauge_dets
+            List of ancilla detectors that do not have a deterministic
+            outcome in their first QEC cycle. This is only important if
+            ``include_gauge_dets = False`` was set when initializing this object.
+        """
         if not isinstance(anc_qubits, Iterable):
             raise TypeError(
                 f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
@@ -102,13 +130,30 @@ class Detectors:
             raise ValueError(
                 "Elements in 'anc_qubits' are not ancilla qubits in this object."
             )
+        if not set(anc_qubits).isdisjoint(self.detectors):
+            raise ValueError("Ancilla(s) were already active.")
+        if (gauge_dets is None) and (not self.include_gauge_dets):
+            raise ValueError(
+                "When not including gauge detectors, one must specify 'gauge_dets'."
+            )
+        if gauge_dets is None:
+            gauge_dets = []
+        if not isinstance(gauge_dets, Iterable):
+            raise TypeError(
+                f"'gauge_dets' must be an Iterable, but {type(gauge_dets)} was given."
+            )
+        if set(gauge_dets) > set(self.anc_qubit_labels):
+            raise ValueError(
+                "Elements in 'gauge_dets' are not ancilla qubits in this object."
+            )
+        if not set(gauge_dets).isdisjoint(self.gauge_detectors):
+            raise ValueError("Ancilla(s) were already set as gauge detectors.")
 
         for anc in anc_qubits:
-            if anc in self.detectors:
-                raise ValueError(f"Ancilla {anc} was already active.")
-
             self.detectors[anc] = set([anc])
             self.num_rounds[anc] = 0
+
+        self.gauge_detectors.update(gauge_dets)
 
         return
 
@@ -128,13 +173,16 @@ class Detectors:
             if exists is None:
                 raise ValueError(f"Ancilla {anc} was already inactive.")
 
+        self.gauge_detectors.difference_update(anc_qubits)
+
         return
 
     def update(
         self, new_stab_gens: dict[str, set[str]], new_stab_gens_inv: dict[str, set[str]]
     ) -> None:
         """Update the current stabilizer generators with the dictionary
-        descriving the effect of the logical gate.
+        descriving the effect of the logical gate. It allows to perform
+        more than one logical gate between QEC cycles.
 
         See module ``surface_sim.log_gates`` to see how to prepare
         the layout to run logical gates.
@@ -142,18 +190,20 @@ class Detectors:
         Note that it does not really update the stabilizer generators but it
         stores the change. They are only updated when calling ``build_from_anc``
         and ``build_from_data`` functions due to the ``"post-gate"`` frame.
+        This behavior is due to the ``"post-gate"`` frame.
 
         Parameters
         ---------
         new_stab_gens
-            Dictionary that maps ancilla qubits (representing the new stabilizer
-            generators) to a list of ancilla qubits (representing the old
-            stabilizer generators).
+            Dictionary that maps ancilla qubits (representing the stabilizer
+            generators) to a list of ancilla qubits (representing the decomposition
+            of propagated stabilizer generators through the logical gate
+            in terms of the stabilizer generators).
             If the dictionary is missing ancillas, their stabilizer generators
             are assumed to not be transformed by the logical gate.
             See ``get_new_stab_dict_from_layout`` for more information.
             For example, ``{"X1": ["X1", "Z1"]}`` is interpreted as that the
-            logical gate has transformed X1 to X1*Z1.
+            logical gate has transformed ``X1`` to ``X1*Z1``.
         new_stab_gens_inv:
             Same as ``new_stab_gens`` for the logical gate inverse.
 
@@ -204,7 +254,10 @@ class Detectors:
             # this is useful for updating the self.detector progations
             propagation.symmetric_difference_update([anc])
 
-        self.update_dict_list.append(update_dict)
+        if self.frame == "pre-gate":
+            self.update_dict_list.append(update_dict)  # insert at the end
+        elif self.frame == "post-gate":
+            self.update_dict_list.insert(0, update_dict)  # insert at beginning
 
         return
 
@@ -233,6 +286,14 @@ class Detectors:
         -------
         detectors_stim
             Detectors defined in a ``stim`` circuit.
+
+        Notes
+        -----
+        This function assumes that all QEC cycles happen at the same time
+        for all logical qubits. It is not possible to have some qubits
+        performing some logical gates and some qubits performing QEC cycles.
+        This is because the dicts for updating the qubits are stored globally,
+        not per ancilla qubit.
         """
         if anc_qubits is None:
             # use only active detectors
@@ -251,6 +312,8 @@ class Detectors:
         # the 'TICK'/QEC cycle will try to build the detectors for logical qubit 0,
         # which have been deactivated by the measurement.
         anc_qubits = [q for q in anc_qubits if q in self.detectors]
+        if not self.include_gauge_dets:
+            anc_qubits = [q for q in anc_qubits if q not in self.gauge_detectors]
         anc_qubits = set(anc_qubits)
 
         self.total_num_rounds += 1
@@ -267,9 +330,6 @@ class Detectors:
                     dets.append((anc, meas_comp))
                 detectors[anc] = dets
         else:
-            if self.frame == "post-gate":
-                self.update_dict_list.reverse()
-
             # update the detectors given the logical gates
             for update_dict in self.update_dict_list:
                 for propagation in self.detectors.values():
@@ -325,6 +385,7 @@ class Detectors:
         # reset detectors and update_dict list
         self.detectors = {q: set([q]) for q in self.detectors}
         self.update_dict_list = []
+        self.gauge_detectors = set()
 
         return detectors_stim
 
@@ -421,7 +482,9 @@ class Detectors:
         # we have only measured the data qubits in an specific basis), so we
         # do not have access to all stabilizers.
         reconstructable_stabs = set(reconstructable_stabs)
-        anc_qubits = [anc for anc in anc_qubits if anc in reconstructable_stabs]
+        anc_qubits = [q for q in anc_qubits if q in reconstructable_stabs]
+        if not self.include_gauge_dets:
+            anc_qubits = [q for q in anc_qubits if q not in self.gauge_detectors]
 
         # Logical measurement is not considered a QEC cycle but a logical operation.
         # therefore, it does not increase the number of rounds.
@@ -442,7 +505,8 @@ class Detectors:
                 anc_detectors[anc] = dets
         else:
             # always use the "post-gate" frame
-            self.update_dict_list.reverse()
+            if self.frame == "pre-gate":
+                self.update_dict_list.reverse()
 
             # update the detectors given the logical gates
             for update_dict in self.update_dict_list:
@@ -520,9 +584,10 @@ class Detectors:
         # reset detectors, but the update_dict_list is not updated
         # as there could qubits performing the QEC cycle that have undergone
         # some logical gates. However, it needs to be reversed to counteract
-        # the reverse suffered during this function.
+        # the reverse suffered during this function (only for the pre-gate frame).
         self.detectors = {q: set([q]) for q in self.detectors}
-        self.update_dict_list.reverse()
+        if self.frame == "pre-gate":
+            self.update_dict_list.reverse()
 
         return detectors_stim
 

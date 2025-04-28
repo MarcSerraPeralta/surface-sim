@@ -27,7 +27,7 @@ def test_memory_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+    dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
     num_coords = 0
     anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -73,7 +73,9 @@ def test_memory_experiment_anc_detectors():
 def test_memory_experiment_gauge_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(
+        layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+    )
     circuit = memory_experiment(
         model=model,
         layout=layout,
@@ -82,7 +84,6 @@ def test_memory_experiment_gauge_detectors():
         anc_reset=False,
         data_init={q: 0 for q in layout.data_qubits},
         rot_basis=True,
-        gauge_detectors=False,
     )
 
     num_anc = len(layout.anc_qubits)

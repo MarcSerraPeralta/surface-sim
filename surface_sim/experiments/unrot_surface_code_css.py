@@ -1,22 +1,21 @@
 from copy import deepcopy
 from stim import Circuit
 
-from ..layouts.layout import Layout
 from ..circuit_blocks.unrot_surface_code_css import (
-    init_qubits,
-    log_meas,
-    log_meas_z_iterator,
-    log_meas_x_iterator,
-    qec_round,
-    qec_round_iterator,
-    qubit_coords,
-    log_fold_trans_s,
-    log_fold_trans_h,
-    log_trans_cnot,
+    init_qubits_iterator,
+    log_meas_iterator,
+    gate_to_iterator,
 )
+from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
+from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from ..util import merge_circuits, merge_qec_rounds, merge_logical_operations
+from ..circuit_blocks.decorators import (
+    qubit_init_z,
+    qubit_init_x,
+    logical_measurement_z,
+    logical_measurement_x,
+)
 
 
 def memory_experiment(
@@ -28,7 +27,6 @@ def memory_experiment(
     rot_basis: bool = False,
     anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    gauge_detectors: bool = True,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -55,10 +53,6 @@ def memory_experiment(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    gauge_detectors
-        If ``True``, adds gauge detectors (coming from the first QEC cycle).
-        If ``False``, the resulting circuit does not have gauge detectors.
-        By default ``True``.
     """
     if not isinstance(num_rounds, int):
         raise ValueError(
@@ -68,30 +62,28 @@ def memory_experiment(
         raise ValueError("'num_rounds' needs to be a positive integer.")
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
-    if not isinstance(layout, Layout):
-        raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
-    if anc_detectors is None:
-        anc_detectors = layout.anc_qubits
 
-    model.new_circuit()
-    detectors.new_circuit()
+    reset = qubit_init_x if rot_basis else qubit_init_z
+    meas = logical_measurement_x if rot_basis else logical_measurement_z
 
-    experiment = Circuit()
-    experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
+    @reset
+    def custom_reset_iterator(m: Model, l: Layout):
+        return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
 
-    for r in range(num_rounds):
-        if r == 0 and (not gauge_detectors):
-            stab_type = "x_type" if rot_basis else "z_type"
-            stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-            first_dets = set(anc_detectors).intersection(stab_qubits)
-            experiment += qec_round(model, layout, detectors, anc_reset, first_dets)
-            continue
+    @meas
+    def custom_measurement_iterator(m: Model, l: Layout):
+        return log_meas_iterator(m, l, rot_basis=rot_basis)
 
-        experiment += qec_round(model, layout, detectors, anc_reset, anc_detectors)
+    custom_gate_to_iterator = deepcopy(gate_to_iterator)
+    custom_gate_to_iterator["R"] = custom_reset_iterator
+    custom_gate_to_iterator["M"] = custom_measurement_iterator
 
-    experiment += log_meas(
-        model, layout, detectors, rot_basis, anc_reset, anc_detectors
+    unencoded_circuit = Circuit("R 0" + "\nTICK" * num_rounds + "\nM 0")
+    schedule = schedule_from_circuit(
+        unencoded_circuit, layouts=[layout], gate_to_iterator=custom_gate_to_iterator
+    )
+    experiment = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
     )
 
     return experiment
@@ -107,7 +99,6 @@ def repeated_s_experiment(
     rot_basis: bool = False,
     anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    gauge_detectors: bool = True,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S experiment.
 
@@ -136,10 +127,6 @@ def repeated_s_experiment(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    gauge_detectors
-        If ``True``, adds gauge detectors (coming from the first QEC cycle).
-        If ``False``, the resulting circuit does not have gauge detectors.
-        By default ``True``.
     """
     if not isinstance(num_rounds_per_gate, int):
         raise ValueError(
@@ -160,30 +147,30 @@ def repeated_s_experiment(
 
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
-    if anc_detectors is None:
-        anc_detectors = layout.anc_qubits
 
-    model.new_circuit()
-    detectors.new_circuit()
+    reset = qubit_init_x if rot_basis else qubit_init_z
+    meas = logical_measurement_x if rot_basis else logical_measurement_z
 
-    experiment = Circuit()
-    experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
+    @reset
+    def custom_reset_iterator(m: Model, l: Layout):
+        return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
 
-    first_dets = deepcopy(anc_detectors)
-    if not gauge_detectors:
-        stab_type = "x_type" if rot_basis else "z_type"
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        first_dets = set(anc_detectors).intersection(stab_qubits)
+    @meas
+    def custom_measurement_iterator(m: Model, l: Layout):
+        return log_meas_iterator(m, l, rot_basis=rot_basis)
 
-    experiment += qec_round(model, layout, detectors, anc_reset, first_dets)
+    custom_gate_to_iterator = deepcopy(gate_to_iterator)
+    custom_gate_to_iterator["R"] = custom_reset_iterator
+    custom_gate_to_iterator["M"] = custom_measurement_iterator
 
-    for _ in range(num_s_gates):
-        experiment += log_fold_trans_s(model, layout, detectors)
-        for _ in range(num_rounds_per_gate):
-            experiment += qec_round(model, layout, detectors, anc_reset, anc_detectors)
-    experiment += log_meas(
-        model, layout, detectors, rot_basis, anc_reset, anc_detectors
+    unencoded_circuit = Circuit(
+        "R 0\nTICK" + ("\nS 0" + "\nTICK" * num_rounds_per_gate) * num_s_gates + "\nM 0"
+    )
+    schedule = schedule_from_circuit(
+        unencoded_circuit, layouts=[layout], gate_to_iterator=custom_gate_to_iterator
+    )
+    experiment = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
     )
 
     return experiment
@@ -199,7 +186,6 @@ def repeated_h_experiment(
     rot_basis: bool = False,
     anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    gauge_detectors: bool = True,
 ) -> Circuit:
     """Returns the circuit for running a repeated-H experiment.
 
@@ -228,10 +214,6 @@ def repeated_h_experiment(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    gauge_detectors
-        If ``True``, adds gauge detectors (coming from the first QEC cycle).
-        If ``False``, the resulting circuit does not have gauge detectors.
-        By default ``True``.
     """
     if not isinstance(num_rounds_per_gate, int):
         raise ValueError(
@@ -244,40 +226,38 @@ def repeated_h_experiment(
         raise ValueError(
             f"'num_h_gates' expected as int, got {type(num_h_gates)} instead."
         )
-    if num_h_gates < 0:
-        raise ValueError("'num_h_gates' needs to be a positive integer.")
+    if (num_h_gates < 0) or (num_h_gates % 2 == 1):
+        raise ValueError("'num_h_gates' needs to be an even positive integer.")
 
     if not isinstance(data_init, dict):
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
     if not isinstance(layout, Layout):
         raise TypeError(f"'layout' must be a layout, but {type(layout)} was given.")
-    if anc_detectors is None:
-        anc_detectors = layout.anc_qubits
 
-    model.new_circuit()
-    detectors.new_circuit()
+    reset = qubit_init_x if rot_basis else qubit_init_z
+    meas = logical_measurement_x if rot_basis else logical_measurement_z
 
-    experiment = Circuit()
-    experiment += qubit_coords(model, layout)
-    experiment += init_qubits(model, layout, detectors, data_init, rot_basis)
+    @reset
+    def custom_reset_iterator(m: Model, l: Layout):
+        return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
 
-    first_dets = deepcopy(anc_detectors)
-    if not gauge_detectors:
-        stab_type = "x_type" if rot_basis else "z_type"
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        first_dets = set(anc_detectors).intersection(stab_qubits)
+    @meas
+    def custom_measurement_iterator(m: Model, l: Layout):
+        return log_meas_iterator(m, l, rot_basis=rot_basis)
 
-    experiment += qec_round(model, layout, detectors, anc_reset, first_dets)
+    custom_gate_to_iterator = deepcopy(gate_to_iterator)
+    custom_gate_to_iterator["R"] = custom_reset_iterator
+    custom_gate_to_iterator["M"] = custom_measurement_iterator
 
-    for _ in range(num_h_gates):
-        experiment += log_fold_trans_h(model, layout, detectors)
-        for _ in range(num_rounds_per_gate):
-            experiment += qec_round(model, layout, detectors, anc_reset, anc_detectors)
-
-    log_meas_rot_basis = rot_basis if num_h_gates % 2 == 0 else (not rot_basis)
-    experiment += log_meas(
-        model, layout, detectors, log_meas_rot_basis, anc_reset, anc_detectors
+    unencoded_circuit = Circuit(
+        "R 0\nTICK" + ("\nH 0" + "\nTICK" * num_rounds_per_gate) * num_h_gates + "\nM 0"
+    )
+    schedule = schedule_from_circuit(
+        unencoded_circuit, layouts=[layout], gate_to_iterator=custom_gate_to_iterator
+    )
+    experiment = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
     )
 
     return experiment
@@ -295,7 +275,6 @@ def repeated_cnot_experiment(
     rot_basis: bool = False,
     anc_reset: bool = True,
     anc_detectors: list[str] | None = None,
-    gauge_detectors: bool = True,
 ) -> Circuit:
     """Returns the circuit for running a repeated-CNOT experiment.
 
@@ -332,10 +311,6 @@ def repeated_cnot_experiment(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
-    gauge_detectors
-        If ``True``, adds gauge detectors (coming from the first QEC cycle).
-        If ``False``, the resulting circuit does not have gauge detectors.
-        By default ``True``.
     """
     if not isinstance(num_rounds_per_gate, int):
         raise ValueError(
@@ -358,9 +333,6 @@ def repeated_cnot_experiment(
         raise TypeError(f"'layout_c' must be a Layout, but {type(layout_c)} was given.")
     if not isinstance(layout_t, Layout):
         raise TypeError(f"'layout_t' must be a Layout, but {type(layout_t)} was given.")
-    if anc_detectors is None:
-        anc_detectors = layout_c.anc_qubits
-        anc_detectors += layout_t.anc_qubits
 
     if cnot_orientation not in ["constant", "alternating"]:
         raise TypeError(
@@ -368,68 +340,37 @@ def repeated_cnot_experiment(
             f" but {cnot_orientation} was given."
         )
 
-    data_init_c = {k: v for k, v in data_init.items() if k in layout_c.qubits}
-    data_init_t = {k: v for k, v in data_init.items() if k in layout_t.qubits}
+    reset = qubit_init_x if rot_basis else qubit_init_z
+    meas = logical_measurement_x if rot_basis else logical_measurement_z
 
-    model.new_circuit()
-    detectors.new_circuit()
+    @reset
+    def custom_reset_iterator(m: Model, l: Layout):
+        return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
 
-    experiment = Circuit()
-    experiment += qubit_coords(model, layout_c, layout_t)
-    experiment += merge_circuits(
-        init_qubits(
-            model, layout_c, detectors, data_init=data_init_c, rot_basis=rot_basis
-        ),
-        init_qubits(
-            model, layout_t, detectors, data_init=data_init_t, rot_basis=rot_basis
-        ),
+    @meas
+    def custom_measurement_iterator(m: Model, l: Layout):
+        return log_meas_iterator(m, l, rot_basis=rot_basis)
+
+    custom_gate_to_iterator = deepcopy(gate_to_iterator)
+    custom_gate_to_iterator["R"] = custom_reset_iterator
+    custom_gate_to_iterator["M"] = custom_measurement_iterator
+
+    unencoded_circuit_str = "R 0 1\nTICK"
+    for r in range(num_cnot_gates):
+        if (r % 2 == 1) and (cnot_orientation == "alternating"):
+            unencoded_circuit_str += "\nCX 1 0" + "\nTICK" * num_rounds_per_gate
+        else:
+            unencoded_circuit_str += "\nCX 0 1" + "\nTICK" * num_rounds_per_gate
+    unencoded_circuit_str += "\nM 0 1"
+    unencoded_circuit = Circuit(unencoded_circuit_str)
+
+    schedule = schedule_from_circuit(
+        unencoded_circuit,
+        layouts=[layout_c, layout_t],
+        gate_to_iterator=custom_gate_to_iterator,
     )
-
-    first_dets = deepcopy(anc_detectors)
-    if not gauge_detectors:
-        stab_type = "x_type" if rot_basis else "z_type"
-        stab_qubits = layout_c.get_qubits(role="anc", stab_type=stab_type)
-        stab_qubits += layout_t.get_qubits(role="anc", stab_type=stab_type)
-        first_dets = set(anc_detectors).intersection(stab_qubits)
-
-    experiment += merge_qec_rounds(
-        qec_round_iterator,
-        model,
-        [layout_c, layout_t],
-        detectors,
-        anc_reset=anc_reset,
-        anc_detectors=first_dets,
-    )
-
-    for k in range(num_cnot_gates):
-        if (cnot_orientation == "alternating") and (k % 2 == 1):
-            # change control and target of t-CNOT
-            layout_c, layout_t = layout_t, layout_c
-
-        experiment += log_trans_cnot(model, layout_c, layout_t, detectors)
-
-        for _ in range(num_rounds_per_gate):
-            experiment += merge_qec_rounds(
-                qec_round_iterator,
-                model,
-                [layout_c, layout_t],
-                detectors,
-                anc_reset=anc_reset,
-                anc_detectors=anc_detectors,
-            )
-
-    iterator = log_meas_x_iterator if rot_basis else log_meas_z_iterator
-    log_obs_inds = {
-        layout_c.logical_qubits[0]: 0,
-        layout_t.logical_qubits[0]: 1,
-    }
-    experiment += merge_logical_operations(
-        [(iterator, layout_c), (iterator, layout_t)],
-        model,
-        detectors,
-        log_obs_inds,
-        anc_reset=anc_reset,
-        anc_detectors=anc_detectors,
+    experiment = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
     )
 
     return experiment

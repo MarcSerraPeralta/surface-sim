@@ -6,7 +6,7 @@ import stim
 from ..layouts.layout import Layout
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
-from ..circuit_blocks.decorators import LogOpCallable
+from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation, qec_circuit
 
 
 MEAS_INSTR = [
@@ -89,8 +89,7 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
     operation_layers
         Each operation layer is a ``stim.Circuit`` acting on different qubits.
         A valid operation layer is a ``stim.Circuit`` in which the
-        qubits perform exactly one operation (without
-        including noise channels).
+        qubits perform exactly one operation (without including noise channels).
 
     Returns
     -------
@@ -101,7 +100,9 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
     Notes
     -----
     The instructions in ``merged_blocks`` have been (correctly) merged so that
-    the lenght of the output circuit is minimal.
+    the lenght of the output circuit is minimal. Correctly means that the
+    order of the instructions has not been changed in a way that changes
+    the output of the circuit.
     """
     # check which blocks can be merged to reduce the output circuit length
     ops_blocks = [tuple(instr.name for instr in block) for block in operation_layers]
@@ -126,15 +127,83 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
     return merged_circuit
 
 
+def merge_iterators(
+    iterators: Sequence[LogicalOperation],
+    model: Model,
+) -> stim.Circuit:
+    """Merges a list of iterators that yield operation layers when initialized
+    with inputs ``(model, *layouts)``.
+
+    Note that it only adds the stim circuits yield by the iterators.
+    It does not add the appropiate detectors, logical observables, activate
+    or deactivate the ancilla detectors...
+
+    Parameters
+    ----------
+    iterators
+        List of iterators to merge and the layouts used to instanciate them.
+        Each of the elements should be ``(LogOpCallable, Layout)`` or
+        ``(LogOpCallable, Layout, Layout)``.
+        If they have different lenght, then idling is added to the corresponding qubits.
+    model
+        Noise model to use when generating and merging the circuit.
+
+    Returns
+    -------
+    circuit
+        Circuit containing the merged operations.
+
+    Notes
+    -----
+    This function ensures that the iterators create correct generators in the
+    sense that each correct operation layer is separated by a TICK.
+    See ``merge_operation_layers`` for more information.
+    """
+    if any(not isinstance(i[0], LogOpCallable) for i in iterators):
+        raise TypeError(
+            "The first element for each entry in 'op_iterators' must be LogOpCallable."
+        )
+    layouts = sum([list(i[1:]) for i in iterators], start=[])
+    if len(layouts) != len(set(layouts)):
+        raise ValueError("Layouts are participating in more than one operation.")
+
+    circuit = stim.Circuit()
+    generators = [i[0](model, *i[1:]) for i in iterators]
+    tick_instr = stim.CircuitInstruction("TICK", [], [])
+
+    curr_block = [next(g, None) for g in generators]
+    while not all(b is None for b in curr_block):
+        # merge all ticks into a single tick.
+        # [TICK, None, None] still needs to be a single TICK
+        # As it is a TICK, no idling needs to be added.
+        tick_presence = [tick_instr in c for c in curr_block if c is not None]
+        if any(tick_presence) and not all(tick_presence):
+            raise ValueError("TICKs must appear at the same time in all iterators.")
+        if all(tick_presence):
+            circuit += merge_ticks([c for c in curr_block if c is not None])
+            curr_block = [next(g, None) for g in generators]
+            continue
+
+        # change 'None' to idling
+        for k, _ in enumerate(curr_block):
+            if curr_block[k] is None:
+                qubits = list(chain(*[l.qubits for l in iterators[k][1:]]))
+                curr_block[k] = model.idle(qubits)
+
+        circuit += merge_operation_layers(*curr_block)
+
+        curr_block = [next(g, None) for g in generators]
+
+    return circuit
+
+
 def merge_logical_operations(
-    op_iterators: list[
-        tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
-    ],
+    op_iterators: list[LogicalOperation],
     model: Model,
     detectors: Detectors,
-    log_obs_inds: dict[str, int] | int,
-    anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    init_log_obs_ind: int | None = None,
+    anc_reset: bool | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> stim.Circuit:
     """
     Returns a circuit in which the given logical operation iterators have been
@@ -150,75 +219,36 @@ def merge_logical_operations(
         in a two-qubit gate, then there must be one entry per pair.
         Each layout can only appear once, i.e. it can only perform one
         operation. Operations do not include QEC cycles (see
-        ``merge_qec_cycles`` to merge cycles).
+        ``merge_qec_rounds`` to merge cycles).
         The TICK instructions must appear at the same time in all iterators
         when iterating through them.
     model
         Noise model for the gates.
     detectors
         Detector definitions to use.
-    log_obs_inds
-        List of dictionaries to be used when defining the logical observable
-        arguments. The key specifies the logical qubit label and the value
-        specifies the index to be used for the stim arguments.
-        It can also be an integer. Then the arguments for the OBSERVABLE_INCLUDE
-        will be the given integer and increments of it by 1 so that all
-        observables are different.
+    init_log_obs_ind
+        Integer to determine the index for the first observable to define.
+        If more than one logical measurement is defined or a layout contains
+        more than one logical qubit, it is incremented by 1 so that all observables
+        are different.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC cycle.
-        By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
-        If ``None``, adds all detectors.
-        By default ``None``.
+        If ``None``, adds all detectors. By default ``None``.
 
     Returns
     -------
     circuit
         Circuit from merging the given circuits.
     """
-    if any(not isinstance(i[0], LogOpCallable) for i in op_iterators):
-        raise TypeError(
-            "The first element for each entry in 'op_iterators' must be LogOpCallable."
-        )
     if any(i[0].log_op_type == "qec_cycle" for i in op_iterators):
         raise TypeError(
             "This function only accepts to merge non-QEC-cycle operations. "
-            "To merge QEC cycles, use `merge_qec_rounds`."
+            "To merge QEC cycles, use 'merge_qec_rounds'."
         )
-    if (not isinstance(log_obs_inds, int)) and (not isinstance(log_obs_inds, dict)):
-        raise TypeError(
-            f"'log_obs_inds' must be a dict, but {type(log_obs_inds)} was given."
-        )
-    layouts = sum([list(i[1:]) for i in op_iterators], start=[])
-    if len(layouts) != len(set(layouts)):
-        raise ValueError("Layouts are participating in more than one operation.")
 
-    circuit = stim.Circuit()
-    generators = [i[0](model, *i[1:]) for i in op_iterators]
-    end = [None for _ in op_iterators]
-    tick_instr = stim.Circuit("TICK")[0]
-
-    curr_block = [next(g, None) for g in generators]
-    while curr_block != end:
-        # merge all ticks into a single tick.
-        # [TICK, None, None] still needs to be a single TICK
-        # As it is a TICK, no idling needs to be added.
-        if any([tick_instr in c for c in curr_block if c is not None]):
-            circuit += merge_ticks([c for c in curr_block if c is not None])
-            curr_block = [next(g, None) for g in generators]
-            continue
-
-        # change 'None' to idling
-        for k, _ in enumerate(curr_block):
-            if curr_block[k] is not None:
-                continue
-            qubits = list(chain(*[l.qubits for l in op_iterators[k][1:]]))
-            curr_block[k] = model.idle(qubits)
-
-        circuit += merge_operation_layers(*curr_block)
-
-        curr_block = [next(g, None) for g in generators]
+    circuit = merge_iterators(op_iterators, model)
 
     # update the detectors due to unitary gates
     for op in op_iterators:
@@ -241,25 +271,36 @@ def merge_logical_operations(
     meas_ops = [
         k for k, i in enumerate(op_iterators) if i[0].log_op_type == "measurement"
     ]
-    if len(meas_ops) != 0:
+    if meas_ops:
+        if anc_reset is None:
+            raise ValueError(
+                "Logical measurement found but 'anc_reset' is not specified."
+            )
+        if init_log_obs_ind is None:
+            raise ValueError(
+                "Logical measurement found but 'init_log_obs_ind' is not specified."
+            )
+        if not isinstance(init_log_obs_ind, int):
+            raise TypeError(
+                f"'init_log_obs_ind' must be an int, but {type(init_log_obs_ind)} was given."
+            )
+
         layouts = [op_iterators[k][1] for k in meas_ops]
         rot_bases = [op_iterators[k][0].rot_basis for k in meas_ops]
 
         # add detectors
-        all_stabs = []
-        all_anc_support = {}
+        reconstructable_stabs, anc_support = [], {}
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
             stabs = layout.get_qubits(role="anc", stab_type=stab_type)
-            anc_support = layout.get_support(stabs)
-            all_stabs += stabs
-            all_anc_support.update(anc_support)
+            reconstructable_stabs += stabs
+            anc_support.update(layout.get_support(stabs))
 
         circuit += detectors.build_from_data(
             model.meas_target,
-            all_anc_support,
+            anc_support,
             anc_reset=anc_reset,
-            reconstructable_stabs=all_stabs,
+            reconstructable_stabs=reconstructable_stabs,
             anc_qubits=anc_detectors,
         )
 
@@ -272,15 +313,14 @@ def merge_logical_operations(
                 instr = stim.CircuitInstruction(
                     name="OBSERVABLE_INCLUDE",
                     targets=targets,
-                    gate_args=(
-                        [log_obs_inds[log_qubit_label]]
-                        if not isinstance(log_obs_inds, int)
-                        else [log_obs_inds]
-                    ),
+                    gate_args=[init_log_obs_ind],
                 )
-                if isinstance(log_obs_inds, int):
-                    log_obs_inds += 1
                 circuit.append(instr)
+                init_log_obs_ind += 1
+
+        # deactivate ancilla qubits
+        for k in meas_ops:
+            detectors.deactivate_detectors(op_iterators[k][1].anc_qubits)
 
     # check if detectors need to be activated or deactivated.
     # This needs to be done after defining the detectors because if not,
@@ -288,13 +328,16 @@ def merge_logical_operations(
     reset_ops = [
         k for k, i in enumerate(op_iterators) if i[0].log_op_type == "qubit_init"
     ]
-    if len(meas_ops + reset_ops) != 0:
-        for k in meas_ops:
-            anc_qubits = op_iterators[k][1].get_qubits(role="anc")
-            detectors.deactivate_detectors(anc_qubits)
+    if reset_ops:
         for k in reset_ops:
-            anc_qubits = op_iterators[k][1].get_qubits(role="anc")
-            detectors.activate_detectors(anc_qubits)
+            # add information about gauge detectors so that Detectors.include_gauge_detectors
+            # is the one specifying if gauge detectors are included or not.
+            # if reset in X basis, the Z stabilizers are gauge detectors
+            stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
+            gauge_dets = op_iterators[k][1].get_qubits(role="anc", stab_type=stab_type)
+            detectors.activate_detectors(
+                op_iterators[k][1].anc_qubits, gauge_dets=gauge_dets
+            )
 
     return circuit
 
@@ -333,7 +376,7 @@ def merge_qec_rounds(
         If ``None``, adds all detectors.
         By default ``None``.
     kargs
-        Extra arguments for ``circuit_iterator`` apart from ``layout``,
+        Extra arguments for ``qec_round_iterator`` apart from ``layout``,
         ``model``, and ``anc_reset``.
 
     Returns
@@ -348,6 +391,7 @@ def merge_qec_rounds(
         )
     if len(layouts) == 0:
         return stim.Circuit()
+
     if any(not isinstance(l, Layout) for l in layouts):
         raise TypeError("Elements in 'layouts' must be Layout objects.")
     if not isinstance(qec_round_iterator, LogOpCallable):
@@ -359,26 +403,15 @@ def merge_qec_rounds(
             f"'qec_round_iterator' must be a QEC cycle, not a {qec_round_iterator.log_op_type}."
         )
     if anc_detectors is not None:
-        data_qubits = [l.get_qubits(role="data") for l in layouts]
+        data_qubits = [l.data_qubits for l in layouts]
         if set(anc_detectors).intersection(sum(data_qubits, start=tuple())) != set():
             raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
 
-    tick_instr = stim.Circuit("TICK")[0]
-    circuit = stim.Circuit()
-    for blocks in zip(
-        *[
-            qec_round_iterator(model=model, layout=l, anc_reset=anc_reset, **kargs)
-            for l in layouts
-        ]
-    ):
-        # avoid multiple 'TICK's in a single block, but be aware that
-        # 'model.tick()' can return noise channels and a 'TICK'.
-        # As the iterator is the same for all block, they all have the same structure.
-        if tick_instr in blocks[0]:
-            circuit += merge_ticks(blocks)
-            continue
+    @qec_circuit
+    def iterator(model: Model, layout: Layout):
+        return qec_round_iterator(model, layout, anc_reset=anc_reset, **kargs)
 
-        circuit += merge_operation_layers(*blocks)
+    circuit = merge_iterators([(iterator, l) for l in layouts], model)
 
     # add detectors
     circuit += detectors.build_from_anc(

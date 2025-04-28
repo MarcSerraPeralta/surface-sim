@@ -26,7 +26,7 @@ def test_memory_experiment():
 
     # check that the detectors and logicals fulfill their
     # conditions by building the stim diagram
-    dem = circuit.detector_error_model(allow_gauge_detectors=True)
+    dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
     num_coords = 0
     anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}

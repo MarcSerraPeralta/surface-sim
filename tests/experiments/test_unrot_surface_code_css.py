@@ -39,7 +39,7 @@ def test_memory_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -77,7 +77,7 @@ def test_repeated_s_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -104,7 +104,7 @@ def test_repeated_h_experiment():
             model=model,
             layout=layout,
             detectors=detectors,
-            num_h_gates=5,
+            num_h_gates=4,
             num_rounds_per_gate=2,
             anc_reset=False,
             data_init={q: 0 for q in layout.data_qubits},
@@ -115,7 +115,7 @@ def test_repeated_h_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
         anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
@@ -142,16 +142,8 @@ def test_repeated_cnot_experiment():
     )
     set_trans_cnot(layout_c, layout_t)
     set_trans_cnot(layout_t, layout_c)
-    qubit_inds = layout_c.qubit_inds
-    qubit_inds.update(layout_t.qubit_inds)
-    anc_coords = layout_c.anc_coords
-    anc_coords.update(layout_t.anc_coords)
-    model = NoiselessModel(qubit_inds)
-    detectors = Detectors(
-        layout_c.anc_qubits + layout_t.anc_qubits,
-        frame="post-gate",
-        anc_coords=anc_coords,
-    )
+    model = NoiselessModel.from_layouts(layout_c, layout_t)
+    detectors = Detectors.from_layouts("post-gate", layout_c, layout_t)
 
     for rot_basis in [True, False]:
         circuit = repeated_cnot_experiment(
@@ -171,9 +163,11 @@ def test_repeated_cnot_experiment():
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=True)
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_coords = 0
+        anc_coords = layout_c.anc_coords
+        anc_coords |= layout_t.anc_coords
         anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
         for dem_instr in dem:
             if dem_instr.type == "detector":
