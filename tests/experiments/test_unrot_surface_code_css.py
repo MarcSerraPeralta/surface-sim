@@ -104,7 +104,7 @@ def test_repeated_h_experiment():
             model=model,
             layout=layout,
             detectors=detectors,
-            num_h_gates=5,
+            num_h_gates=4,
             num_rounds_per_gate=2,
             anc_reset=False,
             data_init={q: 0 for q in layout.data_qubits},

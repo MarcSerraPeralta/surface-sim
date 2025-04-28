@@ -229,7 +229,7 @@ def init_qubits_iterator(
     yield model.tick()
 
     init_circ = Circuit()
-    exc_qubits = set([q for q, s in data_init.items() if s])
+    exc_qubits = set([q for q, s in data_init.items() if s and (q in data_qubits)])
     if exc_qubits:
         init_circ += model.x_gate(exc_qubits)
 
@@ -861,7 +861,9 @@ def init_qubits_xzzx_iterator(
     yield model.tick()
 
     init_circ = Circuit()
-    exc_qubits = set([q for q, s in data_init.items() if s])
+    exc_qubits = set(
+        [q for q, s in data_init.items() if s and (q in layout.data_qubits)]
+    )
     if exc_qubits:
         init_circ += model.x_gate(exc_qubits)
 

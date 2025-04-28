@@ -330,7 +330,14 @@ def merge_logical_operations(
     ]
     if reset_ops:
         for k in reset_ops:
-            detectors.activate_detectors(op_iterators[k][1].anc_qubits)
+            # add information about gauge detectors so that Detectors.include_gauge_detectors
+            # is the one specifying if gauge detectors are included or not.
+            # if reset in X basis, the Z stabilizers are gauge detectors
+            stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
+            gauge_dets = op_iterators[k][1].get_qubits(role="anc", stab_type=stab_type)
+            detectors.activate_detectors(
+                op_iterators[k][1].anc_qubits, gauge_dets=gauge_dets
+            )
 
     return circuit
 

@@ -73,7 +73,9 @@ def test_memory_experiment_anc_detectors():
 def test_memory_experiment_gauge_detectors():
     layout = rot_surface_code(distance=3)
     model = NoiselessModel(layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="post-gate")
+    detectors = Detectors(
+        layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+    )
     circuit = memory_experiment(
         model=model,
         layout=layout,
@@ -82,7 +84,6 @@ def test_memory_experiment_gauge_detectors():
         anc_reset=False,
         data_init={q: 0 for q in layout.data_qubits},
         rot_basis=True,
-        gauge_detectors=False,
     )
 
     num_anc = len(layout.anc_qubits)

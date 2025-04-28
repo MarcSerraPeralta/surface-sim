@@ -156,6 +156,8 @@ class Detectors:
             if exists is None:
                 raise ValueError(f"Ancilla {anc} was already inactive.")
 
+        self.gauge_detectors.difference_update(anc_qubits)
+
         return
 
     def update(
