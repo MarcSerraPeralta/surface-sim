@@ -1,6 +1,6 @@
 """Main surface-sim module."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 from . import experiments, models, util, circuit_blocks, layouts
 from .setup import Setup
