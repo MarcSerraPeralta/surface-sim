@@ -4,6 +4,13 @@ from itertools import count, cycle, product
 
 from ..layout import Layout
 from .util import is_valid, invert_shift, _check_distance
+from ...log_gates.rot_surface_code_css import (
+    set_fold_trans_s,
+    set_x,
+    set_z,
+    set_idle,
+    set_trans_cnot,
+)
 
 
 def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int:
@@ -337,3 +344,58 @@ def rot_surface_code(
         init_ind=init_ind,
         init_logical_ind=init_logical_ind,
     )
+
+
+def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]:
+    """
+    Returns a list of rotated surface codes of the specified distance that
+    are set up to be used in any logical circuit (i.e. they have all the
+    implemented logical gate attributes).
+
+    Parameters
+    ----------
+    num_layouts
+        Number of layouts to generate.
+    distance
+        The distance of logical Pauli X of the layouts. The distance of logical
+        Pauli Z is ``distance + 1``.
+
+    Returns
+    -------
+    layouts
+        List of layouts.
+    """
+    if not isinstance(num_layouts, int):
+        raise TypeError(
+            f"'num_layouts' must be an int, but {type(num_layouts)} was given."
+        )
+
+    layouts = []
+    num_data = (distance + 1) * distance
+    num_anc = num_data - 1
+    for k in range(num_layouts):
+        layout = rot_surface_code_rectangle(
+            distance_x=distance,
+            distance_z=distance + 1,
+            logical_qubit_label=f"L{k}",
+            init_point=(0, (2 * distance + 4) * k),
+            init_data_qubit_id=1 + k * num_data,
+            init_zanc_qubit_id=1 + k * num_anc // 2,
+            init_xanc_qubit_id=1 + k * (num_anc // 2 + 1),
+            init_ind=k * (num_data + num_anc),
+            init_logical_ind=k,
+        )
+        layouts.append(layout)
+
+    # set up the parameters for all the logical gates
+    for k, layout in enumerate(layouts):
+        set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        set_x(layout)
+        set_z(layout)
+        set_idle(layout)
+        for other_layout in layouts:
+            if layout == other_layout:
+                continue
+            set_trans_cnot(layout, other_layout)
+
+    return layouts
