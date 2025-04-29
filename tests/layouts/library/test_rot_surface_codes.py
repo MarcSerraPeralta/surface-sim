@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 
 from surface_sim import Layout
-from surface_sim.layouts import rot_surface_code, rot_surface_code_rectangle
+from surface_sim.layouts import (
+    rot_surface_code,
+    rot_surface_code_rectangle,
+    rot_surface_code_rectangles,
+)
 from surface_sim.layouts import plot
 
 
@@ -56,5 +60,36 @@ def test_rot_surface_code_rectangle(show_figures):
         _, ax = plt.subplots()
         plot(ax, layout, stim_orientation=False)
         plt.show()
+
+    return
+
+
+def test_rot_surface_codes():
+    layouts = rot_surface_code_rectangles(2, distance=3)
+
+    assert isinstance(layouts, list)
+    assert len(layouts) == 2
+
+    layout_0, layout_1 = layouts
+    assert set(
+        [
+            "log_fold_trans_s_L0",
+            "log_x_L0",
+            "log_z_L0",
+            "idle_L0",
+            "log_trans_cnot_L0_L1",
+            "log_trans_cnot_L1_L0",
+        ]
+    ) < set(layout_0.to_dict()["layout"][0].keys())
+    assert set(
+        [
+            "log_fold_trans_s_L1",
+            "log_x_L1",
+            "log_z_L1",
+            "idle_L1",
+            "log_trans_cnot_L0_L1",
+            "log_trans_cnot_L1_L0",
+        ]
+    ) < set(layout_1.to_dict()["layout"][0].keys())
 
     return

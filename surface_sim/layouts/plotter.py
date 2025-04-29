@@ -417,7 +417,7 @@ def get_coord_range(layout: Layout) -> tuple[CoordRange, CoordRange]:
 
 def plot(
     ax: Axes,
-    layout: Layout,
+    *layouts: Layout,
     add_labels: bool = True,
     add_patches: bool = True,
     add_connections: bool = True,
@@ -432,8 +432,8 @@ def plot(
     ----------
     ax
         The axis to plot the layout on.
-    layout
-        The layout to plot.
+    *layouts
+        List of layouts to plot.
     add_labels
         Flag to add qubit labels, by default ``True``.
     add_patches
@@ -457,29 +457,33 @@ def plot(
     ax
         The figure the layout was plotted on.
     """
-    for artist in qubit_artists(layout):
-        ax.add_artist(artist)
-
-    if add_logicals:
-        for artist in logical_artists(layout):
+    x_min, x_max = np.inf, -np.inf
+    y_min, y_max = np.inf, -np.inf
+    for layout in layouts:
+        for artist in qubit_artists(layout):
             ax.add_artist(artist)
 
-    if add_patches:
-        for artist in patch_artists(layout):
-            ax.add_artist(artist)
+        if add_logicals:
+            for artist in logical_artists(layout):
+                ax.add_artist(artist)
 
-    if add_connections:
-        for artist in qubit_connections(layout):
-            ax.add_artist(artist)
+        if add_patches:
+            for artist in patch_artists(layout):
+                ax.add_artist(artist)
 
-    if add_labels:
-        for artist in qubit_labels(layout, label_fontsize):
-            ax.add_artist(artist)
+        if add_connections:
+            for artist in qubit_connections(layout):
+                ax.add_artist(artist)
 
-    x_range, y_range = get_coord_range(layout)
-    x_min, x_max = x_range
+        if add_labels:
+            for artist in qubit_labels(layout, label_fontsize):
+                ax.add_artist(artist)
+
+        x_range, y_range = get_coord_range(layout)
+        x_min, x_max = min(x_min, x_range[0]), max(x_max, x_range[1])
+        y_min, y_max = min(y_min, y_range[0]), max(y_max, y_range[1])
+
     ax.set_xlim(x_min - pad, x_max + pad)
-    y_min, y_max = y_range
     ax.set_ylim(y_min - pad, y_max + pad)
 
     ax.set_xlabel("$x$ coordinate")
