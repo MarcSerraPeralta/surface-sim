@@ -3,7 +3,6 @@ from stim import Circuit
 
 from ..circuit_blocks.rot_surface_code_xzzx_pipelined import (
     init_qubits_iterator,
-    log_meas_iterator,
     gate_to_iterator,
 )
 from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
@@ -13,8 +12,6 @@ from ..detectors import Detectors
 from ..circuit_blocks.decorators import (
     qubit_init_z,
     qubit_init_x,
-    logical_measurement_z,
-    logical_measurement_x,
 )
 
 
@@ -64,21 +61,16 @@ def memory_experiment(
         raise TypeError(f"'data_init' must be a dict, but {type(data_init)} was given.")
 
     reset = qubit_init_x if rot_basis else qubit_init_z
-    meas = logical_measurement_x if rot_basis else logical_measurement_z
 
     @reset
     def custom_reset_iterator(m: Model, l: Layout):
         return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
 
-    @meas
-    def custom_measurement_iterator(m: Model, l: Layout):
-        return log_meas_iterator(m, l, rot_basis=rot_basis)
-
+    b = "X" if rot_basis else "Z"
     custom_gate_to_iterator = deepcopy(gate_to_iterator)
-    custom_gate_to_iterator["R"] = custom_reset_iterator
-    custom_gate_to_iterator["M"] = custom_measurement_iterator
+    custom_gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    unencoded_circuit = Circuit("R 0" + "\nTICK" * num_rounds + "\nM 0")
+    unencoded_circuit = Circuit(f"R{b} 0" + "\nTICK" * num_rounds + f"\nM{b} 0")
     schedule = schedule_from_circuit(
         unencoded_circuit, layouts=[layout], gate_to_iterator=custom_gate_to_iterator
     )

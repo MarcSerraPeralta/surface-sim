@@ -227,7 +227,7 @@ def init_qubits_iterator(
     data_qubits = layout.data_qubits
     qubits = set(layout.qubits)
 
-    yield model.reset(qubits)
+    yield model.reset(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
     init_circ = Circuit()
@@ -861,7 +861,7 @@ def init_qubits_xzzx_iterator(
 
     qubits = set(layout.qubits)
 
-    yield model.reset(qubits)
+    yield model.reset(layout.data_qubits) + model.idle(layout.anc_qubits)
     yield model.tick()
 
     init_circ = Circuit()

@@ -1,12 +1,13 @@
 import stim
 
-from surface_sim.layouts import unrot_surface_code
+from surface_sim.layouts import unrot_surface_code, unrot_surface_codes
 
 from surface_sim.experiments.unrot_surface_code_css import (
     memory_experiment,
     repeated_s_experiment,
     repeated_h_experiment,
     repeated_cnot_experiment,
+    repeated_s_injection_experiment,
 )
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
@@ -168,6 +169,44 @@ def test_repeated_cnot_experiment():
         num_coords = 0
         anc_coords = layout_c.anc_coords
         anc_coords |= layout_t.anc_coords
+        anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
+        for dem_instr in dem:
+            if dem_instr.type == "detector":
+                assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                num_coords += 1
+
+        assert num_coords == dem.num_detectors
+
+    return
+
+
+def test_repeated_s_injection_experiment():
+    layout, layout_anc = unrot_surface_codes(2, distance=3)
+    model = NoiselessModel.from_layouts(layout, layout_anc)
+    detectors = Detectors.from_layouts("post-gate", layout, layout_anc)
+
+    for rot_basis in [True, False]:
+        circuit = repeated_s_injection_experiment(
+            model=model,
+            layout=layout,
+            layout_anc=layout_anc,
+            detectors=detectors,
+            num_s_injections=2,
+            num_rounds_per_gate=1,
+            anc_reset=True,
+            data_init={q: 0 for q in layout.data_qubits + layout_anc.data_qubits},
+            rot_basis=rot_basis,
+        )
+
+        assert isinstance(circuit, stim.Circuit)
+
+        # check that the detectors and logicals fulfill their
+        # conditions by building the stim diagram
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+        num_coords = 0
+        anc_coords = layout.anc_coords
+        anc_coords |= layout_anc.anc_coords
         anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
         for dem_instr in dem:
             if dem_instr.type == "detector":
