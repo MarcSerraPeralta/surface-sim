@@ -31,9 +31,9 @@ LogicalOperation = tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, L
 def qec_circuit(func):
     """
     Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"qec_cycle"`` to a function.
+    ``"qec_round"`` to a function.
     """
-    func.log_op_type = "qec_cycle"
+    func.log_op_type = "qec_round"
     func.rot_basis = None
     func.num_qubits = None
     return func

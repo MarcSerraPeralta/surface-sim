@@ -36,7 +36,7 @@ def memory_experiment(
     detectors
         Detector definitions to use.
     num_rounds
-        Number of QEC cycle to run in the memory experiment.
+        Number of QEC rounds to run in the memory experiment.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -44,7 +44,7 @@ def memory_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.

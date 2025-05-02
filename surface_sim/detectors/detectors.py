@@ -119,7 +119,7 @@ class Detectors:
             List of ancilla detectors to activate.
         gauge_dets
             List of ancilla detectors that do not have a deterministic
-            outcome in their first QEC cycle. This is only important if
+            outcome in their first QEC round. This is only important if
             ``include_gauge_dets = False`` was set when initializing this object.
         """
         if not isinstance(anc_qubits, Iterable):
@@ -182,7 +182,7 @@ class Detectors:
     ) -> None:
         """Update the current stabilizer generators with the dictionary
         descriving the effect of the logical gate. It allows to perform
-        more than one logical gate between QEC cycles.
+        more than one logical gate between QEC rounds.
 
         See module ``surface_sim.log_gates`` to see how to prepare
         the layout to run logical gates.
@@ -277,7 +277,7 @@ class Detectors:
             corresponding ``stim.target_rec``. The intention is to give the
             ``Model.meas_target`` method.
         anc_reset
-            Flag for if the ancillas are being reset in every QEC cycle.
+            Flag for if the ancillas are being reset in every QEC round.
         anc_qubits
             List of the ancilla qubits for which to build the detectors.
             By default, builds all the detectors.
@@ -289,9 +289,9 @@ class Detectors:
 
         Notes
         -----
-        This function assumes that all QEC cycles happen at the same time
+        This function assumes that all QEC rounds happen at the same time
         for all logical qubits. It is not possible to have some qubits
-        performing some logical gates and some qubits performing QEC cycles.
+        performing some logical gates and some qubits performing QEC rounds.
         This is because the dicts for updating the qubits are stored globally,
         not per ancilla qubit.
         """
@@ -309,7 +309,7 @@ class Detectors:
 
         # remove any inactive detector that was given, this is caused by the
         # arbitrary logical circuit generator becuase if we have M 0 I 1 TICK
-        # the 'TICK'/QEC cycle will try to build the detectors for logical qubit 0,
+        # the 'TICK'/QEC round will try to build the detectors for logical qubit 0,
         # which have been deactivated by the measurement.
         anc_qubits = [q for q in anc_qubits if q in self.detectors]
         if not self.include_gauge_dets:
@@ -416,7 +416,7 @@ class Detectors:
             of data qubits.
             See ``surface_sim.Layout.get_support`` for more information.
         anc_reset
-            Flag for if the ancillas are being reset in every QEC cycle.
+            Flag for if the ancillas are being reset in every QEC round.
         reconstructable_stabs
             Stabilizers that can be reconstructed from the data qubit outcomes.
         anc_qubits
@@ -439,11 +439,11 @@ class Detectors:
         CX 0 1
         M 0
 
-        As there is no QEC cycle performed in (logical) qubit 1 and the stabilizer
+        As there is no QEC round performed in (logical) qubit 1 and the stabilizer
         generators of qubit 0 are propagated to qubit 1, we cannot build the
         detectors in the ``"pre-gate"`` frame.
 
-        Note that if one always performs (at least) one QEC cycle after each logical
+        Note that if one always performs (at least) one QEC round after each logical
         gate, then there is no difference in building the detectors for the
         measurement in the ``"pre-gate"`` or in the ``"post-gate"`` frame
         as one will always have:
@@ -486,7 +486,7 @@ class Detectors:
         if not self.include_gauge_dets:
             anc_qubits = [q for q in anc_qubits if q not in self.gauge_detectors]
 
-        # Logical measurement is not considered a QEC cycle but a logical operation.
+        # Logical measurement is not considered a QEC round but a logical operation.
         # therefore, it does not increase the number of rounds.
         # However, the way building the detectors is implemented relies on
         # faking that ancilla qubits have been measured instead of the data qubits.
@@ -582,7 +582,7 @@ class Detectors:
             detectors_stim.append(instr)
 
         # reset detectors, but the update_dict_list is not updated
-        # as there could qubits performing the QEC cycle that have undergone
+        # as there could qubits performing the QEC round that have undergone
         # some logical gates. However, it needs to be reversed to counteract
         # the reverse suffered during this function (only for the pre-gate frame).
         self.detectors = {q: set([q]) for q in self.detectors}

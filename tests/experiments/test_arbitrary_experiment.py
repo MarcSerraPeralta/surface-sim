@@ -33,7 +33,7 @@ def test_schedule_from_circuit():
         assert len(op) == num_layouts + 1
         assert all(isinstance(l, Layout) for l in op[1:])
         if num_layouts != 0:
-            assert op[0].log_op_type != "qec_cycle"
+            assert op[0].log_op_type != "qec_round"
 
     return
 

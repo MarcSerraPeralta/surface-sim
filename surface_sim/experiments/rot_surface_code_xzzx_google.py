@@ -33,7 +33,7 @@ def memory_experiment(
     detectors
         Detector definitions to use.
     num_rounds
-        Number of QEC cycle to run in the memory experiment.
+        Number of QEC round to run in the memory experiment.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -45,7 +45,7 @@ def memory_experiment(
         If ``None``, adds all detectors.
         By default ``None``.
     gauge_detectors
-        If ``True``, adds gauge detectors (coming from the first QEC cycle).
+        If ``True``, adds gauge detectors (coming from the first QEC round).
         If ``False``, the resulting circuit does not have gauge detectors.
         By default ``True``.
     """
