@@ -30,7 +30,7 @@ def schedule_from_circuit(
     gate_to_iterator
         Dictionary mapping the names of stim circuit instructions used in ``circuit``
         to the functions that generate the equivalent logical circuit.
-        Note that ``TICK`` always refers to a QEC cycle for all layouts.
+        Note that ``TICK`` always refers to a QEC round for all layouts.
 
     Returns
     -------
@@ -42,7 +42,7 @@ def schedule_from_circuit(
     -----
     The format of the schedule is the following. Each element of the list
     is an operation to be applied to the qubits:
-    - ``tuple[LogOpCallable]`` performs a QEC cycle to all layouts
+    - ``tuple[LogOpCallable]`` performs a QEC round to all layouts
     - ``tuple[LogOpCallable, Layout]`` performs a single-qubit operation
     - ``tuple[LogOpCallable, Layout, Layout]`` performs a two-qubit gate.
 
@@ -85,8 +85,8 @@ def schedule_from_circuit(
         )
     if any(not isinstance(f, LogOpCallable) for f in gate_to_iterator.values()):
         raise TypeError("All values of 'gate_to_iterator' must be LogOpCallable.")
-    if gate_to_iterator["TICK"].log_op_type != "qec_cycle":
-        raise TypeError("'TICK' must correspond to a QEC cycle.")
+    if gate_to_iterator["TICK"].log_op_type != "qec_round":
+        raise TypeError("'TICK' must correspond to a QEC round.")
 
     unique_names = set(i.name for i in circuit)
     if unique_names > set(gate_to_iterator):
@@ -116,7 +116,7 @@ def schedule_from_circuit(
 def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
     """Groups the logical operations in a schedule by blocks.
     In each block, layouts only participate in a single operation and
-    QEC cycles are only performed to active layouts. Addling is automatically
+    QEC rounds are only performed to active layouts. Addling is automatically
     added to layouts not participating in a logical operation.
 
     Parameters
@@ -131,7 +131,7 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
         List of blocks from the schedule. Each block contains a set of logical
         operations for the active layouts. Each layout only performs a single
         logical operation in each block. If a layout is not performing any
-        logical operation while others are (and it is not a QEC cycle), then
+        logical operation while others are (and it is not a QEC round), then
         ``idle_iterator`` is inserted with this layout. QEC rounds and logical
         operations cannot be mixed together.
 
@@ -190,7 +190,7 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
         # if necessary, add idling.
         # only add idling if at least one layout is performing an operation.
         # the situation where no layout is performing anything can happen when
-        # performing more than one QEC cycle between logical gates
+        # performing more than one QEC round between logical gates
         if len(curr_block) == 0:
             return blocks, curr_block, counter
         for l, k in counter.items():
@@ -205,13 +205,13 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
 
     for operation in schedule:
         op = operation[0]
-        if op.log_op_type == "qec_cycle":
+        if op.log_op_type == "qec_round":
             # flush all logical operations and
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
             # if there are no active layouts, raise error as it is not possible
-            # to perform a QEC cycle nothing
+            # to perform a QEC round nothing
             if len(counter) == 0:
-                raise ValueError("No active layout found when performing a QEC cycle.")
+                raise ValueError("No active layout found when performing a QEC round.")
             # add a QEC round for all active layouts
             blocks.append([(operation[0], *counter.keys())])
             continue
@@ -286,7 +286,7 @@ def experiment_from_schedule(
     detectors
         Object to build the detectors.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -301,7 +301,7 @@ def experiment_from_schedule(
 
     Notes
     -----
-    The scheduling of the gates between QEC cycles is not optimal as there could
+    The scheduling of the gates between QEC rounds is not optimal as there could
     be more idling than necessary. This is caused by using ``merge_logical_operations``.
     """
     if not isinstance(model, Model):
@@ -321,7 +321,7 @@ def experiment_from_schedule(
     experiment += qubit_coords(model, *layouts)
 
     for block in blocks:
-        if block[0][0].log_op_type == "qec_cycle":
+        if block[0][0].log_op_type == "qec_round":
             experiment += merge_qec_rounds(
                 qec_round_iterator=block[0][0],
                 model=model,

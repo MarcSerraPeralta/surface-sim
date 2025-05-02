@@ -218,8 +218,8 @@ def merge_logical_operations(
         There must be an entry for each layout except if it is participating
         in a two-qubit gate, then there must be one entry per pair.
         Each layout can only appear once, i.e. it can only perform one
-        operation. Operations do not include QEC cycles (see
-        ``merge_qec_rounds`` to merge cycles).
+        operation. Operations do not include QEC rounds (see
+        ``merge_qec_rounds`` to merge rounds).
         The TICK instructions must appear at the same time in all iterators
         when iterating through them.
     model
@@ -232,7 +232,7 @@ def merge_logical_operations(
         more than one logical qubit, it is incremented by 1 so that all observables
         are different.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors. By default ``None``.
@@ -242,10 +242,10 @@ def merge_logical_operations(
     circuit
         Circuit from merging the given circuits.
     """
-    if any(i[0].log_op_type == "qec_cycle" for i in op_iterators):
+    if any(i[0].log_op_type == "qec_round" for i in op_iterators):
         raise TypeError(
-            "This function only accepts to merge non-QEC-cycle operations. "
-            "To merge QEC cycles, use 'merge_qec_rounds'."
+            "This function only accepts to merge non-QEC-round operations. "
+            "To merge QEC rounds, use 'merge_qec_rounds'."
         )
 
     circuit = merge_iterators(op_iterators, model)
@@ -359,7 +359,7 @@ def merge_qec_rounds(
     Parameters
     ----------
     qec_round_iterator
-        LogOpCallable that yields the circuits to be merged of the QEC cycle without
+        LogOpCallable that yields the circuits to be merged of the QEC round without
         the detectors.
         Its inputs must include ``model`` and ``layout``.
     model
@@ -369,7 +369,7 @@ def merge_qec_rounds(
     detectors
         Object to build the detectors.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -398,9 +398,9 @@ def merge_qec_rounds(
         raise TypeError(
             f"'qec_round_iterator' must be LogOpCallable, but {type(qec_round_iterator)} was given."
         )
-    if qec_round_iterator.log_op_type != "qec_cycle":
+    if qec_round_iterator.log_op_type != "qec_round":
         raise TypeError(
-            f"'qec_round_iterator' must be a QEC cycle, not a {qec_round_iterator.log_op_type}."
+            f"'qec_round_iterator' must be a QEC round, not a {qec_round_iterator.log_op_type}."
         )
     if anc_detectors is not None:
         data_qubits = [l.data_qubits for l in layouts]

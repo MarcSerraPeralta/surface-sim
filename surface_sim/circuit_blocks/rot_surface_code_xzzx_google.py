@@ -36,7 +36,7 @@ def qec_round_with_log_meas(
     rot_basis: bool = False,
 ) -> Circuit:
     """
-    Returns stim circuit corresponding to a QEC cycle
+    Returns stim circuit corresponding to a QEC round
     that includes the logical measurement
     of the given model. It defines the observables for
     all logical qubits in the layout.
@@ -124,7 +124,7 @@ def qec_round_with_log_meas(
 
 def coherent_qec_part(model: Model, layout: Layout) -> Circuit:
     """
-    Returns stim circuit corresponding to the steps "a" to "h" from the QEC cycle
+    Returns stim circuit corresponding to the steps "a" to "h" from the QEC round
     described in Google's paper for the given model.
     """
     data_qubits = layout.data_qubits
@@ -211,7 +211,7 @@ def qec_round(
     anc_detectors: list[str] | None = None,
 ) -> Circuit:
     """
-    Returns stim circuit corresponding to a QEC cycle
+    Returns stim circuit corresponding to a QEC round
     of the given model.
 
     Parameters

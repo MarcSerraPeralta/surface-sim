@@ -37,7 +37,7 @@ def memory_experiment(
     detectors
         Detector definitions to use.
     num_rounds
-        Number of QEC cycle to run in the memory experiment.
+        Number of QEC rounds to run in the memory experiment.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -45,7 +45,7 @@ def memory_experiment(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -106,7 +106,7 @@ def repeated_s_experiment(
     num_s_gates
         Number of logical (transversal) S gates to run in the experiment.
     num_rounds_per_gate
-        Number of QEC cycles to be run after each logical S gate.
+        Number of QEC rounds to be run after each logical S gate.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -114,7 +114,7 @@ def repeated_s_experiment(
         If ``False``, the repeated-S experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -190,7 +190,7 @@ def repeated_h_experiment(
     num_h_gates
         Number of logical (transversal) H gates to run in the experiment.
     num_rounds_per_gate
-        Number of QEC cycles to be run after each logical H gate.
+        Number of QEC rounds to be run after each logical H gate.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -198,7 +198,7 @@ def repeated_h_experiment(
         If ``False``, the logical qubit is initialized in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -280,7 +280,7 @@ def repeated_cnot_experiment(
     num_cnot_gates
         Number of logical (transversal) CNOT gates to run in the experiment.
     num_rounds_per_gate
-        Number of QEC cycles to be run after each logical CNOT gate.
+        Number of QEC rounds to be run after each logical CNOT gate.
     data_init
         Bitstring for initializing the data qubits.
     cnot_orientation
@@ -292,7 +292,7 @@ def repeated_cnot_experiment(
         If ``False``, the repeated-CNOT experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -385,7 +385,7 @@ def repeated_s_injection_experiment(
     num_s_injections
         Number of logical (transversal) CNOT gates to run in the experiment.
     num_rounds_per_gate
-        Number of QEC cycles to be run after each logical CNOT gate.
+        Number of QEC rounds to be run after each logical CNOT gate.
     data_init
         Bitstring for initializing the data qubits.
     rot_basis
@@ -393,7 +393,7 @@ def repeated_s_injection_experiment(
         If ``False``, the repeated-CNOT experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.

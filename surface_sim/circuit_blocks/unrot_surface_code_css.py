@@ -71,7 +71,7 @@ def qec_round(
     anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """
-    Returns stim circuit corresponding to a QEC cycle
+    Returns stim circuit corresponding to a QEC round
     of the given model.
 
     Parameters
@@ -83,7 +83,7 @@ def qec_round(
     detectors
         Detector object to use for their definition.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -122,7 +122,7 @@ def qec_round_iterator(
     anc_reset: bool = True,
 ) -> Iterator[Circuit]:
     """
-    Yields stim circuit blocks which as a whole correspond to a QEC cycle
+    Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
 
     Parameters
@@ -132,7 +132,7 @@ def qec_round_iterator(
     layout
         Code layout.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
 
     Notes

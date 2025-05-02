@@ -73,7 +73,7 @@ def log_meas(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -195,7 +195,7 @@ def init_qubits(
     # activate detectors
     # the order of activating the detectors or applying the circuit
     # does not matter because this will be done in a layer of logical operations,
-    # so no QEC cycles are run simultaneously
+    # so no QEC round are run simultaneously
     anc_qubits = layout.anc_qubits
     stab_type = "z_type" if rot_basis else "x_type"
     gauge_dets = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -637,7 +637,7 @@ def log_meas_xzzx(
         If ``False``, the memory experiment is performed in the Z basis.
         By deafult ``False``.
     anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC cycle.
+        If ``True``, ancillas are reset at the beginning of the QEC round.
         By default ``True``.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
@@ -829,7 +829,7 @@ def init_qubits_xzzx(
     # activate detectors
     # the order of activating the detectors or applying the circuit
     # does not matter because this will be done in a layer of logical operations,
-    # so no QEC cycles are run simultaneously
+    # so no QEC round are run simultaneously
     anc_qubits = layout.anc_qubits
     stab_type = "z_type" if rot_basis else "x_type"
     gauge_dets = layout.get_qubits(role="anc", stab_type=stab_type)
