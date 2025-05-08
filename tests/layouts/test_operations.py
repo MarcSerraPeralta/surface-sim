@@ -1,6 +1,6 @@
 import pytest
 
-from surface_sim.layouts.operations import check_overlap_layouts
+from surface_sim.layouts.operations import check_overlap_layouts, check_code_definition
 from surface_sim.layouts import rot_surface_code
 
 
@@ -19,5 +19,22 @@ def test_check_non_overlapping_layouts():
 
     with pytest.raises(ValueError):
         check_overlap_layouts(layout_1, layout_1)
+
+    return
+
+
+def test_check_code_definition():
+    layout = rot_surface_code(3)
+
+    check_code_definition(layout)
+
+    # make a bad layout
+    assert layout._log_qubits == {
+        "L0": {"log_x": ["D1", "D4", "D7"], "log_z": ["D1", "D2", "D3"], "ind": 0}
+    }
+    layout._log_qubits["L0"]["log_x"] = ["D1", "D2", "D7"]
+
+    with pytest.raises(ValueError):
+        check_code_definition(layout)
 
     return
