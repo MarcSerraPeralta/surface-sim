@@ -1,11 +1,16 @@
 import stim
 
-from surface_sim.layouts import unrot_surface_codes, rot_surface_code_rectangles
+from surface_sim.layouts import (
+    unrot_surface_codes,
+    rot_surface_code_rectangles,
+    ssd_code,
+)
 
 from surface_sim.experiments import (
     unrot_surface_code_css,
     rot_surface_code_css,
     rot_surface_code_xzzx,
+    small_stellated_dodecahedron_code,
 )
 import surface_sim.circuit_blocks as cb
 from surface_sim.models import NoiselessModel
@@ -42,6 +47,10 @@ def test_memory_experiments():
                 **kargs,
             ),
         ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.memory_experiment,
+        ),
     ]
 
     for layout, memory_experiment in TESTS:
@@ -57,7 +66,7 @@ def test_memory_experiments():
                 layout=layout,
                 detectors=detectors,
                 num_rounds=5,
-                anc_reset=False,
+                anc_reset=True,
                 data_init={q: 0 for q in layout.data_qubits},
                 rot_basis=rot_basis,
             )
@@ -86,7 +95,7 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            anc_reset=False,
+            anc_reset=True,
             anc_detectors=["X1"],
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
@@ -112,7 +121,7 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            anc_reset=False,
+            anc_reset=True,
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )

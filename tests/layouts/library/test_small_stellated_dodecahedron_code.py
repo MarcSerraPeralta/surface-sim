@@ -13,6 +13,7 @@ def test_ssd_code():
     assert layout.num_logical_qubits == 8
     assert layout.num_data_qubits == 30
     assert layout.num_anc_qubits == 24
+    assert layout.code == "small_stellated_dodecahedron_code"
 
     return
 

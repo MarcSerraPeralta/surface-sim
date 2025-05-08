@@ -13,6 +13,7 @@ FILE_EXCEPTIONS = [
     "surface_sim/experiments/rot_surface_code_css.py",  # functions already tested in templates
     "surface_sim/experiments/unrot_surface_code_css.py",  # functions already tested in templates
     "surface_sim/experiments/rot_surface_code_xzzx.py",  # functions already tested in templates
+    "surface_sim/experiments/small_stellated_dodecahedron_code.py",  # functions already tested in templates
 ]
 
 
