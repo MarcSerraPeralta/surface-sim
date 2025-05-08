@@ -21,11 +21,13 @@ def test_interaction_orders():
     layout = ssd_code()
     for int_order in INTERACTION_ORDERS.values():
         assert set(layout.anc_qubits) == set(int_order)
-        data_qubits_steps = [[] for _ in int_order[layout.anc_qubits[0]]]
+        num_steps = len(int_order[layout.anc_qubits[0]])
+        data_qubits_steps = [[] for _ in range(num_steps)]
 
         for anc, steps in int_order.items():
-            support = layout.get_neighbors([anc])
+            assert len(steps) == num_steps
 
+            support = layout.get_neighbors([anc])
             data_qubits = [q for q in steps if q is not None]
             assert set(support) == set(data_qubits)
 
