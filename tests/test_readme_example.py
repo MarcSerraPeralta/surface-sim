@@ -20,7 +20,13 @@ def test_readme_example_memory_experiment():
 
     setup.set_var_param("prob", PROB)
     stim_circuit = memory_experiment(
-        model, layout, detectors, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET
+        model,
+        layout,
+        detectors,
+        num_rounds=NUM_ROUNDS,
+        data_init=DATA_INIT,
+        rot_basis=ROT_BASIS,
+        anc_reset=MEAS_RESET,
     )
 
     stim_circuit.detector_error_model()
