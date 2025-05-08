@@ -280,7 +280,7 @@ def repeated_h_experiment(
         + f"\nM{b} 0"
     )
     schedule = schedule_from_circuit(
-        unencoded_circuit, layouts=[layout], gate_to_iterator=custom_gate_to_iterator
+        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
     )
     experiment = experiment_from_schedule(
         schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
