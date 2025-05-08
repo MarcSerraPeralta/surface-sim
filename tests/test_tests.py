@@ -10,6 +10,9 @@ FILE_EXCEPTIONS = [
     "__init__.py",
     "surface_sim/models/util.py",  # functions already tested in surface_sim.models
     "surface_sim/layouts/library/util.py",  # functions already tested in surface_sim.layouts
+    "surface_sim/experiments/rot_surface_code_css.py",  # functions already tested in templates
+    "surface_sim/experiments/unrot_surface_code_css.py",  # functions already tested in templates
+    "surface_sim/experiments/rot_surface_code_xzzx.py",  # functions already tested in templates
 ]
 
 

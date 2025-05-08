@@ -46,12 +46,20 @@ detectors = Detectors(layout.anc_qubits, frame="pre-gate")
 # create a memory experiment
 NUM_ROUNDS = 10
 DATA_INIT = {q: 0 for q in layout.data_qubits}
-ROT_BASIS = True # X basis
-MEAS_RESET = True # reset after ancilla measurements
+ROT_BASIS = True  # X basis
+MEAS_RESET = True  # reset after ancilla measurements
 PROB = 1e-5
 
 setup.set_var_param("prob", PROB)
-stim_circuit = memory_experiment(model, layout, detectors, NUM_ROUNDS, DATA_INIT, ROT_BASIS, MEAS_RESET)
+stim_circuit = memory_experiment(
+    model,
+    layout,
+    detectors,
+    num_rounds=NUM_ROUNDS,
+    data_init=DATA_INIT,
+    rot_basis=ROT_BASIS,
+    anc_reset=MEAS_RESET,
+)
 ```
 
 ### Arbitrary logical circuit from a given circuit

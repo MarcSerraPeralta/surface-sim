@@ -2,10 +2,10 @@ from copy import deepcopy
 from stim import Circuit
 
 from ..layouts.layout import Layout
-from ..circuit_blocks.rot_surface_code_xzzx_google import (
+from ..circuit_blocks.rot_surface_code_xzzx import (
     init_qubits,
-    qec_round_with_log_meas,
-    qec_round,
+    qec_round_google_with_log_meas,
+    qec_round_google,
     qubit_coords,
 )
 from ..models import Model
@@ -74,7 +74,7 @@ def memory_experiment(
             stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
             first_dets = set(anc_detectors).intersection(stab_qubits)
 
-        experiment += qec_round_with_log_meas(
+        experiment += qec_round_google_with_log_meas(
             model, layout, detectors, first_dets, rot_basis
         )
         return experiment
@@ -84,12 +84,12 @@ def memory_experiment(
             stab_type = "x_type" if rot_basis else "z_type"
             stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
             first_dets = set(anc_detectors).intersection(stab_qubits)
-            experiment += qec_round(model, layout, detectors, first_dets)
+            experiment += qec_round_google(model, layout, detectors, first_dets)
             continue
 
-        experiment += qec_round(model, layout, detectors, anc_detectors)
+        experiment += qec_round_google(model, layout, detectors, anc_detectors)
 
-    experiment += qec_round_with_log_meas(
+    experiment += qec_round_google_with_log_meas(
         model, layout, detectors, anc_detectors, rot_basis
     )
 
