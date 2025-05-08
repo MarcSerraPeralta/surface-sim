@@ -143,7 +143,7 @@ def log_meas_iterator(
         yield model.hadamard(data_qubits) + model.idle(anc_qubits)
         yield model.tick()
 
-    yield model.measure(data_qubits) + model.idle_meas(anc_qubits)
+    yield model.measure(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
 
@@ -719,7 +719,7 @@ def log_meas_xzzx_iterator(
     yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
-    yield model.measure(data_qubits) + model.idle_meas(anc_qubits)
+    yield model.measure(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
 

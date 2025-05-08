@@ -157,7 +157,7 @@ def qec_round_iterator(
     yield model.tick()
 
     if anc_reset:
-        yield model.reset(anc_qubits) + model.idle_reset(data_qubits)
+        yield model.reset(anc_qubits) + model.idle(data_qubits)
         yield model.tick()
 
     # a
@@ -253,7 +253,7 @@ def qec_round_iterator(
     yield model.tick()
 
     # i
-    yield model.measure(anc_qubits) + model.idle_meas(data_qubits)
+    yield model.measure(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
 
 
@@ -345,7 +345,7 @@ def qec_round_pipelined_iterator(
     yield model.tick()
 
     if anc_reset:
-        yield model.reset(anc_qubits) + model.idle_reset(data_qubits)
+        yield model.reset(anc_qubits) + model.idle(data_qubits)
         yield model.tick()
 
     for ind, stab_type in enumerate(stab_types):
@@ -377,7 +377,7 @@ def qec_round_pipelined_iterator(
 
         yield model.tick()
 
-    yield model.measure(anc_qubits) + model.idle_meas(data_qubits)
+    yield model.measure(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
 
 

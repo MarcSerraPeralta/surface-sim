@@ -275,24 +275,6 @@ class CircuitNoiseModel(Model):
 
         return circ
 
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, "idle_meas_error_prob")
-
-        return circ
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, "idle_reset_error_prob")
-
-        return circ
-
     def idle_noise(
         self, qubits: Iterable[str], param_name: str = "idle_error_prob"
     ) -> Circuit:
@@ -718,24 +700,6 @@ class BiasedCircuitNoiseModel(Model):
 
         return circ
 
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, "idle_meas_error_prob")
-
-        return circ
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("I", inds))
-        circ += self.idle_noise(qubits, "idle_reset_error_prob")
-
-        return circ
-
     def idle_noise(
         self, qubits: Iterable[str], param_name: str = "idle_error_prob"
     ) -> Circuit:
@@ -934,12 +898,6 @@ class DecoherenceNoiseModel(Model):
     def idle_noise(self, qubits: Iterable[str]) -> Circuit:
         return Circuit()
 
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        return self.idle(qubits)
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
-        return self.idle(qubits)
-
     def flush_noise(self) -> Circuit:
         # compute idling time for each qubit
         max_duration = max(self._durations.values())
@@ -1108,16 +1066,6 @@ class NoiselessModel(Model):
         return circ
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
-        circ = Circuit()
-        circ.append(CircuitInstruction("I", self.get_inds(qubits)))
-        return circ
-
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        circ = Circuit()
-        circ.append(CircuitInstruction("I", self.get_inds(qubits)))
-        return circ
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("I", self.get_inds(qubits)))
         return circ

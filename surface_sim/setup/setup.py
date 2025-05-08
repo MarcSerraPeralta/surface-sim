@@ -26,8 +26,6 @@ class Setup:
         "reset_error_prob": "sq_error_prob",
         "meas_error_prob": "sq_error_prob",
         "idle_error_prob": "sq_error_prob",
-        "idle_meas_error_prob": "idle_error_prob",
-        "idle_reset_error_prob": "idle_error_prob",
     }
 
     def __init__(self, setup: SetupDict) -> None:
