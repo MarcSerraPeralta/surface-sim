@@ -59,7 +59,7 @@ INTERACTION_ORDERS = {
 }
 
 SSD_LAYOUT_DICT = {
-    "code": "smallest_stellated_dodecahedron",
+    "code": "small_stellated_dodecahedron_code",
     "logical_qubits": {
         "L1": {"ind": 0, "log_x": ["D27", "D26", "D21"], "log_z": ["D21", "D9", "D23"]},
         "L2": {
@@ -491,7 +491,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z1",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": -1,
+            "ind": 0,
             "neighbors": {"DA": "D1", "DB": "D2", "DC": "D3", "DD": "D4", "DE": "D5"},
             "coords": [-0.25, -8.066],
         },
@@ -499,7 +499,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z2",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 0,
+            "ind": 1,
             "neighbors": {"DA": "D5", "DB": "D6", "DC": "D7", "DD": "D8", "DE": "D9"},
             "coords": [7.182, -2.666],
         },
@@ -507,7 +507,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z3",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 1,
+            "ind": 2,
             "neighbors": {
                 "DA": "D8",
                 "DB": "D10",
@@ -521,7 +521,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z4",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 2,
+            "ind": 3,
             "neighbors": {
                 "DA": "D12",
                 "DB": "D14",
@@ -535,7 +535,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z5",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 3,
+            "ind": 4,
             "neighbors": {
                 "DA": "D2",
                 "DB": "D16",
@@ -549,7 +549,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z6",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 4,
+            "ind": 5,
             "neighbors": {
                 "DA": "D3",
                 "DB": "D19",
@@ -563,7 +563,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z7",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 5,
+            "ind": 6,
             "neighbors": {
                 "DA": "D4",
                 "DB": "D6",
@@ -577,7 +577,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z8",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 6,
+            "ind": 7,
             "neighbors": {
                 "DA": "D7",
                 "DB": "D10",
@@ -591,7 +591,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z9",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 7,
+            "ind": 8,
             "neighbors": {
                 "DA": "D11",
                 "DB": "D14",
@@ -605,7 +605,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z10",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 8,
+            "ind": 9,
             "neighbors": {
                 "DA": "D15",
                 "DB": "D18",
@@ -619,7 +619,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z11",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 9,
+            "ind": 10,
             "neighbors": {
                 "DA": "D26",
                 "DB": "D27",
@@ -633,7 +633,7 @@ SSD_LAYOUT_DICT = {
             "qubit": "Z12",
             "role": "anc",
             "stab_type": "z_type",
-            "ind": 10,
+            "ind": 11,
             "neighbors": {
                 "DA": "D1",
                 "DB": "D9",

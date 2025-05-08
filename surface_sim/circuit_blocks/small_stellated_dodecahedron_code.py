@@ -132,6 +132,8 @@ def qec_round_iterator(
             "The given layout is not an small stellated dodecahedron code, "
             f"but a {layout.code}"
         )
+    if not anc_reset:
+        raise ValueError("Current implementation only supports 'anc_reset=True'.")
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
@@ -157,12 +159,14 @@ def qec_round_iterator(
 
         # X ancillas
         int_pairs = [(x, int_order[x][step]) for x in x_stabs]
+        int_pairs = [pair for pair in int_pairs if pair[1] is not None]
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
         cnot_circuit += model.cnot(int_qubits)
 
         # Z ancillas
         int_pairs = [(int_order[z][step], z) for z in z_stabs]
+        int_pairs = [pair for pair in int_pairs if pair[0] is not None]
         int_qubits = list(chain.from_iterable(int_pairs))
         interacted_qubits.update(int_qubits)
         cnot_circuit += model.cnot(int_qubits)
@@ -171,9 +175,9 @@ def qec_round_iterator(
         yield cnot_circuit + model.idle(idle_qubits)
         yield model.tick()
 
-        meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
-        yield meas + model.idle_meas(data_qubits)
-        yield model.tick()
+    meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
+    yield meas + model.idle_meas(data_qubits)
+    yield model.tick()
 
 
 gate_to_iterator = {
