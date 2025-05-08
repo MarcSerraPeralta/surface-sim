@@ -44,6 +44,8 @@ __all__ = [
     "init_qubits_x1_iterator",
     "qec_round",
     "qec_round_iterator",
+    "qec_round_pipelined",
+    "qec_round_pipelined_iterator",
     "gate_to_iterator",
     "gate_to_iterator_pipelined",
 ]
