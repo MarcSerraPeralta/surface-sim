@@ -56,8 +56,6 @@ class Model:
         "reset_y",
         "reset_z",
         "idle",
-        "idle_meas",
-        "idle_reset",
     ]
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
@@ -262,12 +260,6 @@ class Model:
         return self.reset(qubits)
 
     def idle(self, qubits: Iterable[str]) -> Circuit:
-        raise NotImplementedError
-
-    def idle_meas(self, qubits: Iterable[str]) -> Circuit:
-        raise NotImplementedError
-
-    def idle_reset(self, qubits: Iterable[str]) -> Circuit:
         raise NotImplementedError
 
     # noise methods

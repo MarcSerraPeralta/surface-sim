@@ -149,7 +149,7 @@ def qec_round_iterator(
 
     if anc_reset:
         resets = model.reset_x(x_stabs) + model.reset_z(z_stabs)
-        yield resets + model.idle_reset(data_qubits)
+        yield resets + model.idle(data_qubits)
         yield model.tick()
 
     # CNOT gates
@@ -176,7 +176,7 @@ def qec_round_iterator(
         yield model.tick()
 
     meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
-    yield meas + model.idle_meas(data_qubits)
+    yield meas + model.idle(data_qubits)
     yield model.tick()
 
 

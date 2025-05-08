@@ -6,7 +6,5 @@ setup:
     meas_error_prob: "{prob}"
     reset_error_prob: "{prob}"
     idle_error_prob: "{prob}"
-    idle_meas_error_prob: "{prob}"
-    idle_reset_error_prob: "{prob}"
     assign_error_flag: "{assign_errors}"
     assign_error_prob: "{prob}"
