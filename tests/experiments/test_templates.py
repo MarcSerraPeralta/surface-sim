@@ -116,7 +116,6 @@ def test_memory_experiments():
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )
-        _ = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
@@ -227,7 +226,6 @@ def test_repeated_s_experiments():
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )
-        _ = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
@@ -326,7 +324,6 @@ def test_repeated_h_experiments():
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )
-        _ = circuit.detector_error_model(allow_gauge_detectors=False)
 
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
@@ -342,23 +339,69 @@ def test_repeated_h_experiments():
     return
 
 
-def test_repeated_cnot_experiment():
-    layout_c = unrot_surface_code(distance=3)
-    layout_t = unrot_surface_code(
-        distance=3,
-        logical_qubit_label="L1",
-        init_point=(20, 20),
-        init_data_qubit_id=20,
-        init_zanc_qubit_id=9,
-        init_xanc_qubit_id=9,
-        init_ind=layout_c.get_max_ind() + 1,
-    )
-    set_trans_cnot(layout_c, layout_t)
-    set_trans_cnot(layout_t, layout_c)
-    model = NoiselessModel.from_layouts(layout_c, layout_t)
-    detectors = Detectors.from_layouts("post-gate", layout_c, layout_t)
+def test_repeated_cnot_experiments():
+    TESTS = [
+        (
+            unrot_surface_codes(2, 3),
+            unrot_surface_code_css.repeated_cnot_experiment,
+        ),
+        (
+            rot_surface_code_rectangles(2, 3),
+            rot_surface_code_css.repeated_cnot_experiment,
+        ),
+        (
+            rot_surface_code_rectangles(2, 3),
+            lambda *args, **kargs: rot_surface_code_css.repeated_cnot_experiment(
+                *args,
+                gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
+                **kargs,
+            ),
+        ),
+    ]
 
-    for rot_basis in [True, False]:
+    for layouts, repeated_cnot_experiment in TESTS:
+        layout_c, layout_t = layouts
+        model = NoiselessModel.from_layouts(*layouts)
+        detectors = Detectors.from_layouts("post-gate", *layouts)
+
+        # standard experiment in both basis
+        for rot_basis in [True, False]:
+            circuit = repeated_cnot_experiment(
+                model=model,
+                layout_c=layout_c,
+                layout_t=layout_t,
+                detectors=detectors,
+                num_cnot_gates=4,
+                num_rounds_per_gate=2,
+                anc_reset=False,
+                data_init={q: 0 for q in layout_c.data_qubits + layout_t.data_qubits},
+                rot_basis=rot_basis,
+            )
+
+            assert isinstance(circuit, stim.Circuit)
+
+            # check that the detectors and logicals fulfill their
+            # conditions by building the stim diagram
+            dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+            num_coords = 0
+            anc_coords = {
+                k: list(map(float, v)) for k, v in layout_c.anc_coords.items()
+            }
+            anc_coords |= {
+                k: list(map(float, v)) for k, v in layout_t.anc_coords.items()
+            }
+            for dem_instr in dem:
+                if dem_instr.type == "detector":
+                    assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                    num_coords += 1
+
+            assert num_coords == dem.num_detectors
+
+        # build for some specific detectors
+        detectors = Detectors.from_layouts(
+            "post-gate", *layouts, include_gauge_dets=True
+        )
         circuit = repeated_cnot_experiment(
             model=model,
             layout_c=layout_c,
@@ -366,38 +409,155 @@ def test_repeated_cnot_experiment():
             detectors=detectors,
             num_cnot_gates=4,
             num_rounds_per_gate=2,
-            cnot_orientation="alternating",
             anc_reset=False,
+            anc_detectors=["X1"],
             data_init={q: 0 for q in layout_c.data_qubits + layout_t.data_qubits},
-            rot_basis=rot_basis,
+            rot_basis=True,
         )
 
-        assert isinstance(circuit, stim.Circuit)
+        num_anc = len(layout_c.anc_qubits) + len(layout_t.anc_qubits)
+        num_anc_x = len(layout_c.get_qubits(role="anc", stab_type="x_type")) + len(
+            layout_t.get_qubits(role="anc", stab_type="x_type")
+        )
+        assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
 
-        # check that the detectors and logicals fulfill their
-        # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=False)
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
 
-        num_coords = 0
-        anc_coords = layout_c.anc_coords
-        anc_coords |= layout_t.anc_coords
-        anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
-        for dem_instr in dem:
-            if dem_instr.type == "detector":
-                assert dem_instr.args_copy()[:-1] in anc_coords.values()
-                num_coords += 1
+        assert len(non_zero_dets) == 1 + 4 * 2 + 1
 
-        assert num_coords == dem.num_detectors
+        # without gauge detectors
+        detectors = Detectors.from_layouts(
+            "post-gate", *layouts, include_gauge_dets=False
+        )
+        circuit = repeated_cnot_experiment(
+            model=model,
+            layout_c=layout_c,
+            layout_t=layout_t,
+            detectors=detectors,
+            num_cnot_gates=4,
+            num_rounds_per_gate=2,
+            anc_reset=False,
+            data_init={q: 0 for q in layout_c.data_qubits + layout_t.data_qubits},
+            rot_basis=True,
+        )
+
+        num_anc = len(layout_c.anc_qubits) + len(layout_t.anc_qubits)
+        num_anc_x = len(layout_c.get_qubits(role="anc", stab_type="x_type")) + len(
+            layout_t.get_qubits(role="anc", stab_type="x_type")
+        )
+        assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == num_anc_x + 4 * 2 * num_anc + num_anc_x
 
     return
 
 
 def test_repeated_s_injection_experiment():
-    layout, layout_anc = unrot_surface_codes(2, distance=3)
-    model = NoiselessModel.from_layouts(layout, layout_anc)
-    detectors = Detectors.from_layouts("post-gate", layout, layout_anc)
+    TESTS = [
+        (
+            unrot_surface_codes(2, 3),
+            unrot_surface_code_css.repeated_s_injection_experiment,
+        ),
+        (
+            rot_surface_code_rectangles(2, 3),
+            rot_surface_code_css.repeated_s_injection_experiment,
+        ),
+        (
+            rot_surface_code_rectangles(2, 3),
+            lambda *args, **kargs: rot_surface_code_css.repeated_s_injection_experiment(
+                *args,
+                gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
+                **kargs,
+            ),
+        ),
+    ]
 
-    for rot_basis in [True, False]:
+    for layouts, repeated_s_injection_experiment in TESTS:
+        layout, layout_anc = layouts
+        model = NoiselessModel.from_layouts(*layouts)
+        detectors = Detectors.from_layouts("post-gate", *layouts)
+
+        # standard experiment in both basis
+        for rot_basis in [True, False]:
+            circuit = repeated_s_injection_experiment(
+                model=model,
+                layout=layout,
+                layout_anc=layout_anc,
+                detectors=detectors,
+                num_s_injections=2,
+                num_rounds_per_gate=1,
+                anc_reset=True,
+                data_init={q: 0 for q in layout.data_qubits + layout_anc.data_qubits},
+                rot_basis=rot_basis,
+            )
+
+            assert isinstance(circuit, stim.Circuit)
+
+            # check that the detectors and logicals fulfill their
+            # conditions by building the stim diagram
+            dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+            num_coords = 0
+            anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
+            anc_coords |= {
+                k: list(map(float, v)) for k, v in layout_anc.anc_coords.items()
+            }
+            for dem_instr in dem:
+                if dem_instr.type == "detector":
+                    assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                    num_coords += 1
+
+            assert num_coords == dem.num_detectors
+
+        # build for some specific detectors
+        detectors = Detectors.from_layouts(
+            "post-gate", *layouts, include_gauge_dets=True
+        )
+        circuit = repeated_s_injection_experiment(
+            model=model,
+            layout=layout,
+            layout_anc=layout_anc,
+            detectors=detectors,
+            num_s_injections=2,
+            num_rounds_per_gate=1,
+            anc_reset=False,
+            anc_detectors=["X1"],
+            data_init={q: 0 for q in layout.data_qubits + layout_anc.data_qubits},
+            rot_basis=True,
+        )
+
+        num_anc = len(layout.anc_qubits) + len(layout_anc.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type")) + len(
+            layout_anc.get_qubits(role="anc", stab_type="x_type")
+        )
+        num_anc_z = len(layout.get_qubits(role="anc", stab_type="z_type")) + len(
+            layout_anc.get_qubits(role="anc", stab_type="z_type")
+        )
+
+        assert (
+            circuit.num_detectors
+            == num_anc + 2 * (4 * num_anc + num_anc_z // 2) + num_anc_x // 2
+        )
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == 1 + 2 * 4 * 1 + 1
+
+        # without gauge detectors
+        detectors = Detectors.from_layouts(
+            "post-gate", *layouts, include_gauge_dets=False
+        )
         circuit = repeated_s_injection_experiment(
             model=model,
             layout=layout,
@@ -407,24 +567,39 @@ def test_repeated_s_injection_experiment():
             num_rounds_per_gate=1,
             anc_reset=True,
             data_init={q: 0 for q in layout.data_qubits + layout_anc.data_qubits},
-            rot_basis=rot_basis,
+            rot_basis=True,
         )
 
-        assert isinstance(circuit, stim.Circuit)
+        num_anc = len(layout.anc_qubits) + len(layout_anc.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type")) + len(
+            layout_anc.get_qubits(role="anc", stab_type="x_type")
+        )
+        num_anc_z = len(layout.get_qubits(role="anc", stab_type="z_type")) + len(
+            layout_anc.get_qubits(role="anc", stab_type="z_type")
+        )
 
-        # check that the detectors and logicals fulfill their
-        # conditions by building the stim diagram
-        dem = circuit.detector_error_model(allow_gauge_detectors=False)
+        assert (
+            circuit.num_detectors
+            == num_anc + 2 * (4 * num_anc + num_anc_z // 2) + num_anc_x // 2
+        )
 
-        num_coords = 0
-        anc_coords = layout.anc_coords
-        anc_coords |= layout_anc.anc_coords
-        anc_coords = {k: list(map(float, v)) for k, v in anc_coords.items()}
-        for dem_instr in dem:
-            if dem_instr.type == "detector":
-                assert dem_instr.args_copy()[:-1] in anc_coords.values()
-                num_coords += 1
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
 
-        assert num_coords == dem.num_detectors
+        assert (
+            len(non_zero_dets)
+            == num_anc_x // 2
+            + 2
+            * (
+                num_anc_x // 2
+                + num_anc // 2
+                + 2 * num_anc
+                + num_anc_z // 2
+                + num_anc // 2
+            )
+            + num_anc_x // 2
+        )
 
     return
