@@ -25,6 +25,7 @@ dependencies = [
     "PyYAML",
     "netCDF4",
     "stim >= 1.14.0", # for 'likeliest_error_sat_problem' and 'Circuit.pop'
+    "galois",
 ]
 keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
 
