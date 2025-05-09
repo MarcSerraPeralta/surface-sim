@@ -189,6 +189,8 @@ def merge_iterators(
             if curr_block[k] is None:
                 qubits = list(chain(*[l.qubits for l in iterators[k][1:]]))
                 curr_block[k] = model.idle(qubits)
+                if iterators[k][0].noiseless:
+                    curr_block[k] = curr_block[k].without_noise()
 
         circuit += merge_operation_layers(*curr_block)
 

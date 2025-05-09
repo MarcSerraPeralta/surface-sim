@@ -9,6 +9,7 @@ from surface_sim.experiments import schedule_from_circuit, experiment_from_sched
 from surface_sim.experiments.arbitrary_experiment import blocks_from_schedule
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.layouts import unrot_surface_codes
+from surface_sim.circuit_blocks.decorators import noiseless
 
 
 def test_schedule_from_circuit():
@@ -236,5 +237,59 @@ def test_module_2_operations_in_detectors():
     for instr in experiment.flattened():
         if instr.name == "DETECTOR":
             assert len(instr.targets_copy()) <= 3
+
+    return
+
+
+def test_noiseless_decorator():
+    layouts = unrot_surface_codes(2, distance=3)
+    setup = CircuitNoiseSetup()
+    setup.set_var_param("prob", 1e-3)
+    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    detectors = Detectors.from_layouts("pre-gate", *layouts)
+
+    noisy_schedule = [
+        (gate_to_iterator["R"], layouts[0]),
+        (gate_to_iterator["R"], layouts[1]),
+        (gate_to_iterator["TICK"],),
+        (gate_to_iterator["X"], layouts[0]),
+        (gate_to_iterator["MX"], layouts[1]),
+        (gate_to_iterator["TICK"],),
+    ]
+    noisy_experiment = experiment_from_schedule(
+        noisy_schedule,
+        model,
+        detectors,
+        anc_reset=True,
+        anc_detectors=None,
+    )
+
+    layouts = unrot_surface_codes(2, distance=3)
+    setup = CircuitNoiseSetup()
+    setup.set_var_param("prob", 1e-3)
+    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    detectors = Detectors.from_layouts("pre-gate", *layouts)
+
+    noiseless_schedule = [
+        (noiseless(gate_to_iterator["R"]), layouts[0]),
+        (noiseless(gate_to_iterator["R"]), layouts[1]),
+        (noiseless(gate_to_iterator["TICK"]),),
+        (noiseless(gate_to_iterator["X"]), layouts[0]),
+        (noiseless(gate_to_iterator["MX"]), layouts[1]),
+        (noiseless(gate_to_iterator["TICK"]),),
+    ]
+    noiseless_experiment = experiment_from_schedule(
+        noiseless_schedule,
+        model,
+        detectors,
+        anc_reset=True,
+        anc_detectors=None,
+    )
+
+    assert (
+        noiseless_experiment.flow_generators()
+        == noisy_experiment.without_noise().flow_generators()
+    )
+    assert len(noiseless_experiment) == len(noisy_experiment.without_noise())
 
     return
