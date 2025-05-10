@@ -15,3 +15,7 @@ It is possible to perform more than one QEC round between logical operation laye
 ```
 logical operation layer | QEC round | ... | QEC round| logical operation layer | QEC round | ...
 ```
+
+The logical operations must have one `model.tick()` before starting the physical implementation of the operation.
+This TICK is used to add incoming noise (if needed) and to plot the stabilizers before the gate when calling `stim.Circuit.diagram`.
+The TICK must be there to make sure that idling noise is correctly added when the logical operations have different physical gate layers.
