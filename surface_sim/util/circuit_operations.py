@@ -6,7 +6,12 @@ import stim
 from ..layouts.layout import Layout
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..models import Model
-from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation, qec_circuit
+from ..circuit_blocks.decorators import (
+    LogOpCallable,
+    LogicalOperation,
+    qec_circuit,
+    qec_circuit_with_meas,
+)
 
 
 MEAS_INSTR = [
@@ -23,6 +28,16 @@ MEAS_INSTR = [
     "MZZ",
     "MPP",
 ]
+VALID_OP_TYPES = [
+    "qubit_init",
+    "sq_unitary_gate",
+    "tq_unitary_gate",
+    "qec_round",
+    "qec_round_with_meas",
+    "measurement",
+]
+QEC_OP_TYPES = {"qec_round": qec_circuit, "qec_round_with_meas": qec_circuit_with_meas}
+GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -219,9 +234,7 @@ def merge_logical_operations(
         The functions need to have ``(model, *layouts)`` as signature.
         There must be an entry for each layout except if it is participating
         in a two-qubit gate, then there must be one entry per pair.
-        Each layout can only appear once, i.e. it can only perform one
-        operation. Operations do not include QEC rounds (see
-        ``merge_qec_rounds`` to merge rounds).
+        Each layout can only appear once, i.e. it can only perform one operation.
         The TICK instructions must appear at the same time in all iterators
         when iterating through them.
     model
@@ -244,18 +257,40 @@ def merge_logical_operations(
     circuit
         Circuit from merging the given circuits.
     """
-    if any(i[0].log_op_type == "qec_round" for i in op_iterators):
-        raise TypeError(
-            "This function only accepts to merge non-QEC-round operations. "
-            "To merge QEC rounds, use 'merge_qec_rounds'."
+    if any(op[0].log_op_type not in VALID_OP_TYPES for op in op_iterators):
+        raise TypeError(f"'op_iterators' must be valid operation types.")
+    qec_ops = [op[0].log_op_type in QEC_OP_TYPES for op in op_iterators]
+    if any(qec_ops) and (not all(qec_ops)):
+        raise ValueError(
+            "All logical qubits must be performing QEC cycles at the same time."
         )
+
+    # change QEC round iterators to include 'anc_reset' (if needed)
+    if all(qec_ops):
+        if anc_reset is None:
+            raise ValueError("QEC round found but 'anc_reset' is not specified.")
+        if any(len(op[1:]) > 1 for op in op_iterators):
+            raise ValueError(
+                "Incorrect schedule format when specifying the QEC round iterators."
+            )
+
+        for k, _ in enumerate(op_iterators):
+            func = op_iterators[k][0]
+            decorator = QEC_OP_TYPES[func.log_op_type]
+
+            @decorator
+            def iterator(model: Model, layout: Layout):
+                return func(model, layout, anc_reset=anc_reset)
+
+            op_iterators[k] = (iterator, op_iterators[k][1])
 
     circuit = merge_iterators(op_iterators, model)
 
     # update the detectors due to unitary gates
     for op in op_iterators:
         func, layouts = op[0], op[1:]
-        if func.log_op_type not in ["sq_unitary_gate", "tq_unitary_gate"]:
+        if func.log_op_type not in GATE_OP_TYPES:
+            # detectors do not need to be updated
             continue
 
         gate_label = func.__name__.replace("_iterator", "_")
@@ -269,9 +304,17 @@ def merge_logical_operations(
             new_stabs_inv.update(new_stabs_2_inv)
         detectors.update(new_stabs, new_stabs_inv)
 
+    # check if detectors need to be build because of QEC round
+    if all(qec_ops):
+        circuit += detectors.build_from_anc(
+            model.meas_target, anc_reset, anc_qubits=anc_detectors
+        )
+
     # check if detectors needs to be built because of measurements
     meas_ops = [
-        k for k, i in enumerate(op_iterators) if i[0].log_op_type == "measurement"
+        k
+        for k, i in enumerate(op_iterators)
+        if i[0].log_op_type in ["measurement", "qec_round_with_meas"]
     ]
     if meas_ops:
         if anc_reset is None:
@@ -340,85 +383,6 @@ def merge_logical_operations(
             detectors.activate_detectors(
                 op_iterators[k][1].anc_qubits, gauge_dets=gauge_dets
             )
-
-    return circuit
-
-
-def merge_qec_rounds(
-    qec_round_iterator: LogOpCallable,
-    model: Model,
-    layouts: Sequence[Layout],
-    detectors: Detectors,
-    anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
-    **kargs,
-) -> stim.Circuit:
-    """
-    Merges the yielded circuits of the QEC round iterator for each of the layouts
-    and returns the circuit corresponding to the join of all these merges and
-    the detector definitions.
-
-    Parameters
-    ----------
-    qec_round_iterator
-        LogOpCallable that yields the circuits to be merged of the QEC round without
-        the detectors.
-        Its inputs must include ``model`` and ``layout``.
-    model
-        Noise model for the gates.
-    layouts
-        Sequence of code layouts.
-    detectors
-        Object to build the detectors.
-    anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC round.
-        By default ``True``.
-    anc_detectors
-        List of ancilla qubits for which to define the detectors.
-        If ``None``, adds all detectors.
-        By default ``None``.
-    kargs
-        Extra arguments for ``qec_round_iterator`` apart from ``layout``,
-        ``model``, and ``anc_reset``.
-
-    Returns
-    -------
-    circuit
-        Circuit corrresponding to the joing of all the merged individual/yielded circuits,
-        including the detector definitions.
-    """
-    if not isinstance(layouts, Sequence):
-        raise TypeError(
-            f"'layouts' must be a collection, but {type(layouts)} was given."
-        )
-    if len(layouts) == 0:
-        return stim.Circuit()
-
-    if any(not isinstance(l, Layout) for l in layouts):
-        raise TypeError("Elements in 'layouts' must be Layout objects.")
-    if not isinstance(qec_round_iterator, LogOpCallable):
-        raise TypeError(
-            f"'qec_round_iterator' must be LogOpCallable, but {type(qec_round_iterator)} was given."
-        )
-    if qec_round_iterator.log_op_type != "qec_round":
-        raise TypeError(
-            f"'qec_round_iterator' must be a QEC round, not a {qec_round_iterator.log_op_type}."
-        )
-    if anc_detectors is not None:
-        data_qubits = [l.data_qubits for l in layouts]
-        if set(anc_detectors).intersection(sum(data_qubits, start=tuple())) != set():
-            raise ValueError("Some elements in 'anc_detectors' are not ancilla qubits.")
-
-    @qec_circuit
-    def iterator(model: Model, layout: Layout):
-        return qec_round_iterator(model, layout, anc_reset=anc_reset, **kargs)
-
-    circuit = merge_iterators([(iterator, l) for l in layouts], model)
-
-    # add detectors
-    circuit += detectors.build_from_anc(
-        model.meas_target, anc_reset, anc_qubits=anc_detectors
-    )
 
     return circuit
 

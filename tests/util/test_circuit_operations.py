@@ -4,7 +4,6 @@ import stim
 from surface_sim.util.circuit_operations import (
     merge_operation_layers,
     merge_circuits,
-    merge_qec_rounds,
     merge_logical_operations,
 )
 from surface_sim.circuit_blocks.unrot_surface_code_css import (
@@ -108,11 +107,11 @@ def test_merge_qec_rounds():
     model = NoiselessModel(qubit_inds)
     detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
 
-    circuit = merge_qec_rounds(
-        qec_round_iterator,
+    circuit = merge_logical_operations(
+        [(qec_round_iterator, layout), (qec_round_iterator, other_layout)],
         model,
-        [layout, other_layout],
         detectors,
+        anc_reset=True,
     )
 
     assert isinstance(circuit, stim.Circuit)
