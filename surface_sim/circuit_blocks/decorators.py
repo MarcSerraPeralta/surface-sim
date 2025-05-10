@@ -41,6 +41,18 @@ def qec_circuit(func):
     return func
 
 
+def qec_circuit_with_meas(func):
+    """
+    Decorator for adding the attribute ``"log_op_type"`` and setting it to
+    ``"qec_round"`` to a function.
+    """
+    func.log_op_type = "qec_round_with_meas"
+    func.rot_basis = None
+    func.num_qubits = None
+    func.noiseless = False
+    return func
+
+
 def sq_gate(func):
     """
     Decorator for adding the attribute ``"log_op_type"`` and setting it to

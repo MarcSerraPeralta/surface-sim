@@ -2,7 +2,7 @@ from collections.abc import Sequence, Iterable
 
 import stim
 
-from ..util.circuit_operations import merge_logical_operations, merge_qec_rounds
+from ..util.circuit_operations import merge_logical_operations
 from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
@@ -159,7 +159,8 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
                 (reset_z_iterator, layout_1),
             ],
             [
-                (qec_round_iterator, layout_0, layout_1),
+                (qec_round_iterator, layout_0),
+                (qec_round_iterator, layout_1),
             ],
             [
                 (log_x_iterator, layout_1),
@@ -213,7 +214,9 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
             if len(counter) == 0:
                 raise ValueError("No active layout found when performing a QEC round.")
             # add a QEC round for all active layouts
-            blocks.append([(operation[0], *counter.keys())])
+            blocks.append([])
+            for layout in counter:
+                blocks[-1].append((operation[0], layout))
             continue
 
         # activate layouts. If not the check for layouts in current operation are
@@ -321,24 +324,14 @@ def experiment_from_schedule(
     experiment += qubit_coords(model, *layouts)
 
     for block in blocks:
-        if block[0][0].log_op_type == "qec_round":
-            experiment += merge_qec_rounds(
-                qec_round_iterator=block[0][0],
-                model=model,
-                layouts=block[0][1:],
-                detectors=detectors,
-                anc_reset=anc_reset,
-                anc_detectors=anc_detectors,
-            )
-        else:
-            experiment += merge_logical_operations(
-                block,
-                model=model,
-                detectors=detectors,
-                init_log_obs_ind=experiment.num_observables,
-                anc_reset=anc_reset,
-                anc_detectors=anc_detectors,
-            )
+        experiment += merge_logical_operations(
+            block,
+            model=model,
+            detectors=detectors,
+            init_log_obs_ind=experiment.num_observables,
+            anc_reset=anc_reset,
+            anc_detectors=anc_detectors,
+        )
 
     return experiment
 
