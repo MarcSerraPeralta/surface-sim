@@ -1,12 +1,11 @@
 import pytest
 import stim
 
-from surface_sim import Layout
 from surface_sim.setup import CircuitNoiseSetup
 from surface_sim.models import NoiselessModel, CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
-from surface_sim.experiments.arbitrary_experiment import blocks_from_schedule
+from surface_sim.experiments.arbitrary_experiment import schedule_from_instructions
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.layouts import unrot_surface_codes
 from surface_sim.circuit_blocks.decorators import noiseless
@@ -19,55 +18,76 @@ def test_schedule_from_circuit():
         R 0 1 2
         TICK
         X 0
-        M 1
         TICK
-        CX 0 1 2 3
+        CX 0 1
         """
     )
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 
-    assert len(schedule) == 9
+    assert len(schedule) == 5
 
-    list_num_layouts = [1, 1, 1, 0, 1, 1, 0, 2, 2]
-    for op, num_layouts in zip(schedule, list_num_layouts):
-        assert len(op) == num_layouts + 1
-        assert all(isinstance(l, Layout) for l in op[1:])
-        if num_layouts != 0:
-            assert op[0].log_op_type != "qec_round"
+    expected_schedule = [
+        [
+            (gate_to_iterator["R"], layouts[0]),
+            (gate_to_iterator["R"], layouts[1]),
+            (gate_to_iterator["R"], layouts[2]),
+        ],
+        [
+            (gate_to_iterator["TICK"], layouts[0]),
+            (gate_to_iterator["TICK"], layouts[1]),
+            (gate_to_iterator["TICK"], layouts[2]),
+        ],
+        [
+            (gate_to_iterator["X"], layouts[0]),
+            (gate_to_iterator["I"], layouts[1]),
+            (gate_to_iterator["I"], layouts[2]),
+        ],
+        [
+            (gate_to_iterator["TICK"], layouts[0]),
+            (gate_to_iterator["TICK"], layouts[1]),
+            (gate_to_iterator["TICK"], layouts[2]),
+        ],
+        [
+            (gate_to_iterator["CX"], layouts[0], layouts[1]),
+            (gate_to_iterator["I"], layouts[2]),
+        ],
+    ]
+
+    assert expected_schedule == schedule
 
     return
 
 
-def test_blocks_from_schedule():
+def test_schedule_from_instructions():
     layouts = unrot_surface_codes(4, distance=3)
-    circuit = stim.Circuit("X 0")
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    instructions = [(gate_to_iterator["X"], layouts[0])]
 
     with pytest.raises(ValueError):
-        _ = blocks_from_schedule(schedule)
+        _ = schedule_from_instructions(instructions)
 
-    circuit = stim.Circuit("R 0\nM 0\nX 0")
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-
+    instructions = [
+        (gate_to_iterator["R"], layouts[0]),
+        (gate_to_iterator["M"], layouts[0]),
+        (gate_to_iterator["X"], layouts[0]),
+    ]
     with pytest.raises(ValueError):
-        _ = blocks_from_schedule(schedule)
+        _ = schedule_from_instructions(instructions)
 
-    circuit = stim.Circuit(
-        """
-        R 0 1 2 3
-        TICK
-        X 0
-        M 1
-        TICK
-        CX 2 3
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    instructions = [
+        (gate_to_iterator["R"], layouts[0]),
+        (gate_to_iterator["R"], layouts[1]),
+        (gate_to_iterator["R"], layouts[2]),
+        (gate_to_iterator["R"], layouts[3]),
+        (gate_to_iterator["TICK"],),
+        (gate_to_iterator["X"], layouts[0]),
+        (gate_to_iterator["M"], layouts[1]),
+        (gate_to_iterator["TICK"],),
+        (gate_to_iterator["CX"], layouts[2], layouts[3]),
+    ]
+    schedule = schedule_from_instructions(instructions)
 
-    blocks = blocks_from_schedule(schedule)
-
-    expected_blocks = [
+    expected_schedule = [
         [
             (gate_to_iterator["R"], layouts[0]),
             (gate_to_iterator["R"], layouts[1]),
@@ -97,28 +117,25 @@ def test_blocks_from_schedule():
         ],
     ]
 
-    assert blocks == expected_blocks
+    assert schedule == expected_schedule
 
-    circuit = stim.Circuit(
-        """
-        R 0
-        TICK
-        TICK
-        M 0
-        """
-    )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    instructions = [
+        (gate_to_iterator["R"], layouts[0]),
+        (gate_to_iterator["TICK"],),
+        (gate_to_iterator["TICK"],),
+        (gate_to_iterator["M"], layouts[0]),
+    ]
 
-    blocks = blocks_from_schedule(schedule)
+    schedule = schedule_from_instructions(instructions)
 
-    expected_blocks = [
+    expected_schedule = [
         [(gate_to_iterator["R"], layouts[0])],
         [(gate_to_iterator["TICK"], layouts[0])],
         [(gate_to_iterator["TICK"], layouts[0])],
         [(gate_to_iterator["M"], layouts[0])],
     ]
 
-    assert blocks == expected_blocks
+    assert schedule == expected_schedule
 
     return
 
@@ -254,12 +271,21 @@ def test_noiseless_decorator():
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     noisy_schedule = [
-        (gate_to_iterator["R"], layouts[0]),
-        (gate_to_iterator["R"], layouts[1]),
-        (gate_to_iterator["TICK"],),
-        (gate_to_iterator["X"], layouts[0]),
-        (gate_to_iterator["MX"], layouts[1]),
-        (gate_to_iterator["TICK"],),
+        [
+            (gate_to_iterator["R"], layouts[0]),
+            (gate_to_iterator["R"], layouts[1]),
+        ],
+        [
+            (gate_to_iterator["TICK"], layouts[0]),
+            (gate_to_iterator["TICK"], layouts[1]),
+        ],
+        [
+            (gate_to_iterator["X"], layouts[0]),
+            (gate_to_iterator["MX"], layouts[1]),
+        ],
+        [
+            (gate_to_iterator["TICK"], layouts[0]),
+        ],
     ]
     noisy_experiment = experiment_from_schedule(
         noisy_schedule,
@@ -276,12 +302,21 @@ def test_noiseless_decorator():
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     noiseless_schedule = [
-        (noiseless(gate_to_iterator["R"]), layouts[0]),
-        (noiseless(gate_to_iterator["R"]), layouts[1]),
-        (noiseless(gate_to_iterator["TICK"]),),
-        (noiseless(gate_to_iterator["X"]), layouts[0]),
-        (noiseless(gate_to_iterator["MX"]), layouts[1]),
-        (noiseless(gate_to_iterator["TICK"]),),
+        [
+            (noiseless(gate_to_iterator["R"]), layouts[0]),
+            (noiseless(gate_to_iterator["R"]), layouts[1]),
+        ],
+        [
+            (noiseless(gate_to_iterator["TICK"]), layouts[0]),
+            (noiseless(gate_to_iterator["TICK"]), layouts[1]),
+        ],
+        [
+            (noiseless(gate_to_iterator["X"]), layouts[0]),
+            (noiseless(gate_to_iterator["MX"]), layouts[1]),
+        ],
+        [
+            (noiseless(gate_to_iterator["TICK"]), layouts[0]),
+        ],
     ]
     noiseless_experiment = experiment_from_schedule(
         noiseless_schedule,
