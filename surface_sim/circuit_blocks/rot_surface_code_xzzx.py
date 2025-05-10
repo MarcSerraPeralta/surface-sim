@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit
+from .decorators import qec_circuit, qec_circuit_with_x_meas, qec_circuit_with_z_meas
 
 # methods to have in this script
 from .util import qubit_coords, idle_iterator
@@ -410,8 +410,8 @@ def qec_round_google_with_log_meas(
         If ``None``, adds all detectors.
         By default ``None``.
     rot_basis
-        If ``True``, the memory experiment is performed in the X basis.
-        If ``False``, the memory experiment is performed in the Z basis.
+        If ``True``, the logical measurement is performed in the X basis.
+        If ``False``, the logical measurement is performed in the Z basis.
         By deafult ``False``.
 
     Notes
@@ -420,46 +420,23 @@ def qec_round_google_with_log_meas(
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
     """
-    if layout.code != "rotated_surface_code":
-        raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
-        )
-    if anc_detectors is None:
-        anc_detectors = layout.anc_qubits
-    if set(anc_detectors) > set(layout.anc_qubits):
-        raise ValueError("Some of the given 'anc_qubits' are not ancilla qubits.")
+    circuit = sum(
+        qec_round_google_with_log_meas_iterator(
+            model=model, layout=layout, rot_basis=rot_basis
+        ),
+        start=Circuit(),
+    )
 
+    # add detectors (from QEC and logical measurement)
     anc_qubits = layout.anc_qubits
-    data_qubits = layout.data_qubits
-    qubits = set(layout.qubits)
+    if anc_detectors is None:
+        anc_detectors = anc_qubits
+    if set(anc_detectors) > set(anc_qubits):
+        raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
-    # a-h
-    circuit = coherent_qec_part_google(model=model, layout=layout)
-
-    # i (for logical measurement)
-    stab_type = "x_type" if rot_basis else "z_type"
-    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-
-    rot_qubits = set(anc_qubits)
-    for direction in ("north_west", "south_east"):
-        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
-        rot_qubits.update(neighbors)
-
-    circuit += model.hadamard(rot_qubits)
-
-    idle_qubits = qubits - rot_qubits
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
-
-    # j (for logical measurement)
-    circuit += model.measure(anc_qubits)
-    circuit += model.measure(data_qubits)
-
-    # detectors and logical observables
-    detectors_stim = detectors.build_from_anc(
+    circuit += detectors.build_from_anc(
         model.meas_target, anc_reset=True, anc_qubits=anc_detectors
     )
-    circuit += detectors_stim
 
     stab_type = "x_type" if rot_basis else "z_type"
     stabs = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -473,6 +450,7 @@ def qec_round_google_with_log_meas(
     )
     circuit += detectors_stim
 
+    # add logical observable
     log_op = "log_x" if rot_basis else "log_z"
     for logical_qubit in layout.logical_qubits:
         log_data_qubits = layout.logical_param(log_op, logical_qubit)
@@ -484,9 +462,92 @@ def qec_round_google_with_log_meas(
     return circuit
 
 
-def coherent_qec_part_google(model: Model, layout: Layout) -> Circuit:
+@qec_circuit_with_x_meas
+def qec_round_google_with_log_x_meas_iterator(
+    model: Model, layout: Layout, anc_reset: bool = True
+) -> Iterator[Circuit]:
+    return qec_round_google_with_log_meas_iterator(
+        model, layout, rot_basis=True, anc_reset=anc_reset
+    )
+
+
+@qec_circuit_with_z_meas
+def qec_round_google_with_log_z_meas_iterator(
+    model: Model, layout: Layout, anc_reset: bool = True
+) -> Iterator[Circuit]:
+    return qec_round_google_with_log_meas_iterator(
+        model, layout, rot_basis=False, anc_reset=anc_reset
+    )
+
+
+def qec_round_google_with_log_meas_iterator(
+    model: Model,
+    layout: Layout,
+    rot_basis: bool = False,
+    anc_reset: bool = True,
+) -> Iterator[Circuit]:
     """
-    Returns stim circuit corresponding to the steps "a" to "h" from the QEC round
+    Yields stim circuit corresponding to a QEC round
+    that includes the logical measurement
+    of the given model. It defines the observables for
+    all logical qubits in the layout.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    rot_basis
+        If ``True``, the logical measurement is performed in the X basis.
+        If ``False``, the logical measurement is performed in the Z basis.
+        By deafult ``False``.
+
+    Notes
+    -----
+    The circuits are based on the following paper by Google AI:
+    https://doi.org/10.1038/s41586-022-05434-1
+    https://doi.org/10.48550/arXiv.2207.06431
+    """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+        )
+    if not anc_reset:
+        raise ValueError("'anc_reset' must be True for this iterator.")
+
+    anc_qubits = layout.anc_qubits
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
+
+    # a-h
+    yield from coherent_qec_part_google_iterator(model=model, layout=layout)
+
+    # i (for logical measurement)
+    stab_type = "x_type" if rot_basis else "z_type"
+    stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
+    yield model.hadamard(anc_qubits) + model.idle(data_qubits)
+    yield model.tick()
+
+    rot_qubits = set()
+    for direction in ("north_west", "south_east"):
+        neighbors = layout.get_neighbors(stab_qubits, direction=direction)
+        rot_qubits.update(neighbors)
+
+    idle_qubits = qubits - rot_qubits
+    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # j (for logical measurement)
+    yield model.measure(anc_qubits) + model.measure(data_qubits)
+
+
+def coherent_qec_part_google_iterator(
+    model: Model, layout: Layout
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit corresponding to the steps "a" to "h" from the QEC round
     described in Google's paper for the given model.
 
     Notes
@@ -501,75 +562,60 @@ def coherent_qec_part_google(model: Model, layout: Layout) -> Circuit:
     anc_qubits = x_anc + z_anc
     qubits = set(layout.qubits)
 
-    circuit = Circuit()
-
-    circuit += model.incoming_noise(data_qubits)
-    circuit += model.tick()
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     # a
-    circuit += model.hadamard(anc_qubits)
-    circuit += model.x_gate(data_qubits)
-    circuit += model.tick()
+    yield model.hadamard(anc_qubits) + model.x_gate(data_qubits)
+    yield model.tick()
 
     # b
     int_pairs = layout.get_neighbors(anc_qubits, direction="north_east", as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
-
-    circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
     # c
-    circuit += model.hadamard(data_qubits)
-    circuit += model.x_gate(anc_qubits)
-    circuit += model.tick()
+    yield model.hadamard(data_qubits) + model.x_gate(anc_qubits)
+    yield model.tick()
 
     # d
     x_pairs = layout.get_neighbors(x_anc, direction="north_west", as_pairs=True)
     z_pairs = layout.get_neighbors(z_anc, direction="south_east", as_pairs=True)
     int_pairs = chain(x_pairs, z_pairs)
     int_qubits = list(chain.from_iterable(int_pairs))
-
-    circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
     # e
-    circuit += model.x_gate(qubits)
-    circuit += model.tick()
+    yield model.x_gate(qubits)
+    yield model.tick()
 
     # f
     x_pairs = layout.get_neighbors(x_anc, direction="south_east", as_pairs=True)
     z_pairs = layout.get_neighbors(z_anc, direction="north_west", as_pairs=True)
     int_pairs = chain(x_pairs, z_pairs)
     int_qubits = list(chain.from_iterable(int_pairs))
-
-    circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
+
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
     # g
-    circuit += model.hadamard(data_qubits)
-    circuit += model.x_gate(anc_qubits)
-    circuit += model.tick()
+    yield model.hadamard(data_qubits) + model.x_gate(anc_qubits)
+    yield model.tick()
 
     # h
     int_pairs = layout.get_neighbors(anc_qubits, direction="south_west", as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
-
-    circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    circuit += model.idle(idle_qubits)
-    circuit += model.tick()
 
-    return circuit
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
 
 
 def qec_round_google(
@@ -601,39 +647,68 @@ def qec_round_google(
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
     """
+    circuit = sum(
+        qec_round_google_iterator(model=model, layout=layout), start=Circuit()
+    )
+
+    # add detectors
+    anc_qubits = layout.anc_qubits
+    if anc_detectors is None:
+        anc_detectors = anc_qubits
+    if set(anc_detectors) > set(anc_qubits):
+        raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    circuit += detectors.build_from_anc(
+        model.meas_target, anc_reset=True, anc_qubits=anc_detectors
+    )
+
+    return circuit
+
+
+@qec_circuit
+def qec_round_google_iterator(
+    model: Model, layout: Layout, anc_reset: bool = True
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit corresponding to a QEC round
+    of the given model.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The circuits are based on the following paper by Google AI:
+    https://doi.org/10.1038/s41586-022-05434-1
+    https://doi.org/10.48550/arXiv.2207.06431
+    """
     if layout.code != "rotated_surface_code":
         raise TypeError(
             "The given layout is not a rotated surface code, " f"but a {layout.code}"
         )
+    if not anc_reset:
+        raise ValueError("'anc_reset' must be True for this iterator.")
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
 
     # a-h
-    circuit = coherent_qec_part_google(model=model, layout=layout)
+    yield from coherent_qec_part_google_iterator(model=model, layout=layout)
 
     # i
-    circuit += model.hadamard(anc_qubits)
-    circuit += model.x_gate(data_qubits)
-    circuit += model.tick()
+    yield model.hadamard(anc_qubits) + model.x_gate(data_qubits)
+    yield model.tick()
 
     # j
-    circuit += model.measure(anc_qubits)
+    yield model.measure(anc_qubits) + model.idle(data_qubits)
+    yield model.tick()
 
-    circuit += model.idle(data_qubits)
-    circuit += model.tick()
-
-    circuit += model.reset(anc_qubits)
-    circuit += model.idle(data_qubits)
-    circuit += model.tick()
-
-    # add detectors
-    detectors_stim = detectors.build_from_anc(
-        model.meas_target, anc_reset=True, anc_qubits=anc_detectors
-    )
-    circuit += detectors_stim
-
-    return circuit
+    yield model.reset(anc_qubits) + model.idle(data_qubits)
+    yield model.tick()
 
 
 gate_to_iterator = {
