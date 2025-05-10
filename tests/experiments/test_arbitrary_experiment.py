@@ -75,7 +75,10 @@ def test_blocks_from_schedule():
             (gate_to_iterator["R"], layouts[3]),
         ],
         [
-            (gate_to_iterator["TICK"], *layouts),
+            (gate_to_iterator["TICK"], layouts[0]),
+            (gate_to_iterator["TICK"], layouts[1]),
+            (gate_to_iterator["TICK"], layouts[2]),
+            (gate_to_iterator["TICK"], layouts[3]),
         ],
         [
             (gate_to_iterator["X"], layouts[0]),
@@ -84,7 +87,9 @@ def test_blocks_from_schedule():
             (gate_to_iterator["I"], layouts[3]),
         ],
         [
-            (gate_to_iterator["TICK"], layouts[0], layouts[2], layouts[3]),
+            (gate_to_iterator["TICK"], layouts[0]),
+            (gate_to_iterator["TICK"], layouts[2]),
+            (gate_to_iterator["TICK"], layouts[3]),
         ],
         [
             (gate_to_iterator["CX"], layouts[2], layouts[3]),
