@@ -139,6 +139,9 @@ def log_meas_iterator(
     anc_qubits = layout.anc_qubits
     data_qubits = layout.data_qubits
 
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
     if rot_basis:
         yield model.hadamard(data_qubits) + model.idle(anc_qubits)
         yield model.tick()
@@ -709,6 +712,9 @@ def log_meas_xzzx_iterator(
 
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
 
     rot_qubits = set()
     for direction in ("north_west", "south_east"):
