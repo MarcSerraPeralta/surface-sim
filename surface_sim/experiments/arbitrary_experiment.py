@@ -9,7 +9,8 @@ from ..detectors.detectors import Detectors
 from ..circuit_blocks.util import qubit_coords, idle_iterator
 from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation
 
-Schedule = list[tuple[LogOpCallable] | LogicalOperation]
+Instructions = list[tuple[LogOpCallable] | LogicalOperation]
+Schedule = list[Instructions]
 
 
 def schedule_from_circuit(
@@ -51,20 +52,29 @@ def schedule_from_circuit(
     .. code:
         R 0 1
         TICK
-        X 1
-        M 0
+        M 1
+        X 0
         TICK
 
     is translated to
 
     .. code:
         [
-            (reset_z_iterator, layout_0),
-            (reset_z_iterator, layout_1),
-            (qec_round_iterator,),
-            (log_x_iterator, layout_1),
-            (log_meas_z, layout_0),
-            (qec_round_iterator,),
+            [
+                (reset_z_iterator, layout_0),
+                (reset_z_iterator, layout_1),
+            ],
+            [
+                (qec_round_iterator, layout_0),
+                (qec_round_iterator, layout_1),
+            ],
+            [
+                (log_meas_iterator, layout_1),
+                (idle_iterator, layout_0),
+            ],
+            [
+                (qec_round_iterator, layout_0),
+            ],
         ]
 
     """
@@ -94,10 +104,10 @@ def schedule_from_circuit(
             "Not all operations in 'circuit' are present in 'gate_to_iterator'."
         )
 
-    schedule = []
+    instructions = []
     for instr in circuit:
         if instr.name == "TICK":
-            schedule.append((gate_to_iterator["TICK"],))
+            instructions.append((gate_to_iterator["TICK"],))
             continue
 
         func_iter = gate_to_iterator[instr.name]
@@ -105,25 +115,27 @@ def schedule_from_circuit(
 
         if func_iter.log_op_type == "tq_unitary_gate":
             for i, j in _grouper(targets, 2):
-                schedule.append((func_iter, layouts[i], layouts[j]))
+                instructions.append((func_iter, layouts[i], layouts[j]))
         else:
             for i in targets:
-                schedule.append((func_iter, layouts[i]))
+                instructions.append((func_iter, layouts[i]))
+
+    schedule = schedule_from_instructions(instructions)
 
     return schedule
 
 
-def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
-    """Groups the logical operations in a schedule by blocks.
+def schedule_from_instructions(instructions: Instructions) -> Schedule:
+    """Builds a schedule from a list of instructions.
     In each block, layouts only participate in a single operation and
     QEC rounds are only performed to active layouts. Addling is automatically
     added to layouts not participating in a logical operation.
 
     Parameters
     ----------
-    schedule
+    instructions
         List of operations to be applied to a single qubit or pair of qubits.
-        See ``schedule_from_circuit`` for more information about the format.
+        See Notes for more information.
 
     Returns
     -------
@@ -146,7 +158,7 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
             (reset_z_iterator, layout_0),
             (reset_z_iterator, layout_1),
             (qec_round_iterator,),
-            (log_x_iterator, layout_1),
+            (log_meas_iterator, layout_1),
             (qec_round_iterator,),
         ]
 
@@ -163,7 +175,7 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
                 (qec_round_iterator, layout_1),
             ],
             [
-                (log_x_iterator, layout_1),
+                (log_meas_iterator, layout_1),
                 (idle_iterator, layout_0),
             ],
             [
@@ -171,17 +183,17 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
             ],
         ]
     """
-    if not isinstance(schedule, Sequence):
+    if not isinstance(instructions, Sequence):
         raise TypeError(
-            f"'schedule' must be a sequence, but {type(schedule)} was given."
+            f"'instructions' must be a sequence, but {type(instructions)} was given."
         )
-    if any(not isinstance(op, Sequence) for op in schedule):
-        raise TypeError("Elements of 'schedule' must be sequences.")
-    for op in schedule:
+    if any(not isinstance(op, Sequence) for op in instructions):
+        raise TypeError("Elements of 'instructions' must be sequences.")
+    for op in instructions:
         if not isinstance(op[0], LogOpCallable):
-            raise TypeError("Elements in 'schedule[i][0]' must be LogOpCallable.")
+            raise TypeError("Elements in 'instructions[i][0]' must be LogOpCallable.")
         if any(not isinstance(l, Layout) for l in op[1:]):
-            raise TypeError("Elements in 'schedule[i][1:]' must be Layouts.")
+            raise TypeError("Elements in 'instructions[i][1:]' must be Layouts.")
 
     blocks = []
     curr_block = []
@@ -204,7 +216,7 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
         counter = {l: 0 for l in counter}
         return blocks, curr_block, counter
 
-    for operation in schedule:
+    for operation in instructions:
         op = operation[0]
         if op.log_op_type == "qec_round":
             # flush all logical operations and
@@ -262,9 +274,10 @@ def blocks_from_schedule(schedule: Schedule) -> list[Schedule]:
 def get_layouts_from_schedule(schedule: Schedule) -> list[Layout]:
     """Returns a list of all layouts present in the given schedule."""
     layouts = []
-    for op in schedule:
-        if len(op) > 1:
-            layouts += list(op[1:])
+    for block in schedule:
+        for op in block:
+            if len(op) > 1:
+                layouts += list(op[1:])
     return layouts
 
 
@@ -314,7 +327,6 @@ def experiment_from_schedule(
             f"'detectors' must be a Detectors, but {type(detectors)} was given."
         )
 
-    blocks = blocks_from_schedule(schedule)
     layouts = get_layouts_from_schedule(schedule)
 
     experiment = stim.Circuit()
@@ -323,7 +335,7 @@ def experiment_from_schedule(
 
     experiment += qubit_coords(model, *layouts)
 
-    for block in blocks:
+    for block in schedule:
         experiment += merge_logical_operations(
             block,
             model=model,
