@@ -51,6 +51,10 @@ def test_memory_experiments():
             ssd_code(),
             small_stellated_dodecahedron_code.memory_experiment,
         ),
+        (
+            rot_surface_code_rectangles(1, 3)[0],
+            rot_surface_code_xzzx.memory_experiment_google,
+        ),
     ]
 
     for layout, memory_experiment in TESTS:
@@ -66,7 +70,6 @@ def test_memory_experiments():
                 layout=layout,
                 detectors=detectors,
                 num_rounds=5,
-                anc_reset=True,
                 data_init={q: 0 for q in layout.data_qubits},
                 rot_basis=rot_basis,
             )
@@ -95,7 +98,6 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            anc_reset=True,
             anc_detectors=["X1"],
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
@@ -121,7 +123,6 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            anc_reset=True,
             data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )

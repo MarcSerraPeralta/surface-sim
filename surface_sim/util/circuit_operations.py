@@ -10,7 +10,8 @@ from ..circuit_blocks.decorators import (
     LogOpCallable,
     LogicalOperation,
     qec_circuit,
-    qec_circuit_with_meas,
+    qec_circuit_with_x_meas,
+    qec_circuit_with_z_meas,
 )
 
 
@@ -36,8 +37,9 @@ VALID_OP_TYPES = [
     "qec_round_with_meas",
     "measurement",
 ]
-QEC_OP_TYPES = {"qec_round": qec_circuit, "qec_round_with_meas": qec_circuit_with_meas}
+QEC_OP_TYPES = ["qec_round", "qec_round_with_meas"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
+MEAS_OP_TYPES = ["measurement", "qec_round_with_meas"]
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -276,7 +278,16 @@ def merge_logical_operations(
 
         for k, _ in enumerate(op_iterators):
             func = op_iterators[k][0]
-            decorator = QEC_OP_TYPES[func.log_op_type]
+            if func.log_op_type == "qec_round":
+                decorator = qec_circuit
+            elif func.log_op_type == "qec_round_with_meas":
+                decorator = (
+                    qec_circuit_with_x_meas
+                    if func.rot_basis
+                    else qec_circuit_with_z_meas
+                )
+            else:
+                raise TypeError(f"'{func.log_op_type}' not implemented.")
 
             @decorator
             def iterator(model: Model, layout: Layout):
@@ -312,9 +323,7 @@ def merge_logical_operations(
 
     # check if detectors needs to be built because of measurements
     meas_ops = [
-        k
-        for k, i in enumerate(op_iterators)
-        if i[0].log_op_type in ["measurement", "qec_round_with_meas"]
+        k for k, i in enumerate(op_iterators) if i[0].log_op_type in MEAS_OP_TYPES
     ]
     if meas_ops:
         if anc_reset is None:
