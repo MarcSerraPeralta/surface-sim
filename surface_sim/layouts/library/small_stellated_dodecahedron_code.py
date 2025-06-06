@@ -17,6 +17,33 @@ def ssd_code(interaction_order: str = "parallel-6") -> Layout:
     -------
     Layout
         Layout of the SSD code.
+
+    Notes
+    -----
+    The qubit indexing and stabilizers follow:
+
+        J. Q. Broshuis, "The Small Stellated Dodecahedron Code: Finding Interleaved
+        Measurement Schedules", Bachelor's thesis.
+        https://repository.tudelft.nl/record/uuid:4e6852c1-b18d-4b6b-8cc4-dc4587bff260
+
+    Note that the stabilizers also follow:
+
+        J. Conrad, C. Chamberland, N. P. Breuckmann, and B. M. Terhal,
+        "The small stellated dodecahedron code and friends", Philosophical
+        Transactions of the Royal Society A: Mathematical, Physical and Engineering
+        Sciences 376, 20170323 (2018) arXiv:1712.07666 DOI
+
+    The logicals correspond to the basis of subspaces V + W from:
+
+        N. P. Breuckmann and S. Burton, "Fold-Transversal Clifford Gates for Quantum Codes",
+        Quantum 8, 1372 (2024) arXiv:2202.06647 DOI
+
+    where the basis of the subspace W has been modified to make it symplectic.
+    Note that the stabilizer definition of Breuckmann is the same of Conrad
+    except for a change in the stabilizer type (``X <-> Z``), thus the logicals
+    have also been modified accordingly.
+    The logical qubits ``"L1"`` to ``"L4"`` correspond to the logical subspace V
+    and they have transversal gates that span the full 4-qubit Clifford group.
     """
     if interaction_order not in INTERACTION_ORDERS:
         raise ValueError(
@@ -61,29 +88,191 @@ INTERACTION_ORDERS = {
 SSD_LAYOUT_DICT = {
     "code": "small_stellated_dodecahedron_code",
     "logical_qubits": {
-        "L1": {"ind": 0, "log_x": ["D27", "D26", "D21"], "log_z": ["D21", "D9", "D23"]},
+        "L1": {
+            "ind": 0,
+            "log_x": ["D23", "D4", "D5", "D6", "D28", "D29"],
+            "log_z": ["D21", "D23", "D27", "D9", "D11", "D18"],
+        },
         "L2": {
             "ind": 1,
-            "log_x": ["D27", "D22", "D28"],
-            "log_z": ["D24", "D22", "D13"],
+            "log_x": ["D23", "D18", "D25", "D28", "D29", "D19"],
+            "log_z": ["D21", "D23", "D26", "D5", "D9", "D16"],
         },
         "L3": {
             "ind": 2,
-            "log_x": ["D30", "D25", "D26"],
-            "log_z": ["D23", "D25", "D17"],
+            "log_x": [
+                "D12",
+                "D19",
+                "D23",
+                "D4",
+                "D6",
+                "D5",
+                "D17",
+                "D25",
+                "D13",
+                "D28",
+                "D29",
+                "D18",
+            ],
+            "log_z": [
+                "D7",
+                "D17",
+                "D24",
+                "D21",
+                "D27",
+                "D22",
+                "D2",
+                "D3",
+                "D13",
+                "D30",
+                "D12",
+                "D9",
+                "D16",
+                "D11",
+                "D6",
+                "D29",
+                "D19",
+                "D23",
+                "D26",
+                "D5",
+                "D18",
+            ],
         },
-        "L4": {"ind": 3, "log_x": ["D10", "D7", "D8"], "log_z": ["D10", "D15", "D1"]},
-        "L5": {"ind": 4, "log_x": ["D2", "D3", "D19"], "log_z": ["D29", "D19", "D6"]},
+        "L4": {
+            "ind": 3,
+            "log_x": [
+                "D7",
+                "D15",
+                "D24",
+                "D25",
+                "D28",
+                "D21",
+                "D27",
+                "D4",
+                "D2",
+                "D14",
+                "D20",
+                "D1",
+                "D6",
+                "D29",
+                "D19",
+                "D8",
+                "D23",
+                "D26",
+                "D10",
+                "D5",
+                "D18",
+            ],
+            "log_z": [
+                "D12",
+                "D7",
+                "D19",
+                "D15",
+                "D22",
+                "D10",
+                "D1",
+                "D17",
+                "D24",
+                "D2",
+                "D3",
+                "D6",
+                "D13",
+                "D29",
+                "D30",
+            ],
+        },
+        "L5": {
+            "ind": 4,
+            "log_x": ["D20", "D15", "D1", "D24", "D2", "D14"],
+            "log_z": ["D12", "D7", "D17", "D2", "D3", "D30"],
+        },
         "L6": {
             "ind": 5,
-            "log_x": ["D3", "D4", "D26", "D27"],
-            "log_z": ["D4", "D18", "D13"],
+            "log_x": ["D20", "D7", "D10", "D1", "D2", "D8"],
+            "log_z": ["D12", "D22", "D24", "D2", "D13", "D30"],
         },
-        "L7": {"ind": 6, "log_x": ["D11", "D12", "D14"], "log_z": ["D6", "D11", "D20"]},
+        "L7": {
+            "ind": 6,
+            "log_x": [
+                "D21",
+                "D20",
+                "D7",
+                "D27",
+                "D15",
+                "D26",
+                "D10",
+                "D1",
+                "D24",
+                "D2",
+                "D14",
+                "D8",
+            ],
+            "log_z": [
+                "D7",
+                "D15",
+                "D17",
+                "D24",
+                "D21",
+                "D27",
+                "D22",
+                "D2",
+                "D3",
+                "D13",
+                "D30",
+                "D12",
+                "D1",
+                "D9",
+                "D16",
+                "D11",
+                "D23",
+                "D26",
+                "D10",
+                "D5",
+                "D18",
+            ],
+        },
         "L8": {
             "ind": 7,
-            "log_x": ["D30", "D25", "D21", "D12", "D27", "D8", "D9", "D17"],
-            "log_z": ["D23", "D24", "D20", "D9"],
+            "log_x": [
+                "D7",
+                "D15",
+                "D17",
+                "D24",
+                "D25",
+                "D28",
+                "D4",
+                "D2",
+                "D14",
+                "D13",
+                "D12",
+                "D20",
+                "D1",
+                "D6",
+                "D29",
+                "D19",
+                "D8",
+                "D23",
+                "D10",
+                "D5",
+                "D18",
+            ],
+            "log_z": [
+                "D21",
+                "D19",
+                "D23",
+                "D27",
+                "D15",
+                "D26",
+                "D10",
+                "D5",
+                "D1",
+                "D9",
+                "D16",
+                "D11",
+                "D6",
+                "D29",
+                "D18",
+            ],
         },
     },
     "distance": 3,
