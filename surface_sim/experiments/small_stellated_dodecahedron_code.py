@@ -1,4 +1,6 @@
 from collections.abc import Callable
+from copy import deepcopy
+
 from stim import Circuit
 
 from ..models.model import Model
@@ -43,7 +45,7 @@ def repeated_s_like_experiment(
     num_s_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: Callable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -102,7 +104,7 @@ def repeated_s_like_experiment(
         raise ValueError("'num_s_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -142,7 +144,7 @@ def repeated_h_like_experiment(
     num_h_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: Callable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -201,7 +203,7 @@ def repeated_h_like_experiment(
         raise ValueError("'num_h_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -241,7 +243,7 @@ def repeated_swap_r_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: Callable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -301,7 +303,7 @@ def repeated_swap_r_like_experiment(
         raise ValueError("'num_swap_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -341,7 +343,7 @@ def repeated_swap_s_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: Callable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -401,7 +403,7 @@ def repeated_swap_s_like_experiment(
         raise ValueError("'num_swap_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."

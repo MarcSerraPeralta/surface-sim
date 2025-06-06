@@ -163,7 +163,7 @@ def repeated_s_experiment(
         raise ValueError("'num_s_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -259,7 +259,7 @@ def repeated_h_experiment(
         raise ValueError("'num_h_gates' needs to be an even positive integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -371,7 +371,7 @@ def repeated_cnot_experiment(
         )
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
@@ -476,7 +476,7 @@ def repeated_s_injection_experiment(
         raise ValueError("'num_s_injections' needs to be a positive even integer.")
 
     b = "X" if rot_basis else "Z"
-    if data_init is None:
+    if data_init is not None:
         if init_qubits_iterator is None:
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
