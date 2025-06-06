@@ -342,6 +342,11 @@ def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
     log_qubit_label = layout.logical_qubits[0]
     log_x_qubits = layout.logical_param("log_x", log_qubit_label)
 
@@ -372,6 +377,11 @@ def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     data_qubits = layout.data_qubits
     qubits = anc_qubits + data_qubits
 
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
     log_qubit_label = layout.logical_qubits[0]
     log_z_qubits = layout.logical_param("log_z", log_qubit_label)
 
@@ -765,6 +775,11 @@ def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     anc_qubits = layout.anc_qubits
     data_qubits = layout.data_qubits
 
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
     log_qubit_label = layout.logical_qubits[0]
     log_x_qubits = layout.logical_param("log_x", log_qubit_label)
 
@@ -801,6 +816,11 @@ def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     anc_qubits = layout.anc_qubits
     data_qubits = layout.data_qubits
 
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
     log_qubit_label = layout.logical_qubits[0]
     log_z_qubits = layout.logical_param("log_z", log_qubit_label)
 
