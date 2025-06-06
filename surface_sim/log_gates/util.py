@@ -82,7 +82,7 @@ def set_z(layout: Layout) -> None:
 
 def set_idle(layout: Layout) -> None:
     """Adds the required attributes (in place) for the layout to run the Pauli I
-    gate for the unrotated surface code.
+    gate for codes with just one logical qubit.
 
     Parameters
     ----------
