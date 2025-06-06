@@ -5,8 +5,8 @@ from stim import Circuit
 
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
-from .decorators import qec_circuit
+from ..detectors import Detectors, get_new_stab_dict_from_layout
+from .decorators import qec_circuit, sq_gate
 
 # methods to have in this script
 from .util import (
@@ -37,6 +37,14 @@ __all__ = [
     "init_qubits_z1_iterator",
     "init_qubits_x0_iterator",
     "init_qubits_x1_iterator",
+    "log_fold_trans_h",
+    "log_fold_trans_h_iterator",
+    "log_fold_trans_s",
+    "log_fold_trans_s_iterator",
+    "log_fold_trans_swap_r",
+    "log_fold_trans_swap_r_iterator",
+    "log_fold_trans_swap_s",
+    "log_fold_trans_swap_s_iterator",
     "qec_round",
     "qec_round_iterator",
     "gate_to_iterator",
@@ -169,6 +177,244 @@ def qec_round_iterator(
 
     meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
     yield meas + model.idle(data_qubits)
+    yield model.tick()
+
+
+def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns the stim circuit corresponding to a transversal logical S-like gate.
+    See the corresponding setting function for more information.
+    """
+    # update the stabilizer generators
+    gate_label = "log_fold_trans_s"
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update(new_stabs, new_stabs_inv)
+    return sum(log_fold_trans_s_iterator(model=model, layout=layout), start=Circuit())
+
+
+@sq_gate
+def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields the stim circuits corresponding to a transversal logical S-like gate.
+    See the corresponding setting function for more information.
+    """
+    if layout.code != "small_stellated_dodecahedron_code":
+        raise TypeError(
+            "The given layout is not a small stellated dodecahedron code, "
+            f"but a {layout.code}"
+        )
+
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
+    gate_label = "log_fold_trans_s"
+
+    cz_pairs = set()
+    qubits_s_gate = set()
+    qubits_s_dag_gate = set()
+    for data_qubit in data_qubits:
+        trans_s = layout.param(gate_label, data_qubit)
+        if trans_s is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal S-like gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the cz gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_s["cz"] is not None:
+            cz_pairs.add(tuple(sorted([data_qubit, trans_s["cz"]])))
+        if trans_s["local"] == "S":
+            qubits_s_gate.add(data_qubit)
+        elif trans_s["local"] == "S_DAG":
+            qubits_s_dag_gate.add(data_qubit)
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    # S, S_DAG gates
+    int_qubits = list(chain.from_iterable(cz_pairs))
+    yield (
+        model.s_gate(qubits_s_gate)
+        + model.s_dag_gate(qubits_s_dag_gate)
+        + model.cphase(int_qubits)
+        + model.idle(anc_qubits)
+    )
+    yield model.tick()
+
+
+def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
+    """
+    Returns the stim circuit corresponding to a transversal logical H-like gate.
+    See the corresponding setting function for more information.
+    """
+    # update the stabilizer generators
+    gate_label = "log_fold_trans_h"
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update(new_stabs, new_stabs_inv)
+    return sum(log_fold_trans_h_iterator(model=model, layout=layout), start=Circuit())
+
+
+@sq_gate
+def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields the stim circuits corresponding to a transversal logical H-like gate.
+    See the corresponding setting function for more information.
+    """
+    if layout.code != "small_stellated_dodecahedron_code":
+        raise TypeError(
+            "The given layout is not a small stellated dodecahedron code, "
+            f"but a {layout.code}"
+        )
+
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
+    gate_label = "log_fold_trans_h"
+
+    swap_pairs = set()
+    qubits_h_gate = set()
+    for data_qubit in data_qubits:
+        trans_h = layout.param(gate_label, data_qubit)
+        if trans_h is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal H gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the swap gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_h["swap"] is not None:
+            swap_pairs.add(tuple(sorted([data_qubit, trans_h["swap"]])))
+        if trans_h["local"] == "H":
+            qubits_h_gate.add(data_qubit)
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    # H gates
+    idle_qubits = qubits - qubits_h_gate
+    yield model.hadamard(qubits_h_gate) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # long-range SWAP gates
+    int_qubits = list(chain.from_iterable(swap_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
+def log_fold_trans_swap_r(
+    model: Model, layout: Layout, detectors: Detectors
+) -> Circuit:
+    """
+    Returns the stim circuit corresponding to a transversal logical SWAP-like gate,
+    in particular the :math:`\\sigma_r` gate.
+    See the corresponding setting function for more information.
+    """
+    # update the stabilizer generators
+    gate_label = "log_fold_trans_swap_r"
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update(new_stabs, new_stabs_inv)
+    return sum(
+        log_fold_trans_swap_r_iterator(model=model, layout=layout), start=Circuit()
+    )
+
+
+@sq_gate
+def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
+    in particular the :math:`\\sigma_r` gate.
+    See the corresponding setting function for more information.
+    """
+    if layout.code != "small_stellated_dodecahedron_code":
+        raise TypeError(
+            "The given layout is not a small stellated dodecahedron code, "
+            f"but a {layout.code}"
+        )
+
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
+    gate_label = "log_fold_trans_swap_r"
+
+    swap_pairs = set()
+    for data_qubit in data_qubits:
+        trans_swap = layout.param(gate_label, data_qubit)
+        if trans_swap is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal SWAP gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the swap gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_swap["swap"] is not None:
+            swap_pairs.add(tuple(sorted([data_qubit, trans_swap["swap"]])))
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    # long-range SWAP gates
+    int_qubits = list(chain.from_iterable(swap_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
+def log_fold_trans_swap_s(
+    model: Model, layout: Layout, detectors: Detectors
+) -> Circuit:
+    """
+    Returns the stim circuit corresponding to a transversal logical SWAP-like gate,
+    in particular the :math:`\\sigma_s` gate.
+    See the corresponding setting function for more information.
+    """
+    # update the stabilizer generators
+    gate_label = "log_fold_trans_swap_s"
+    new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
+    detectors.update(new_stabs, new_stabs_inv)
+    return sum(
+        log_fold_trans_swap_s_iterator(model=model, layout=layout), start=Circuit()
+    )
+
+
+@sq_gate
+def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
+    in particular the :math:`\\sigma_s` gate.
+    See the corresponding setting function for more information.
+    """
+    if layout.code != "small_stellated_dodecahedron_code":
+        raise TypeError(
+            "The given layout is not a small stellated dodecahedron code, "
+            f"but a {layout.code}"
+        )
+
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
+    gate_label = "log_fold_trans_swap_s"
+
+    swap_pairs = set()
+    for data_qubit in data_qubits:
+        trans_swap = layout.param(gate_label, data_qubit)
+        if trans_swap is None:
+            raise ValueError(
+                "The layout does not have the information to run a "
+                f"transversal SWAP gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        # Using a set to avoid repetition of the swap gates.
+        # Using tuple so that the object is hashable for the set.
+        if trans_swap["swap"] is not None:
+            swap_pairs.add(tuple(sorted([data_qubit, trans_swap["swap"]])))
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    # long-range SWAP gates
+    int_qubits = list(chain.from_iterable(swap_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
 
