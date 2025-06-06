@@ -304,9 +304,14 @@ def merge_logical_operations(
             # detectors do not need to be updated
             continue
 
-        gate_label = func.__name__.replace("_iterator", "_")
-        gate_label += "_".join([l.logical_qubits[0] for l in layouts])
+        if {len(l.logical_qubits) for l in layouts} == {1}:
+            gate_label = func.__name__.replace("_iterator", "_")
+            gate_label += "_".join([l.logical_qubits[0] for l in layouts])
+        else:
+            gate_label = func.__name__.replace("_iterator", "")
+
         new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layouts[0], gate_label)
+
         if len(layouts) == 2:
             new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(
                 layouts[1], gate_label

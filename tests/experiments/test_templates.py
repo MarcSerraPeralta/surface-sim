@@ -159,6 +159,10 @@ def test_repeated_s_experiments():
                 **kargs,
             ),
         ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_s_like_experiment,
+        ),
     ]
 
     for layout, repeated_s_experiment in TESTS:
@@ -257,6 +261,10 @@ def test_repeated_h_experiments():
             unrot_surface_codes(1, 3)[0],
             unrot_surface_code_css.repeated_h_experiment,
         ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_h_like_experiment,
+        ),
     ]
 
     for layout, repeated_h_experiment in TESTS:
@@ -329,6 +337,108 @@ def test_repeated_h_experiments():
             layout=layout,
             detectors=detectors,
             num_h_gates=4,
+            num_rounds_per_gate=2,
+            anc_reset=False,
+            data_init={q: 0 for q in layout.data_qubits},
+            rot_basis=True,
+        )
+
+        num_anc = len(layout.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+        assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == num_anc_x + 4 * 2 * num_anc + num_anc_x
+
+    return
+
+
+def test_repeated_swap_experiments():
+    TESTS = [
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_swap_r_like_experiment,
+        ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_swap_s_like_experiment,
+        ),
+    ]
+
+    for layout, repeated_swap_experiment in TESTS:
+        model = NoiselessModel(layout.qubit_inds)
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
+        )
+
+        # standard experiment in both basis
+        for rot_basis in [True, False]:
+            circuit = repeated_swap_experiment(
+                model=model,
+                layout=layout,
+                detectors=detectors,
+                num_swap_gates=4,
+                num_rounds_per_gate=2,
+                anc_reset=False,
+                data_init={q: 0 for q in layout.data_qubits},
+                rot_basis=rot_basis,
+            )
+
+            assert isinstance(circuit, stim.Circuit)
+
+            # check that the detectors and logicals fulfill their
+            # conditions by building the stim diagram
+            dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+            num_coords = 0
+            anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
+            for dem_instr in dem:
+                if dem_instr.type == "detector":
+                    assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                    num_coords += 1
+
+            assert num_coords == dem.num_detectors
+
+        # build for some specific detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=True
+        )
+        circuit = repeated_swap_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_swap_gates=4,
+            num_rounds_per_gate=2,
+            anc_reset=False,
+            anc_detectors=["X1"],
+            data_init={q: 0 for q in layout.data_qubits},
+            rot_basis=True,
+        )
+
+        num_anc = len(layout.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+        assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == 1 + 4 * 2 + 1
+
+        # without gauge detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+        )
+        circuit = repeated_swap_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_swap_gates=4,
             num_rounds_per_gate=2,
             anc_reset=False,
             data_init={q: 0 for q in layout.data_qubits},

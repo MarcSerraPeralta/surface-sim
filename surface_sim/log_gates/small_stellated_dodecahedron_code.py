@@ -377,6 +377,7 @@ def set_fold_trans_swap_r(layout: Layout) -> None:
         "Z11": {"Z11"},
         "Z12": {"Z12"},
     }
+    inv_map_stabs_sigma_r = {list(v)[0]: {k} for k, v in map_stabs_sigma_r.items()}
 
     # Store logical gate information to the data qubits
     for qubit in data_qubits:
@@ -393,7 +394,7 @@ def set_fold_trans_swap_r(layout: Layout) -> None:
             anc_qubit,
             {
                 "new_stab_gen": list(map_stabs_sigma_r[anc_qubit]),
-                "new_stab_gen_inv": list(map_stabs_sigma_r[anc_qubit]),
+                "new_stab_gen_inv": list(inv_map_stabs_sigma_r[anc_qubit]),
             },
         )
 
@@ -519,6 +520,7 @@ def set_fold_trans_swap_s(layout: Layout) -> None:
         "Z11": {"Z4"},
         "Z12": {"Z7"},
     }
+    inv_map_stabs_sigma_s = {list(v)[0]: {k} for k, v in map_stabs_sigma_s.items()}
 
     # Store logical gate information to the data qubits
     for qubit in data_qubits:
@@ -535,7 +537,7 @@ def set_fold_trans_swap_s(layout: Layout) -> None:
             anc_qubit,
             {
                 "new_stab_gen": list(map_stabs_sigma_s[anc_qubit]),
-                "new_stab_gen_inv": list(map_stabs_sigma_s[anc_qubit]),
+                "new_stab_gen_inv": list(inv_map_stabs_sigma_s[anc_qubit]),
             },
         )
 

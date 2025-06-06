@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors, get_new_stab_dict_from_layout
-from .decorators import qec_circuit, sq_gate
+from .decorators import qec_circuit, sq_gate, qubit_init_x, qubit_init_z
 
 # methods to have in this script
 from .util import (
@@ -16,12 +16,6 @@ from .util import (
     log_meas_iterator,
     log_meas_z_iterator,
     log_meas_x_iterator,
-    init_qubits,
-    init_qubits_iterator,
-    init_qubits_z0_iterator,
-    init_qubits_z1_iterator,
-    init_qubits_x0_iterator,
-    init_qubits_x1_iterator,
 )
 
 __all__ = [
@@ -132,8 +126,6 @@ def qec_round_iterator(
             "The given layout is not an small stellated dodecahedron code, "
             f"but a {layout.code}"
         )
-    if not anc_reset:
-        raise ValueError("Current implementation only supports 'anc_reset=True'.")
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
@@ -336,7 +328,8 @@ def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Iterator[Cir
     qubits = set(layout.qubits)
     gate_label = "log_fold_trans_swap_r"
 
-    swap_pairs = set()
+    swap_1_pairs = set()
+    swap_2_pairs = set()
     for data_qubit in data_qubits:
         trans_swap = layout.param(gate_label, data_qubit)
         if trans_swap is None:
@@ -347,14 +340,22 @@ def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Iterator[Cir
             )
         # Using a set to avoid repetition of the swap gates.
         # Using tuple so that the object is hashable for the set.
-        if trans_swap["swap"] is not None:
-            swap_pairs.add(tuple(sorted([data_qubit, trans_swap["swap"]])))
+        if trans_swap["swap_1"] is not None:
+            swap_1_pairs.add(tuple(sorted([data_qubit, trans_swap["swap_1"]])))
+        if trans_swap["swap_2"] is not None:
+            swap_2_pairs.add(tuple(sorted([data_qubit, trans_swap["swap_2"]])))
 
     yield model.incoming_noise(data_qubits)
     yield model.tick()
 
     # long-range SWAP gates
-    int_qubits = list(chain.from_iterable(swap_pairs))
+    int_qubits = list(chain.from_iterable(swap_1_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # long-range SWAP gates
+    int_qubits = list(chain.from_iterable(swap_2_pairs))
     idle_qubits = qubits - set(int_qubits)
     yield model.swap(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
@@ -394,7 +395,8 @@ def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Iterator[Cir
     qubits = set(layout.qubits)
     gate_label = "log_fold_trans_swap_s"
 
-    swap_pairs = set()
+    swap_1_pairs = set()
+    swap_2_pairs = set()
     for data_qubit in data_qubits:
         trans_swap = layout.param(gate_label, data_qubit)
         if trans_swap is None:
@@ -405,17 +407,182 @@ def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Iterator[Cir
             )
         # Using a set to avoid repetition of the swap gates.
         # Using tuple so that the object is hashable for the set.
-        if trans_swap["swap"] is not None:
-            swap_pairs.add(tuple(sorted([data_qubit, trans_swap["swap"]])))
+        if trans_swap["swap_1"] is not None:
+            swap_1_pairs.add(tuple(sorted([data_qubit, trans_swap["swap_1"]])))
+        if trans_swap["swap_2"] is not None:
+            swap_2_pairs.add(tuple(sorted([data_qubit, trans_swap["swap_2"]])))
 
     yield model.incoming_noise(data_qubits)
     yield model.tick()
 
     # long-range SWAP gates
-    int_qubits = list(chain.from_iterable(swap_pairs))
+    int_qubits = list(chain.from_iterable(swap_1_pairs))
     idle_qubits = qubits - set(int_qubits)
     yield model.swap(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
+
+    # long-range SWAP gates
+    int_qubits = list(chain.from_iterable(swap_2_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.swap(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
+def init_qubits(
+    model: Model,
+    layout: Layout,
+    detectors: Detectors,
+    data_init: dict[str, int],
+    rot_basis: bool = False,
+) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical initialization
+    of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    By default, the logical measurement is in the Z basis.
+    If rot_basis, the logical measurement is in the X basis.
+    """
+    # activate detectors
+    # the order of activating the detectors or applying the circuit
+    # does not matter because this will be done in a layer of logical operations,
+    # so no QEC round are run simultaneously
+    anc_qubits = layout.anc_qubits
+    stab_type = "z_type" if rot_basis else "x_type"
+    gauge_dets = layout.get_qubits(role="anc", stab_type=stab_type)
+    detectors.activate_detectors(anc_qubits, gauge_dets=gauge_dets)
+    return sum(
+        init_qubits_iterator(
+            model=model,
+            layout=layout,
+            data_init=data_init,
+            rot_basis=rot_basis,
+        ),
+        start=Circuit(),
+    )
+
+
+def init_qubits_iterator(
+    model: Model,
+    layout: Layout,
+    data_init: dict[str, int],
+    rot_basis: bool = False,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization
+    of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    By default, the logical initialization is in the Z basis.
+    If rot_basis, the logical initialization is in the X basis.
+    """
+    xancs = layout.get_qubits(role="anc", stab_type="x_type")
+    zancs = layout.get_qubits(role="anc", stab_type="z_type")
+    data_qubits = layout.data_qubits
+    qubits = set(layout.qubits)
+
+    reset_data = model.reset_x(data_qubits) if rot_basis else model.reset(data_qubits)
+
+    yield reset_data + model.reset(zancs) + model.reset_x(xancs)
+    yield model.tick()
+
+    init_circ = Circuit()
+    exc_qubits = set([q for q, s in data_init.items() if s and (q in data_qubits)])
+    if exc_qubits:
+        if rot_basis:
+            init_circ += model.z_gate(exc_qubits)
+        else:
+            init_circ += model.x_gate(exc_qubits)
+
+    idle_qubits = qubits - exc_qubits
+    yield init_circ + model.idle(idle_qubits)
+    yield model.tick()
+
+
+@qubit_init_z
+def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |0>
+    state of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.data_qubits}
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_init_z
+def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |1>
+    state of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
+        # ensure that the bistring corresponds to the |1> state
+        data_init[layout.data_qubits[-1]] = 0
+
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=False
+    )
+
+
+@qubit_init_x
+def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |+>
+    state of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 0 for q in layout.data_qubits}
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )
+
+
+@qubit_init_x
+def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical initialization in the |->
+    state of the given model.
+    The ancilla qubits are also initialized in the correct basis for the
+    case ``anc_reset = False``.
+
+    Notes
+    -----
+    The ``data_init`` bitstring used for the initialization is not important
+    when doing stabilizer simulation.
+    """
+    data_init = {q: 1 for q in layout.data_qubits}
+    if layout.num_data_qubits % 2 == 0:
+        # ensure that the bistring corresponds to the |-> state
+        data_init[layout.data_qubits[-1]] = 0
+
+    yield from init_qubits_iterator(
+        model=model, layout=layout, data_init=data_init, rot_basis=True
+    )
 
 
 gate_to_iterator = {

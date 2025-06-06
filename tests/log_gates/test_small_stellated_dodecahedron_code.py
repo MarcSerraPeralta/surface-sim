@@ -112,7 +112,7 @@ def test_set_fold_trans_swap_r():
     assert len([q for q in swap_gates if q is not None]) == 30 - 4
 
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
-    assert new_stabs == new_stabs_inv
+    assert new_stabs == {list(v)[0]: {k} for k, v in new_stabs_inv.items()}
     for s in z_stabs + x_stabs:
         assert len(new_stabs[s]) == 1
 
@@ -147,7 +147,7 @@ def test_set_fold_trans_swap_s():
     assert len([q for q in swap_gates if q is not None]) == 30 - 4
 
     new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layout, gate_label)
-    assert new_stabs == new_stabs_inv
+    assert new_stabs == {list(v)[0]: {k} for k, v in new_stabs_inv.items()}
     for s in z_stabs + x_stabs:
         assert len(new_stabs[s]) == 1
 
