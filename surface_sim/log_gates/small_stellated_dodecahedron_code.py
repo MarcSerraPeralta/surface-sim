@@ -426,7 +426,7 @@ def set_fold_trans_swap_s(layout: Layout) -> None:
 
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
-    gate_label = "log_fold_trans_swap_r"
+    gate_label = "log_fold_trans_swap_s"
 
     # this dictionaries have been precomputed
     swap_pairs_b = {
