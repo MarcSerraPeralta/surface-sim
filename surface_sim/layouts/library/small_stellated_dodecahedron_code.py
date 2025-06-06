@@ -1,9 +1,18 @@
 from copy import deepcopy
 
 from ..layout import Layout
+from ...log_gates.small_stellated_dodecahedron_code import (
+    set_fold_trans_s,
+    set_fold_trans_h,
+    set_fold_trans_swap_r,
+    set_fold_trans_swap_s,
+    set_idle,
+)
 
 
-def ssd_code(interaction_order: str = "parallel-6") -> Layout:
+def ssd_code(
+    interaction_order: str = "parallel-6", define_trans_gates: bool = True
+) -> Layout:
     """Returns a layout for the Small Stellated Dodecahedron code.
 
     Parameters
@@ -12,10 +21,13 @@ def ssd_code(interaction_order: str = "parallel-6") -> Layout:
         Name of the CNOT interaction order to perform in the QEC cycle.
         By default 'parallel-6'. The list of names can be found in
         ``INTERACTION_ORDERS``.
+    define_trans_gates
+        Flag for loading the parameters needed to run the transversal gates.
+        By default ``True``.
 
     Returns
     -------
-    Layout
+    layout
         Layout of the SSD code.
 
     Notes
@@ -53,7 +65,16 @@ def ssd_code(interaction_order: str = "parallel-6") -> Layout:
 
     layout_dict = deepcopy(SSD_LAYOUT_DICT)
     layout_dict["interaction_order"] = INTERACTION_ORDERS[interaction_order]
-    return Layout(layout_dict)
+    layout = Layout(layout_dict)
+
+    if define_trans_gates:
+        set_fold_trans_s(layout)
+        set_fold_trans_h(layout)
+        set_fold_trans_swap_r(layout)
+        set_fold_trans_swap_s(layout)
+        set_idle(layout)
+
+    return layout
 
 
 INTERACTION_ORDERS = {
