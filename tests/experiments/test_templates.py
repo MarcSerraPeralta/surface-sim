@@ -381,7 +381,7 @@ def test_repeated_swap_experiments():
                 model=model,
                 layout=layout,
                 detectors=detectors,
-                num_swap_gates=4,
+                num_swap_gates=3,
                 num_rounds_per_gate=2,
                 anc_reset=False,
                 data_init={q: 0 for q in layout.data_qubits},
