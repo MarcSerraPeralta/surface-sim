@@ -6,6 +6,9 @@ from ...log_gates.small_stellated_dodecahedron_code import (
     set_fold_trans_h,
     set_fold_trans_swap_r,
     set_fold_trans_swap_s,
+    set_fold_trans_swap_a,
+    set_fold_trans_swap_b,
+    set_fold_trans_swap_c,
     set_idle,
 )
 
@@ -72,6 +75,9 @@ def ssd_code(
         set_fold_trans_h(layout)
         set_fold_trans_swap_r(layout)
         set_fold_trans_swap_s(layout)
+        set_fold_trans_swap_a(layout)
+        set_fold_trans_swap_b(layout)
+        set_fold_trans_swap_c(layout)
         set_idle(layout)
 
     return layout
