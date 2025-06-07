@@ -367,6 +367,18 @@ def test_repeated_swap_experiments():
             ssd_code(),
             small_stellated_dodecahedron_code.repeated_swap_s_like_experiment,
         ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_swap_a_like_experiment,
+        ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_swap_b_like_experiment,
+        ),
+        (
+            ssd_code(),
+            small_stellated_dodecahedron_code.repeated_swap_c_like_experiment,
+        ),
     ]
 
     for layout, repeated_swap_experiment in TESTS:
