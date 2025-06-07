@@ -7,6 +7,7 @@ from .setup import Setup
 from .models import Model
 from .detectors import Detectors
 from .layouts import Layout
+from .circuit_blocks.decorators import noiseless
 
 __all__ = [
     "models",
@@ -20,4 +21,5 @@ __all__ = [
     "Model",
     "Detectors",
     "Layout",
+    "noiseless",
 ]
