@@ -299,8 +299,8 @@ def repeated_swap_r_like_experiment(
         raise ValueError(
             f"'num_swap_gates' expected as int, got {type(num_swap_gates)} instead."
         )
-    if (num_swap_gates < 0) or (num_swap_gates % 2 == 1):
-        raise ValueError("'num_swap_gates' needs to be an even positive integer.")
+    if num_swap_gates < 0:
+        raise ValueError("'num_swap_gates' needs to be a positive integer.")
 
     b = "X" if rot_basis else "Z"
     if data_init is not None:
@@ -399,8 +399,8 @@ def repeated_swap_s_like_experiment(
         raise ValueError(
             f"'num_swap_gates' expected as int, got {type(num_swap_gates)} instead."
         )
-    if (num_swap_gates < 0) or (num_swap_gates % 2 == 1):
-        raise ValueError("'num_swap_gates' needs to be an even positive integer.")
+    if num_swap_gates < 0:
+        raise ValueError("'num_swap_gates' needs to be a positive integer.")
 
     b = "X" if rot_basis else "Z"
     if data_init is not None:
