@@ -9,6 +9,7 @@ from .library import (
     PhenomenologicalDepolNoiseModel,
     MeasurementNoiseModel,
     SI1000NoiseModel,
+    MovableQubitsCircuitNoiseModel,
 )
 from .model import Model
 
@@ -24,4 +25,5 @@ __all__ = [
     "PhenomenologicalDepolNoiseModel",
     "MeasurementNoiseModel",
     "SI1000NoiseModel",
+    "MovableQubitsCircuitNoiseModel",
 ]

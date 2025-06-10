@@ -293,6 +293,25 @@ class CircuitNoiseModel(Model):
         return Circuit()
 
 
+class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
+    def swap(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("SWAP", inds))
+        if self.uniform:
+            prob = self.param("swap_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob = self.param("swap_error_prob", qubit_pair)
+                circ.append(CircuitInstruction("DEPOLARIZE1", ind_pair, [prob]))
+        return circ
+
+
 class SI1000NoiseModel(CircuitNoiseModel):
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._meas_or_reset_qubits = []
