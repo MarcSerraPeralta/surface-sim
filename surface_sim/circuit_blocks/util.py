@@ -1000,11 +1000,10 @@ def qec_round_iterator(
 
     Notes
     -----
-    This implementation follows the interaction order specified in the layout.
-    The interaction order should be given using ``surface_sim.layouts.overwrite_interaction_order``.
-    For more information about the interaction order format, see the mentioned function.
-    This implementation uses CNOTs, and resets and measurements in both the Z and
-    X basis. This implementation can be used for any code.
+    This implementation follows the interaction order in the layout. The format
+    for this interaction order must follow the one described in
+    ``surface_sim.layouts.overwrite_interaction_order``.
+    This implementation can be used for any CSS code, and uses: CNOT, RX, RZ, MX, and MZ.
     """
     data_qubits = layout.data_qubits
     anc_qubits = layout.anc_qubits
