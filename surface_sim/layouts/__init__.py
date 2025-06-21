@@ -10,7 +10,11 @@ from .library import (
 )
 from .plotter import plot
 from .util import set_coords
-from .operations import check_overlap_layouts
+from .operations import (
+    check_overlap_layouts,
+    check_code_definition,
+    overwrite_interaction_order,
+)
 
 __all__ = [
     "Layout",
@@ -24,4 +28,6 @@ __all__ = [
     "plot",
     "set_coords",
     "check_overlap_layouts",
+    "check_code_definition",
+    "overwrite_interaction_order",
 ]

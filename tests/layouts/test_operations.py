@@ -1,6 +1,11 @@
+from copy import deepcopy
 import pytest
 
-from surface_sim.layouts.operations import check_overlap_layouts, check_code_definition
+from surface_sim.layouts.operations import (
+    check_overlap_layouts,
+    check_code_definition,
+    overwrite_interaction_order,
+)
 from surface_sim.layouts import rot_surface_code
 
 
@@ -36,5 +41,22 @@ def test_check_code_definition():
 
     with pytest.raises(ValueError):
         check_code_definition(layout)
+
+    return
+
+
+def test_overwrite_interaction_order():
+    layout = rot_surface_code(3)
+    previous_interaction_order = deepcopy(layout.interaction_order)
+    new_schedule = {}
+    for anc in layout.anc_qubits:
+        support = list(layout.get_neighbors([anc]))
+        support += [None] * (4 - len(support))
+        new_schedule[anc] = support
+
+    overwrite_interaction_order(layout, new_schedule)
+
+    assert layout.interaction_order == new_schedule
+    assert layout.interaction_order != previous_interaction_order
 
     return
