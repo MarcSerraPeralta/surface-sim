@@ -17,6 +17,7 @@ from .util import (
     log_meas_z_iterator,
     log_meas_x_iterator,
 )
+from .util import qec_round_iterator as general_qec_round_iterator
 
 __all__ = [
     "qubit_coords",
@@ -133,49 +134,9 @@ def qec_round_iterator(
             f"but a {layout.code}"
         )
 
-    data_qubits = layout.data_qubits
-    anc_qubits = layout.anc_qubits
-    qubits = set(layout.qubits)
-
-    int_order = layout.interaction_order
-    num_steps = len(int_order[anc_qubits[0]])
-    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
-    z_stabs = layout.get_qubits(role="anc", stab_type="z_type")
-
-    yield model.incoming_noise(data_qubits)
-    yield model.tick()
-
-    if anc_reset:
-        resets = model.reset_x(x_stabs) + model.reset_z(z_stabs)
-        yield resets + model.idle(data_qubits)
-        yield model.tick()
-
-    # CNOT gates
-    for step in range(num_steps):
-        cnot_circuit = Circuit()
-        interacted_qubits = set()
-
-        # X ancillas
-        int_pairs = [(x, int_order[x][step]) for x in x_stabs]
-        int_pairs = [pair for pair in int_pairs if pair[1] is not None]
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-        cnot_circuit += model.cnot(int_qubits)
-
-        # Z ancillas
-        int_pairs = [(int_order[z][step], z) for z in z_stabs]
-        int_pairs = [pair for pair in int_pairs if pair[0] is not None]
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-        cnot_circuit += model.cnot(int_qubits)
-
-        idle_qubits = qubits - interacted_qubits
-        yield cnot_circuit + model.idle(idle_qubits)
-        yield model.tick()
-
-    meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
-    yield meas + model.idle(data_qubits)
-    yield model.tick()
+    yield from general_qec_round_iterator(
+        model=model, layout=layout, anc_reset=anc_reset
+    )
 
 
 def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circuit:

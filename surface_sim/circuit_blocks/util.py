@@ -13,6 +13,7 @@ from .decorators import (
     tq_gate,
     logical_measurement_z,
     logical_measurement_x,
+    qec_circuit,
 )
 
 
@@ -988,3 +989,63 @@ def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
     yield from init_qubits_xzzx_iterator(
         model=model, layout=layout, data_init=data_init, rot_basis=True
     )
+
+
+@qec_circuit
+def qec_round_iterator(
+    model: Model, layout: Layout, anc_reset: bool = True
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuits corresponds to a QEC round for the given model and layout.
+
+    Notes
+    -----
+    This implementation follows the interaction order specified in the layout.
+    The interaction order should be given using ``surface_sim.layouts.overwrite_interaction_order``.
+    For more information about the interaction order format, see the mentioned function.
+    This implementation uses CNOTs, and resets and measurements in both the Z and
+    X basis. This implementation can be used for any code.
+    """
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
+    qubits = set(layout.qubits)
+
+    int_order = layout.interaction_order
+    num_steps = len(int_order[anc_qubits[0]])
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
+    z_stabs = layout.get_qubits(role="anc", stab_type="z_type")
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    if anc_reset:
+        resets = model.reset_x(x_stabs) + model.reset_z(z_stabs)
+        yield resets + model.idle(data_qubits)
+        yield model.tick()
+
+    # CNOT gates
+    for step in range(num_steps):
+        cnot_circuit = Circuit()
+        interacted_qubits = set()
+
+        # X ancillas
+        int_pairs = [(x, int_order[x][step]) for x in x_stabs]
+        int_pairs = [pair for pair in int_pairs if pair[1] is not None]
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
+        cnot_circuit += model.cnot(int_qubits)
+
+        # Z ancillas
+        int_pairs = [(int_order[z][step], z) for z in z_stabs]
+        int_pairs = [pair for pair in int_pairs if pair[0] is not None]
+        int_qubits = list(chain.from_iterable(int_pairs))
+        interacted_qubits.update(int_qubits)
+        cnot_circuit += model.cnot(int_qubits)
+
+        idle_qubits = qubits - interacted_qubits
+        yield cnot_circuit + model.idle(idle_qubits)
+        yield model.tick()
+
+    meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
+    yield meas + model.idle(data_qubits)
+    yield model.tick()
