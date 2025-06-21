@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from copy import deepcopy
 
 from ..layout import Layout
@@ -14,7 +15,8 @@ from ...log_gates.small_stellated_dodecahedron_code import (
 
 
 def ssd_code(
-    interaction_order: str = "parallel-6", define_trans_gates: bool = True
+    interaction_order: str | dict[str, Sequence[str]] = "parallel-6",
+    define_trans_gates: bool = True,
 ) -> Layout:
     """Returns a layout for the Small Stellated Dodecahedron code.
 
@@ -23,7 +25,8 @@ def ssd_code(
     interaction_order
         Name of the CNOT interaction order to perform in the QEC cycle.
         By default 'parallel-6'. The list of names can be found in
-        ``INTERACTION_ORDERS``.
+        ``INTERACTION_ORDERS``. It is possible to give directly the
+        interaction order dictionary.
     define_trans_gates
         Flag for loading the parameters needed to run the transversal gates.
         By default ``True``.
@@ -60,14 +63,23 @@ def ssd_code(
     The logical qubits ``"L1"`` to ``"L4"`` correspond to the logical subspace V
     and they have transversal gates that span the full 4-qubit Clifford group.
     """
-    if interaction_order not in INTERACTION_ORDERS:
-        raise ValueError(
-            f"'interaction_order' must be in {list(INTERACTION_ORDERS)}, "
-            "but {interaction_order} was given."
+    layout_dict = deepcopy(SSD_LAYOUT_DICT)
+
+    if isinstance(interaction_order, str):
+        if interaction_order not in INTERACTION_ORDERS:
+            raise ValueError(
+                f"'interaction_order' must be in {list(INTERACTION_ORDERS)}, "
+                "but {interaction_order} was given."
+            )
+        layout_dict["interaction_order"] = INTERACTION_ORDERS[interaction_order]
+    elif isinstance(interaction_order, dict):
+        layout_dict["interaction_order"] = interaction_order
+    else:
+        raise TypeError(
+            "'interaction_order' must be a str or a dict, "
+            f"but {type(interaction_order)} was given."
         )
 
-    layout_dict = deepcopy(SSD_LAYOUT_DICT)
-    layout_dict["interaction_order"] = INTERACTION_ORDERS[interaction_order]
     layout = Layout(layout_dict)
 
     if define_trans_gates:
