@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import numpy as np
 import galois
 
@@ -140,5 +142,47 @@ def check_code_definition(layout: Layout) -> None:
         == np.linalg.matrix_rank(h_z) + layout.num_logical_qubits
     ):
         raise ValueError("A product of logical Pauli Z is equivalent to stabilizer(s).")
+
+    return
+
+
+def overwrite_interaction_order(
+    layout: Layout, schedule: dict[str, Sequence[str]]
+) -> None:
+    """
+    Overwrites (in place) any existing schedule in a layout with the specified one.
+
+    Parameters
+    ----------
+    layout
+        Layout whose schedule is going to be overwritten.
+    schedule
+        Schedule for the syndrome extraction circuit. The format corresponds to
+        a dictionary whose keys correspond to the ancillas in ``layout`` and
+        the values correspond to a list where the ``i``th element specifies
+        the data qubit that the ancilla interacts with on the ``i``th CNOT layer.
+        If the ancilla does not interact with any data qubit, the element is ``None``.
+    """
+    if not isinstance(layout, Layout):
+        raise TypeError(f"'layout' must be a Layout, but {type(layout)} was given.")
+    if not isinstance(schedule, dict):
+        raise TypeError(f"'schedule' must be a dict, but {type(schedule)} was given.")
+    if set(schedule) != set(layout.anc_qubits):
+        raise ValueError(
+            "The keys in 'schedule' must correspond to all the ancillas in 'layout'."
+        )
+    if any(not isinstance(s, Sequence) for s in schedule.values()):
+        raise TypeError("The values in 'schedule' must be sequences.")
+    if len(set(len(s) for s in schedule.values())) != 1:
+        raise ValueError("The values in 'schedule' must have the same lenght.")
+    if any(
+        set(schedule[a]).difference([None]) != set(layout.get_neighbors([a]))
+        for a in layout.anc_qubits
+    ):
+        raise ValueError(
+            "Ancillas must interact with all the qubits it has support on."
+        )
+
+    layout.interaction_order = schedule
 
     return
