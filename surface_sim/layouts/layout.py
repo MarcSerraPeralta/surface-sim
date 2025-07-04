@@ -30,6 +30,7 @@ class QubitDict(TypedDict):
 class LayoutDict(TypedDict):
     code: str
     logical_qubits: dict[str, LogQubitsDict]
+    observables: dict[str, Sequence[str]]
     interaction_order: dict[str, list]
     layout: Sequence[QubitDict]
 
@@ -70,6 +71,7 @@ class Layout:
 
     Get information from logical qubits
     -----------------------------------
+    - ``logical_qubits``
     - ``logical_param``
     - ``get_logical_inds``
     - ``logical_qubit_inds``
@@ -77,6 +79,11 @@ class Layout:
     - ``get_min_logical_ind``
     - ``get_logical_qubits``
     - ``get_logical_labels_from_inds``
+
+    Get information from observables
+    --------------------------------
+    - ``observables``
+    - ``num_observables``
 
     Set information
     ---------------
@@ -130,14 +137,16 @@ class Layout:
         self.name = setup.get("name", "")
         self.code = setup.get("code", "")
         self._log_qubits = setup.get("logical_qubits", {})
+        self._observables = setup.get("observables", {})
         self.distance = setup.get("distance", -1)
         self.distance_z = setup.get("distance_z", -1)
         self.distance_x = setup.get("distance_x", -1)
-        self.description = setup.get("description")
+        self.description = setup.get("description", "")
         self.interaction_order = setup.get("interaction_order", {})
 
         self._load_layout(setup)
         self._check_logical_qubits()
+        self._check_observables()
 
         # precompute specific attributes
         # make then tuples so that they areunmutable
@@ -145,11 +154,13 @@ class Layout:
         self.data_qubits = tuple(self.get_qubits(role="data"))
         self.anc_qubits = tuple(self.get_qubits(role="anc"))
         self.logical_qubits = tuple(self._log_qubits)
+        self.observables = tuple(self._observables)
 
         self.num_qubits = len(self.qubits)
         self.num_data_qubits = len(self.data_qubits)
         self.num_anc_qubits = len(self.anc_qubits)
         self.num_logical_qubits = len(self.logical_qubits)
+        self.num_observables = len(self.observables)
 
         self._qubit_coords = {
             q: c for q, c in zip(self.qubits, self.get_coords(self.qubits))
@@ -200,6 +211,31 @@ class Layout:
                     raise ValueError(
                         f"'{log_p}' in logical {l} has support on qubits not present in this layout."
                     )
+
+        return
+
+    def _check_observables(self) -> None:
+        """Checks that the ``Layout._observables`` has the correct structure."""
+        if not isinstance(self._observables, dict):
+            raise TypeError(
+                f"'observables' must be a dict, but {type(self._observables)} was given."
+            )
+        if any(not isinstance(l, str) for l in self._observables):
+            raise TypeError(
+                "The keys in 'observables' must be str, "
+                f"but {list(self._observables)} was given."
+            )
+
+        for l, support in self._observables.items():
+            if not isinstance(support, Sequence):
+                raise TypeError(
+                    f"Attribute of observable {l} must be a Sequence, "
+                    f"but {type(support)} was given."
+                )
+            if set(support) > set(self._qubit_inds):
+                raise ValueError(
+                    f"Attribute of observable {l} has support on qubits not present in this layout."
+                )
 
         return
 
@@ -298,14 +334,24 @@ class Layout:
         """
         setup = dict()
 
-        setup["name"] = self.name
-        setup["code"] = self.code
-        setup["distance"] = self.distance
-        setup["distance_z"] = self.distance_z
-        setup["distance_x"] = self.distance_x
-        setup["logical_qubits"] = self._log_qubits
-        setup["description"] = self.description
-        setup["interaction_order"] = self.interaction_order
+        if self.name != "":
+            setup["name"] = self.name
+        if self.code != "":
+            setup["code"] = self.code
+        if self.distance != -1:
+            setup["distance"] = self.distance
+        if self.distance_z != -1:
+            setup["distance_z"] = self.distance_z
+        if self.distance_x != -1:
+            setup["distance_x"] = self.distance_x
+        if self._log_qubits != {}:
+            setup["logical_qubits"] = self._log_qubits
+        if self._observables != {}:
+            setup["observables"] = self._observables
+        if self.description != "":
+            setup["description"] = self.description
+        if self.interaction_order != {}:
+            setup["interaction_order"] = self.interaction_order
 
         layout = []
         for node, attrs in self.graph.nodes(data=True):
