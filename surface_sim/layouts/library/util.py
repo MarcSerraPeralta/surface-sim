@@ -16,19 +16,19 @@ def invert_shift(row_shift: int, col_shift: int) -> tuple[int, int]:
     return -row_shift, -col_shift
 
 
-def is_valid(row: int, col: int, max_size_row: int, max_size_col: int) -> bool:
+def is_valid(col: int, row: int, max_size_col: int, max_size_row: int) -> bool:
     """Checks if a row and column are valid for a grid of a given size.
 
     Parameters
     ----------
-    row
-        The row.
     col
         The column.
-    max_size_row
-        The row size of the grid.
+    row
+        The row.
     max_size_col
         The column size of the grid.
+    max_size_row
+        The row size of the grid.
 
     Returns
     -------
