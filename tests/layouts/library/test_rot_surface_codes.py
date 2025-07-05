@@ -134,10 +134,6 @@ def test_rot_surface_stability_rectangle_x_type(show_figures):
         init_xanc_qubit_id=5,
         init_ind=10,
     )
-    if show_figures:
-        _, ax = plt.subplots()
-        plot(ax, layout, stim_orientation=False)
-        plt.show()
 
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 16
@@ -146,5 +142,10 @@ def test_rot_surface_stability_rectangle_x_type(show_figures):
     assert len(layout.observables) == 1
     assert len(layout.observable_definition("O0")) == 12
     assert min(layout.get_inds(layout.qubits)) == 10
+
+    if show_figures:
+        _, ax = plt.subplots()
+        plot(ax, layout, stim_orientation=False)
+        plt.show()
 
     return

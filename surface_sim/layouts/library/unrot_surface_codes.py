@@ -14,7 +14,7 @@ from ...log_gates.unrot_surface_code_css import (
 )
 
 
-def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int:
+def get_data_index(col: int, row: int, row_size: int, start_ind: int = 1) -> int:
     """Converts row and column to data qubit index.
 
     The data qubits are numbered starting from the bottom-left data qubit,
@@ -23,12 +23,12 @@ def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int
 
     Parameters
     ----------
-    row
-        The row of the data qubit.
     col
         The column of the data qubit.
-    col_size
-        Column size of the code.
+    row
+        The row of the data qubit.
+    row_size
+        Row size of the code.
     start_ind
         The starting index for the data qubits, by default 1.
 
@@ -37,13 +37,13 @@ def get_data_index(row: int, col: int, col_size: int, start_ind: int = 1) -> int
     int
         The index of the data qubit.
     """
-    if row % 2 == 1:
-        row -= 1
-        col += col_size
+    if col % 2 == 1:
+        col -= 1
+        row += row_size
 
     row_ind = row // 2
     col_ind = col // 2
-    index = start_ind + row_ind * col_size + col_ind
+    index = start_ind + col_ind * row_size + row_ind
     return index
 
 
@@ -175,10 +175,10 @@ def unrot_surface_code_rectangle(
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
 
-    col_size = 2 * distance_z - 1
-    row_size = 2 * distance_x - 1
+    col_size = 2 * distance_x - 1
+    row_size = 2 * distance_z - 1
     data_indexer = partial(
-        get_data_index, col_size=col_size, start_ind=init_data_qubit_id
+        get_data_index, row_size=row_size, start_ind=init_data_qubit_id
     )
     valid_coord = partial(is_valid, max_size_col=col_size, max_size_row=row_size)
 
@@ -190,17 +190,17 @@ def unrot_surface_code_rectangle(
 
     x_index = count(start=init_xanc_qubit_id)
     z_index = count(start=init_zanc_qubit_id)
-    for row in range(row_size):
-        for col in range(col_size):
+    for col in range(col_size):
+        for row in range(row_size):
             role = "data" if (row + col) % 2 == 0 else "anc"
 
             if role == "data":
-                index = data_indexer(row, col)
+                index = data_indexer(col, row)
 
                 qubit_info = dict(
                     qubit=f"D{index}",
                     role="data",
-                    coords=[row + init_point[0], col + init_point[1]],
+                    coords=[col + init_point[0], row + init_point[1]],
                     stab_type=None,
                     ind=ind,
                 )
@@ -209,7 +209,7 @@ def unrot_surface_code_rectangle(
                 ind += 1
 
             else:
-                stab_type = "x_type" if row % 2 == 0 else "z_type"
+                stab_type = "x_type" if col % 2 == 0 else "z_type"
                 if stab_type == "x_type":
                     anc_qubit = f"X{next(x_index)}"
                 else:
@@ -218,7 +218,7 @@ def unrot_surface_code_rectangle(
                 qubit_info = dict(
                     qubit=anc_qubit,
                     role="anc",
-                    coords=[row + init_point[0], col + init_point[1]],
+                    coords=[col + init_point[0], row + init_point[1]],
                     stab_type=stab_type,
                     ind=ind,
                 )
@@ -226,17 +226,17 @@ def unrot_surface_code_rectangle(
 
                 ind += 1
 
-                for row_shift, col_shift in nbr_shifts:
+                for col_shift, row_shift in nbr_shifts:
                     data_row, data_col = row + row_shift, col + col_shift
-                    if not valid_coord(data_row, data_col):
+                    if not valid_coord(data_col, data_row):
                         continue
-                    data_index = data_indexer(data_row, data_col)
+                    data_index = data_indexer(data_col, data_row)
                     data_qubit = f"D{data_index}"
 
-                    direction = shift_direction((row_shift, col_shift))
+                    direction = shift_direction((col_shift, row_shift))
                     neighbor_data[anc_qubit][direction] = data_qubit
 
-                    inv_shifts = invert_shift(row_shift, col_shift)
+                    inv_shifts = invert_shift(col_shift, row_shift)
                     inv_direction = shift_direction(inv_shifts)
                     neighbor_data[data_qubit][inv_direction] = anc_qubit
 
