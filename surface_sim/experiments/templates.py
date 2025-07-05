@@ -1,6 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from copy import deepcopy
-from stim import Circuit
+from stim import Circuit, CircuitInstruction
 
 from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
 from ..layouts.layout import Layout
@@ -24,7 +24,7 @@ def memory_experiment(
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -39,10 +39,9 @@ def memory_experiment(
     num_rounds
         Number of QEC round to run in the memory experiment.
     gate_to_iterator
-        Dictonary mapping stim.CircuitInstuction names to ``LogOpCallable`` functions
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
         that return a generator with the physical implementation of the logical
-        operation. By default, uses the default ``gate_to_iterator`` from
-        ``surface_sim.circuit_blocks.rot_surface_code_css``.
+        operation.
     init_qubits_iterator
         If ``data_init`` is not ``None``, the reset iterator is built from
         this specified function. It should have the following inputs:
@@ -108,7 +107,7 @@ def repeated_s_experiment(
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S experiment.
 
@@ -125,7 +124,7 @@ def repeated_s_experiment(
     num_rounds_per_gate
         Number of QEC round to be run after each logical S gate.
     gate_to_iterator
-        Dictonary mapping stim.CircuitInstuction names to ``LogOpCallable`` functions
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
         that return a generator with the physical implementation of the logical
         operation.
     init_qubits_iterator
@@ -204,7 +203,7 @@ def repeated_h_experiment(
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-H experiment.
 
@@ -221,7 +220,7 @@ def repeated_h_experiment(
     num_rounds_per_gate
         Number of QEC rounds to be run after each logical H gate.
     gate_to_iterator
-        Dictonary mapping stim.CircuitInstuction names to ``LogOpCallable`` functions
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
         that return a generator with the physical implementation of the logical
         operation.
     init_qubits_iterator
@@ -302,7 +301,7 @@ def repeated_cnot_experiment(
     cnot_orientation: str = "alternating",
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-CNOT experiment.
 
@@ -323,7 +322,7 @@ def repeated_cnot_experiment(
     num_rounds_per_gate
         Number of QEC rounds to be run after each logical CNOT gate.
     gate_to_iterator
-        Dictonary mapping stim.CircuitInstuction names to ``LogOpCallable`` functions
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
         that return a generator with the physical implementation of the logical
         operation.
     init_qubits_iterator
@@ -419,7 +418,7 @@ def repeated_s_injection_experiment(
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Sequence[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S-injection experiment.
 
@@ -438,7 +437,7 @@ def repeated_s_injection_experiment(
     num_rounds_per_gate
         Number of QEC rounds to be run after each logical CNOT gate.
     gate_to_iterator
-        Dictonary mapping stim.CircuitInstuction names to ``LogOpCallable`` functions
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
         that return a generator with the physical implementation of the logical
         operation.
     init_qubits_iterator
@@ -525,5 +524,133 @@ def repeated_s_injection_experiment(
         experiment = remove_nondeterministic_observables(
             experiment, [[num_s_injections]]
         )
+
+    return experiment
+
+
+def stability_experiment(
+    model: Model,
+    layout: Layout,
+    detectors: Detectors,
+    num_rounds: int,
+    gate_to_iterator: dict[str, LogOpCallable],
+    init_qubits_iterator: Callable | None = None,
+    data_init: dict[str, int] | None = None,
+    anc_reset: bool = True,
+    anc_detectors: Sequence[str] | None = None,
+    obs_def_rounds: Sequence[int] = [1],
+) -> Circuit:
+    """Returns the circuit for running a memory experiment.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. It must contain one observable.
+    detectors
+        Detector definitions to use.
+    num_rounds
+        Number of QEC round to run in the memory experiment.
+    gate_to_iterator
+        Dictonary mapping ``stim.CircuitInstuction`` names to ``LogOpCallable`` functions
+        that return a generator with the physical implementation of the logical
+        operation.
+    init_qubits_iterator
+        If ``data_init`` is not ``None``, the reset iterator is built from
+        this specified function. It should have the following inputs:
+        ``(model, layout, data_init, rot_basis)`` and return a valid
+        generator for the initialization of the data qubits. By default, ``None``.
+    data_init
+        Bitstring for initializing the data qubits. By default ``None`` mearning
+        that it initializes the qubits using the reset given by ``gate_to_iterator``.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
+    obs_def_rounds
+        Rounds involved in the observable definition. By default ``[1]``, which
+        means that the observable for the stability experiment is defined as the XOR
+        of the outcomes of the ancilla qubits in ``layout.observables[0]`` from the
+        first QEC round. The default definition is valid for any stabilitiy experiment.
+        This function does not check if the provided rounds generate a correct
+        observable definition. For example, ``obs_def_rounds = [2]`` if ``anc_reset=False``
+        is not a valid observable definition as it corresponds to a product of detectors.
+
+    Notes
+    -----
+    In a stability experiment, the data qubits are initialized in the opposite basis
+    as the stabilizer type that defines the observable. Gauge detectors must not be
+    included as they reveal the observable.
+    """
+    if not isinstance(num_rounds, int):
+        raise ValueError(
+            f"'num_rounds' expected as int, got {type(num_rounds)} instead."
+        )
+    if num_rounds < 2:
+        raise ValueError("'num_rounds' needs to be a positive integer larger than 1.")
+    if not isinstance(obs_def_rounds, Sequence):
+        raise TypeError(
+            f"'obs_def_rounds' must be a Sequence, but {type(obs_def_rounds)} was given."
+        )
+    if any(not isinstance(r, int) for r in obs_def_rounds):
+        raise TypeError("The elements of 'obs_def_rounds' must be integers.")
+    if not isinstance(detectors, Detectors):
+        raise TypeError(
+            f"'detectors' must be a Detectors, but {type(detectors)} was given."
+        )
+    if detectors.include_gauge_dets == True:
+        raise ValueError(
+            "In stability experiments, detectors.include_gauge_dets must be False."
+        )
+    if not isinstance(layout, Layout):
+        raise TypeError(f"'layout' must be a Layout, but {type(layout)} was given.")
+    if layout.num_observables != 1:
+        raise ValueError(
+            f"'layout' must contain one observable, but it contains {layout.num_observables}."
+        )
+    observable = layout.observable_definition(layout.observables[0])
+    stab_types = [layout.param("stab_type", q) for q in observable]
+    if set(stab_types) not in (set(["x_type"]), set(["z_type"])):
+        raise ValueError(
+            f"The layout observable contains more than one type of stabilizers: {stab_types}."
+        )
+    rot_basis = stab_types[0] == "z_type"
+    b = "X" if rot_basis else "Z"
+    if data_init is not None:
+        if init_qubits_iterator is None:
+            raise TypeError(
+                "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
+            )
+
+        reset = qubit_init_x if rot_basis else qubit_init_z
+
+        @reset
+        def custom_reset_iterator(m: Model, l: Layout):
+            return init_qubits_iterator(m, l, data_init=data_init, rot_basis=rot_basis)
+
+        gate_to_iterator = deepcopy(gate_to_iterator)
+        gate_to_iterator[f"R{b}"] = custom_reset_iterator
+
+    unencoded_circuit = Circuit(f"R{b} 0" + "\nTICK" * num_rounds + f"\nM{b} 0")
+    schedule = schedule_from_circuit(
+        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
+    )
+    experiment = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    )
+
+    # layout does not contain any logical qubit and thus there is no OBSERVABLE defined
+    targets = []
+    for r in obs_def_rounds:
+        for q in observable:
+            targets.append(model.meas_target(q, -num_rounds - 1 + r))
+    obs_instr = CircuitInstruction(
+        name="OBSERVABLE_INCLUDE", gate_args=[0], targets=targets
+    )
+    experiment.append(obs_instr)
 
     return experiment

@@ -98,3 +98,18 @@ def memory_experiment_google(
     )
 
     return experiment
+
+
+def stability_experiment(
+    *args,
+    gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
+    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    **kargs,
+) -> Circuit:
+    """For information, see ``surface_sim.experiments.templates.stability_experiment``."""
+    return templates.stability_experiment(
+        *args,
+        gate_to_iterator=gate_to_iterator,
+        init_qubits_iterator=init_qubits_iterator,
+        **kargs,
+    )

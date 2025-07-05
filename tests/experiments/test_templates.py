@@ -1,8 +1,10 @@
+import pytest
 import stim
 
 from surface_sim.layouts import (
     unrot_surface_codes,
     rot_surface_code_rectangles,
+    rot_surface_stability_rectangle,
     ssd_code,
 )
 
@@ -733,5 +735,104 @@ def test_repeated_s_injection_experiment():
             )
             + num_anc_x // 2
         )
+
+    return
+
+
+def test_stability_experiments():
+    TESTS = [
+        (
+            rot_surface_stability_rectangle("z_type", 3, 4),
+            rot_surface_code_css.stability_experiment,
+            "x_type",
+        ),
+        (
+            rot_surface_stability_rectangle("x_type", 3, 4),
+            rot_surface_code_css.stability_experiment,
+            "z_type",
+        ),
+    ]
+
+    for layout, stability_experiment, other_stab_type in TESTS:
+        model = NoiselessModel(layout.qubit_inds)
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
+        )
+
+        # standard experiment (basis is determined from layout)
+        circuit = stability_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_rounds=5,
+            data_init={q: 0 for q in layout.data_qubits},
+        )
+
+        assert isinstance(circuit, stim.Circuit)
+
+        # check that the detectors and logicals fulfill their
+        # conditions by building the stim diagram
+        dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+        num_coords = 0
+        anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
+        for dem_instr in dem:
+            if dem_instr.type == "detector":
+                assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                num_coords += 1
+
+        assert num_coords == dem.num_detectors
+
+        # build for some specific detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=True
+        )
+        with pytest.raises(ValueError):
+            circuit = stability_experiment(
+                model=model,
+                layout=layout,
+                detectors=detectors,
+                num_rounds=3,
+                anc_detectors=["X1"],
+                data_init={q: 0 for q in layout.data_qubits},
+            )
+
+        # try to build with just one QEC cycle
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+        )
+        with pytest.raises(ValueError):
+            circuit = stability_experiment(
+                model=model,
+                layout=layout,
+                detectors=detectors,
+                num_rounds=1,
+                anc_detectors=["X1"],
+                data_init={q: 0 for q in layout.data_qubits},
+            )
+
+        # without gauge detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+        )
+        circuit = stability_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_rounds=3,
+            anc_detectors=["X1"],
+            data_init={q: 0 for q in layout.data_qubits},
+        )
+
+        num_anc = len(layout.anc_qubits)
+        num_anc_o = len(layout.get_qubits(role="anc", stab_type=other_stab_type))
+        assert circuit.num_detectors == 3 * num_anc + num_anc_o
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == 2 + (other_stab_type == "x_type") * 2
 
     return
