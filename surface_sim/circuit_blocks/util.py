@@ -881,7 +881,7 @@ def init_qubits_xzzx_iterator(
     By default, the logical measurement is in the Z basis.
     If rot_basis, the logical measurement is in the X basis.
     """
-    if layout.code != "rotated_surface_code":
+    if layout.code not in ("rotated_surface_code", "rotated_surface_stability"):
         raise TypeError(
             f"The given layout is not a rotated surface code, but a {layout.code}"
         )

@@ -140,9 +140,9 @@ def qec_round_iterator(
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
     """
-    if layout.code != "rotated_surface_code":
+    if layout.code not in ("rotated_surface_code", "rotated_surface_stability"):
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.data_qubits
