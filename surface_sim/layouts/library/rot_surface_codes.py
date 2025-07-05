@@ -3,7 +3,7 @@ from functools import partial
 from itertools import count, product
 
 from ..layout import Layout
-from .util import is_valid, invert_shift, _check_distance
+from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.rot_surface_code_css import (
     set_fold_trans_s,
     set_x,
@@ -63,25 +63,6 @@ def shift_direction(row_shift: int, col_shift: int) -> str:
     return direction
 
 
-def add_missing_neighbours(neighbor_data: dict) -> None:
-    """Adds None for missing neighbours in the neighbor data.
-    Note that this modifies the dictionary in place.
-
-    Parameters
-    ----------
-    neighbor_data
-        The neighbor data - a dictionary that contains information
-        about the layout connectivity (defined on a square grid,
-        connection run diagonally).
-    """
-    directions = ["north_east", "north_west", "south_east", "south_west"]
-    for neighbors in neighbor_data.values():
-        for direction in directions:
-            if direction not in neighbors:
-                neighbors[direction] = None
-    return None
-
-
 def rot_surface_code_rectangle(
     distance_x: int,
     distance_z: int,
@@ -125,8 +106,8 @@ def rot_surface_code_rectangle(
     Layout
         The layout of the code.
     """
-    _check_distance(distance_x)
-    _check_distance(distance_z)
+    check_distance(distance_x)
+    check_distance(distance_z)
     if not isinstance(init_point, tuple):
         raise TypeError(
             f"'init_point' must be a tuple, but {type(init_point)} was given."
@@ -274,7 +255,7 @@ def rot_surface_code_rectangle(
                 inv_direction = shift_direction(*inv_shifts)
                 neighbor_data[data_qubit][inv_direction] = anc_qubit
 
-    add_missing_neighbours(neighbor_data)
+    set_missing_neighbours_to_none(neighbor_data)
 
     for qubit_info in layout_data:
         qubit = qubit_info["qubit"]

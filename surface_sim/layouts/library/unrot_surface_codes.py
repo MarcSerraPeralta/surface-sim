@@ -3,7 +3,7 @@ from functools import partial
 from itertools import count
 
 from ..layout import Layout
-from .util import is_valid, invert_shift, _check_distance
+from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.unrot_surface_code_css import (
     set_fold_trans_s,
     set_fold_trans_h,
@@ -117,8 +117,8 @@ def unrot_surface_code_rectangle(
     Layout
         The layout of the code.
     """
-    _check_distance(distance_x)
-    _check_distance(distance_z)
+    check_distance(distance_x)
+    check_distance(distance_z)
     if not isinstance(init_point, tuple):
         raise TypeError(
             f"'init_point' must be a tuple, but {type(init_point)} was given."
@@ -239,6 +239,8 @@ def unrot_surface_code_rectangle(
                     inv_shifts = invert_shift(row_shift, col_shift)
                     inv_direction = shift_direction(inv_shifts)
                     neighbor_data[data_qubit][inv_direction] = anc_qubit
+
+    set_missing_neighbours_to_none(neighbor_data)
 
     for qubit_info in layout_data:
         qubit = qubit_info["qubit"]
