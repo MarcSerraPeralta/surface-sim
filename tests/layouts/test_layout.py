@@ -111,6 +111,7 @@ def test_layout_get_information():
 
     assert layout.observables == ("O0",)
     assert layout.num_observables == 1
+    assert layout.observable_definition("O0") == ("X1",)
 
     assert set(layout.get_neighbors(["D1", "X1"])) == set(["X1", "D1", "D2"])
     assert set(layout.get_neighbors(["D1"], as_pairs=True)) == set([("D1", "X1")])

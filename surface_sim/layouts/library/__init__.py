@@ -2,6 +2,7 @@ from .rot_surface_codes import (
     rot_surface_code,
     rot_surface_code_rectangle,
     rot_surface_code_rectangles,
+    rot_surface_stability_rectangle,
 )
 from .unrot_surface_codes import (
     unrot_surface_code,
@@ -15,6 +16,7 @@ __all__ = [
     "rot_surface_code",
     "rot_surface_code_rectangle",
     "rot_surface_code_rectangles",
+    "rot_surface_stability_rectangle",
     "unrot_surface_code",
     "unrot_surface_code_rectangle",
     "unrot_surface_codes",

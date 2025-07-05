@@ -139,7 +139,7 @@ def rot_surface_code_rectangle(
 
     name = f"Rotated dx-{distance_x} dz-{distance_z} surface code layout."
     code = "rotated_surface_code"
-    description = None
+    description = ""
 
     int_order = dict(
         x_type=["north_east", "north_west", "south_east", "south_west"],
@@ -372,3 +372,213 @@ def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]
             set_trans_cnot(layout, other_layout)
 
     return layouts
+
+
+def rot_surface_stability_rectangle(
+    stab_type: str,
+    width: int,
+    height: int,
+    observable: str = "O0",
+    init_point: tuple[int | float, int | float] = (1, 1),
+    init_data_qubit_id: int = 1,
+    init_zanc_qubit_id: int = 1,
+    init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
+) -> Layout:
+    """
+    Generates a rotated surface layout for stability experiments.
+
+    Parameters
+    ----------
+    width
+        Width of the rotated_surface code layout in terms of the number
+        of data qubit along the horizontal dimension.
+    height
+        Heigh of the rotated_surface code layout in terms of the number
+        of data qubit along the vertical dimension.
+    observable
+        Label for the observable, by default ``"L0"``.
+    init_point
+        Coordinates for the bottom left (i.e. southest west) data qubit.
+        By default ``(1, 1)``.
+    init_data_qubit_id
+        Index for the bottom left (i.e. southest west) data qubit.
+        By default ``1``, so the label is ``"D1"``.
+    init_zanc_qubit_id
+        Index for the bottom left (i.e. southest west) Z-type ancilla qubit.
+        By default ``1``, so the label is ``"Z1"``.
+    init_xanc_qubit_id
+        Index for the bottom left (i.e. southest west) X-type ancilla qubit.
+        By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
+
+    Returns
+    -------
+    Layout
+        The layout.
+    """
+    check_distance(width)
+    check_distance(height)
+    if stab_type not in ("x_type", "z_type"):
+        raise ValueError(
+            f"'stab_type' must be 'x_type' or 'z_type', but {stab_type} was given."
+        )
+    if not isinstance(init_point, tuple):
+        raise TypeError(
+            f"'init_point' must be a tuple, but {type(init_point)} was given."
+        )
+    if (len(init_point) != 2) or any(
+        not isinstance(p, (float, int)) for p in init_point
+    ):
+        raise TypeError(f"'init_point' must have two elements that are floats or ints.")
+    if not isinstance(observable, str):
+        raise TypeError(
+            f"'observable' must be a string, but {type(observable)} was given."
+        )
+    if not isinstance(init_data_qubit_id, int):
+        raise TypeError(
+            "'init_data_qubit_id' must be an int, "
+            f"but {type(init_data_qubit_id)} was given."
+        )
+    if not isinstance(init_zanc_qubit_id, int):
+        raise TypeError(
+            "'init_zanc_qubit_id' must be an int, "
+            f"but {type(init_zanc_qubit_id)} was given."
+        )
+    if not isinstance(init_xanc_qubit_id, int):
+        raise TypeError(
+            "'init_xanc_qubit_id' must be an int, "
+            f"but {type(init_xanc_qubit_id)} was given."
+        )
+
+    name = f"Rotated w-{width} h-{height} surface layout for stability experiments."
+    code = "rotated_surface_stability"
+    description = ""
+
+    int_order = dict(
+        x_type=["north_east", "north_west", "south_east", "south_west"],
+        z_type=["north_east", "south_east", "north_west", "south_west"],
+    )
+
+    col_size = 2 * width
+    row_size = 2 * height
+    data_indexer = partial(get_data_index, col_size=width, start_ind=init_data_qubit_id)
+    valid_coord = partial(is_valid, max_size_col=col_size, max_size_row=row_size)
+
+    pos_shifts = (1, -1)
+    nbr_shifts = tuple(product(pos_shifts, repeat=2))
+
+    layout_data = []
+    neighbor_data = defaultdict(dict)
+    ind = init_ind
+
+    # change initial point because by default the code places the "D1" qubit
+    # in the (1,1) point.
+    init_point = (init_point[0] - 1, init_point[1] - 1)
+
+    for row in range(1, row_size, 2):
+        for col in range(1, col_size, 2):
+            index = data_indexer(row, col)
+
+            qubit_info = dict(
+                qubit=f"D{index}",
+                role="data",
+                coords=[col + init_point[0], row + init_point[1]],
+                stab_type=None,
+                ind=ind,
+            )
+            layout_data.append(qubit_info)
+
+            ind += 1
+
+    if stab_type == "x_type":
+        init_sanc_qubit_id = init_xanc_qubit_id
+        init_oanc_qubit_id = init_zanc_qubit_id
+        other_stab_type = "z_type"
+        s, o = "X", "Z"
+    else:
+        init_sanc_qubit_id = init_zanc_qubit_id
+        init_oanc_qubit_id = init_xanc_qubit_id
+        other_stab_type = "x_type"
+        s, o = "Z", "X"
+
+    s_index = count(start=init_sanc_qubit_id)
+    for row in range(0, row_size + 1, 2):
+        for col in range((2 + row) % 4, col_size + 1, 4):
+            anc_qubit = f"{s}{next(s_index)}"
+            qubit_info = dict(
+                qubit=anc_qubit,
+                role="anc",
+                coords=[col + init_point[0], row + init_point[1]],
+                stab_type=stab_type,
+                ind=ind,
+            )
+            layout_data.append(qubit_info)
+
+            ind += 1
+
+            for row_shift, col_shift in nbr_shifts:
+                data_row, data_col = row + row_shift, col + col_shift
+                if not valid_coord(data_row, data_col):
+                    continue
+                data_index = data_indexer(data_row, data_col)
+                data_qubit = f"D{data_index}"
+
+                direction = shift_direction(row_shift, col_shift)
+                neighbor_data[anc_qubit][direction] = data_qubit
+
+                inv_shifts = invert_shift(row_shift, col_shift)
+                inv_direction = shift_direction(*inv_shifts)
+                neighbor_data[data_qubit][inv_direction] = anc_qubit
+
+    o_index = count(start=init_oanc_qubit_id)
+    for row in range(2, row_size - 1, 2):
+        for col in range(2 + (2 + row) % 4, col_size, 4):
+            anc_qubit = f"{o}{next(o_index)}"
+            qubit_info = dict(
+                qubit=anc_qubit,
+                role="anc",
+                coords=[col + init_point[0], row + init_point[1]],
+                stab_type=other_stab_type,
+                ind=ind,
+            )
+            layout_data.append(qubit_info)
+
+            ind += 1
+
+            for row_shift, col_shift in nbr_shifts:
+                data_row, data_col = row + row_shift, col + col_shift
+                if not valid_coord(data_row, data_col):
+                    continue
+                data_index = data_indexer(data_row, data_col)
+                data_qubit = f"D{data_index}"
+
+                direction = shift_direction(row_shift, col_shift)
+                neighbor_data[anc_qubit][direction] = data_qubit
+
+                inv_shifts = invert_shift(row_shift, col_shift)
+                inv_direction = shift_direction(*inv_shifts)
+                neighbor_data[data_qubit][inv_direction] = anc_qubit
+
+    set_missing_neighbours_to_none(neighbor_data)
+
+    anc_redundant_stab_type = []
+    for qubit_info in layout_data:
+        qubit = qubit_info["qubit"]
+        qubit_info["neighbors"] = neighbor_data[qubit]
+
+        if qubit_info["role"] == "anc" and qubit_info["stab_type"] == stab_type:
+            anc_redundant_stab_type.append(qubit)
+
+    layout_setup = dict(
+        name=name,
+        code=code,
+        observables={observable: anc_redundant_stab_type},
+        description=description,
+        interaction_order=int_order,
+    )
+
+    layout_setup["layout"] = layout_data
+    layout = Layout(layout_setup)
+    return layout

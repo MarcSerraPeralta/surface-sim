@@ -150,7 +150,7 @@ def unrot_surface_code_rectangle(
 
     name = f"Unrotated dx-{distance_x} dz-{distance_z} surface code layout."
     code = "unrotated_surface_code"
-    description = None
+    description = ""
 
     int_order = dict(
         x_type=["north", "west", "east", "south"],
