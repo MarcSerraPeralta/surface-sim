@@ -751,6 +751,16 @@ def test_stability_experiments():
             rot_surface_code_css.stability_experiment,
             "z_type",
         ),
+        (
+            rot_surface_stability_rectangle("z_type", 3, 4),
+            rot_surface_code_xzzx.stability_experiment,
+            "x_type",
+        ),
+        (
+            rot_surface_stability_rectangle("x_type", 3, 4),
+            rot_surface_code_xzzx.stability_experiment,
+            "z_type",
+        ),
     ]
 
     for layout, stability_experiment, other_stab_type in TESTS:
