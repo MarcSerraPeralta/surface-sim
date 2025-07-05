@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from itertools import count, cycle, product
+from itertools import count, product
 
 from ..layout import Layout
 from .util import is_valid, invert_shift, _check_distance
@@ -160,8 +160,6 @@ def rot_surface_code_rectangle(
     code = "rotated_surface_code"
     description = None
 
-    freq_order = ["low", "mid", "high"]
-
     int_order = dict(
         x_type=["north_east", "north_west", "south_east", "south_west"],
         z_type=["north_east", "south_east", "north_west", "south_west"],
@@ -180,7 +178,6 @@ def rot_surface_code_rectangle(
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
-        freq_order=freq_order,
         interaction_order=int_order,
     )
     if distance_x == distance_z:
@@ -198,7 +195,6 @@ def rot_surface_code_rectangle(
 
     layout_data = []
     neighbor_data = defaultdict(dict)
-    freq_seq = cycle(("low", "high"))
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -206,7 +202,6 @@ def rot_surface_code_rectangle(
     init_point = (init_point[0] - 1, init_point[1] - 1)
 
     for row in range(1, row_size, 2):
-        freq_group = next(freq_seq)
         for col in range(1, col_size, 2):
             index = data_indexer(row, col)
 
@@ -214,7 +209,6 @@ def rot_surface_code_rectangle(
                 qubit=f"D{index}",
                 role="data",
                 coords=[row + init_point[0], col + init_point[1]],
-                freq_group=freq_group,
                 stab_type=None,
                 ind=ind,
             )
@@ -230,7 +224,6 @@ def rot_surface_code_rectangle(
                 qubit=anc_qubit,
                 role="anc",
                 coords=[row + init_point[0], col + init_point[1]],
-                freq_group="mid",
                 stab_type="x_type",
                 ind=ind,
             )
@@ -260,7 +253,6 @@ def rot_surface_code_rectangle(
                 qubit=anc_qubit,
                 role="anc",
                 coords=[row + init_point[0], col + init_point[1]],
-                freq_group="mid",
                 stab_type="z_type",
                 ind=ind,
             )

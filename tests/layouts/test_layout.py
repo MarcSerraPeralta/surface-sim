@@ -13,7 +13,7 @@ LAYOUT_DICT = {
             "log_x": ["D1"],
         }
     },
-    "distance": -1,
+    "observables": {"O0": ["X1"]},
     "distance_z": 2,
     "distance_x": 1,
     "description": None,
@@ -108,6 +108,9 @@ def test_layout_get_information():
 
     assert layout.logical_qubits == ("L0",)
     assert layout.num_logical_qubits == 1
+
+    assert layout.observables == ("O0",)
+    assert layout.num_observables == 1
 
     assert set(layout.get_neighbors(["D1", "X1"])) == set(["X1", "D1", "D2"])
     assert set(layout.get_neighbors(["D1"], as_pairs=True)) == set([("D1", "X1")])
