@@ -390,6 +390,9 @@ def rot_surface_stability_rectangle(
 
     Parameters
     ----------
+    stab_type
+        Type of the stabilizer that lead to the identity when multiplying all
+        stabilizers of that type. It must be ``"x_type"`` or ``"z_type"``.
     width
         Width of the rotated_surface code layout in terms of the number
         of data qubit along the horizontal dimension.
@@ -580,7 +583,7 @@ def rot_surface_stability_rectangle(
         description=description,
         interaction_order=int_order,
     )
-
     layout_setup["layout"] = layout_data
+
     layout = Layout(layout_setup)
     return layout
