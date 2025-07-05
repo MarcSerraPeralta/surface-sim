@@ -1,5 +1,8 @@
 from ..layout import Layout
-from .rot_surface_codes import rot_surface_code_rectangle
+from .rot_surface_codes import (
+    rot_surface_code_rectangle,
+    rot_surface_stability_rectangle,
+)
 
 
 def repetition_code(
@@ -64,4 +67,59 @@ def repetition_code(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
         init_logical_ind=init_logical_ind,
+    )
+
+
+def repetition_stability(
+    stab_type: str,
+    num_stabs: int,
+    observable: str = "O0",
+    init_point: tuple[int | float, int | float] = (1, 1),
+    init_data_qubit_id: int = 1,
+    init_zanc_qubit_id: int = 1,
+    init_xanc_qubit_id: int = 1,
+    init_ind: int = 0,
+) -> Layout:
+    """
+    Generates a repetition layout for stability experiments.
+
+    Parameters
+    ----------
+    stab_type
+        Stabilizer type for the repetition layout: ``"x_type"`` or ``"z_type"``.
+    num_stabs
+        Number of stabilizers that this layout will contain. Note that all stabilizers
+        will be of type ``stab_type``.
+    observable
+        Label for the observable, by default ``"L0"``.
+    init_point
+        Coordinates for the bottom left (i.e. southest west) data qubit.
+        By default ``(1, 1)``.
+    init_data_qubit_id
+        Index for the bottom left (i.e. southest west) data qubit.
+        By default ``1``, so the label is ``"D1"``.
+    init_zanc_qubit_id
+        Index for the bottom left (i.e. southest west) Z-type ancilla qubit.
+        By default ``1``, so the label is ``"Z1"``.
+    init_xanc_qubit_id
+        Index for the bottom left (i.e. southest west) X-type ancilla qubit.
+        By default ``1``, so the label is ``"X1"``.
+    init_ind
+        Minimum index that is going to be associated to a qubit.
+
+    Returns
+    -------
+    Layout
+        The layout.
+    """
+    return rot_surface_stability_rectangle(
+        stab_type=stab_type,
+        width=num_stabs - 1,
+        height=1,
+        observable=observable,
+        init_point=init_point,
+        init_data_qubit_id=init_data_qubit_id,
+        init_zanc_qubit_id=init_zanc_qubit_id,
+        init_xanc_qubit_id=init_xanc_qubit_id,
+        init_ind=init_ind,
     )
