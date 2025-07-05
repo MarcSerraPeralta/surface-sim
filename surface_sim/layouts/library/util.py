@@ -42,7 +42,7 @@ def is_valid(row: int, col: int, max_size_row: int, max_size_col: int) -> bool:
     return True
 
 
-def _check_distance(distance: int) -> None:
+def check_distance(distance: int) -> None:
     """Checks if the distance is valid.
 
     Parameters
@@ -59,3 +59,23 @@ def _check_distance(distance: int) -> None:
         raise ValueError("distance provided must be an integer")
     if distance < 0:
         raise ValueError("distance must be a positive integer")
+
+
+def set_missing_neighbours_to_none(neighbor_data: dict) -> None:
+    """
+    Adds ``None`` for missing neighbours in the neighbor data for
+    surface codes. Note that this modifies the dictionary in place.
+
+    Parameters
+    ----------
+    neighbor_data
+        The neighbor data - a dictionary that contains information
+        about the layout connectivity (defined on a square grid,
+        connection run diagonally).
+    """
+    directions = ["north_east", "north_west", "south_east", "south_west"]
+    for neighbors in neighbor_data.values():
+        for direction in directions:
+            if direction not in neighbors:
+                neighbors[direction] = None
+    return
