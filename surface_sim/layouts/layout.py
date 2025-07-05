@@ -77,13 +77,13 @@ class Layout:
     - ``logical_qubit_inds``
     - ``get_max_logical_ind``
     - ``get_min_logical_ind``
-    - ``get_logical_qubits``
     - ``get_logical_labels_from_inds``
 
     Get information from observables
     --------------------------------
     - ``observables``
     - ``num_observables``
+    - ``observable_definition``
 
     Set information
     ---------------
@@ -640,6 +640,15 @@ class Layout:
         """Returns list of logical qubit labels for the given logical qubit indicies."""
         label_to_ind = {v: k for k, v in self.logical_qubit_inds.items()}
         return tuple(label_to_ind[ind] for ind in inds)
+
+    #####################################
+    # get information from observables
+
+    def observable_definition(self, observable: str) -> tuple[str, ...]:
+        """Returns the definition of the specified observable."""
+        if observable not in self.observables:
+            raise ValueError(f"'{observable}' is not an observable from this layout.")
+        return tuple(self._observables[observable])
 
     #################
     # set information

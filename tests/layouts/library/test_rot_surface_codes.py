@@ -5,6 +5,7 @@ from surface_sim.layouts import (
     rot_surface_code,
     rot_surface_code_rectangle,
     rot_surface_code_rectangles,
+    rot_surface_stability_rectangle,
 )
 from surface_sim.layouts import plot
 
@@ -91,5 +92,59 @@ def test_rot_surface_codes():
             "log_trans_cnot_L1_L0",
         ]
     ) < set(layout_1.to_dict()["layout"][0].keys())
+
+    return
+
+
+def test_rot_surface_stability_rectangle_z_type(show_figures):
+    layout = rot_surface_stability_rectangle(
+        width=2,
+        height=3,
+        stab_type="z_type",
+        init_point=(3, 4),
+        init_data_qubit_id=2,
+        init_zanc_qubit_id=4,
+        init_xanc_qubit_id=5,
+        init_ind=10,
+    )
+    if show_figures:
+        _, ax = plt.subplots()
+        plot(ax, layout, stim_orientation=False)
+        plt.show()
+
+    assert isinstance(layout, Layout)
+    assert len(layout.data_qubits) == 6
+    assert len(layout.anc_qubits) == 7
+    assert len(layout.logical_qubits) == 0
+    assert len(layout.observables) == 1
+    assert len(layout.observable_definition("O0")) == 6
+    assert min(layout.get_inds(layout.qubits)) == 10
+
+    return
+
+
+def test_rot_surface_stability_rectangle_x_type(show_figures):
+    layout = rot_surface_stability_rectangle(
+        width=4,
+        height=4,
+        stab_type="x_type",
+        init_point=(3, 4),
+        init_data_qubit_id=2,
+        init_zanc_qubit_id=4,
+        init_xanc_qubit_id=5,
+        init_ind=10,
+    )
+    if show_figures:
+        _, ax = plt.subplots()
+        plot(ax, layout, stim_orientation=False)
+        plt.show()
+
+    assert isinstance(layout, Layout)
+    assert len(layout.data_qubits) == 16
+    assert len(layout.anc_qubits) == 17
+    assert len(layout.logical_qubits) == 0
+    assert len(layout.observables) == 1
+    assert len(layout.observable_definition("O0")) == 12
+    assert min(layout.get_inds(layout.qubits)) == 10
 
     return
