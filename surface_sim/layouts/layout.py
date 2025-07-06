@@ -88,6 +88,7 @@ class Layout:
     Set information
     ---------------
     - ``set_param``
+    - ``set_logical_param``
 
     Matrix generation
     -----------------
@@ -666,6 +667,26 @@ class Layout:
             The new value of the qubit parameter.
         """
         self.graph.nodes[qubit][param] = value
+        return
+
+    def set_logical_param(self, param: str, logical_qubit: str, value: object) -> None:
+        """Sets the valur of a given logical parameter.
+
+        Parameters
+        ----------
+        param
+            The label of the logical qubit parameter.
+        logical_qubit
+            The label of the logical qubit that is being queried.
+        value
+            The new value of the logical qubit parameter.
+        """
+        if logical_qubit not in self._log_qubits:
+            raise ValueError(
+                f"Logical qubit {logical_qubit} is not present in this layout."
+            )
+        self._log_qubits[logical_qubit][param] = value
+        return
 
     ###################
     # matrix generation

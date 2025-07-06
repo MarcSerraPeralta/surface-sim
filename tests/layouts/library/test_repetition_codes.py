@@ -22,11 +22,13 @@ def test_repetition_code_x_type(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 5
     assert len(layout.anc_qubits) == 4
+    assert layout.anc_qubits[0][0] == "X"
     assert len(layout.logical_qubits) == 1
     log_label = layout.logical_qubits[0]
     assert len(layout.logical_param("log_z", log_label)) == 5
     assert len(layout.logical_param("log_x", log_label)) == 1
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -50,11 +52,13 @@ def test_repetition_code_z_type(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 5
     assert len(layout.anc_qubits) == 4
+    assert layout.anc_qubits[0][0] == "Z"
     assert len(layout.logical_qubits) == 1
     log_label = layout.logical_qubits[0]
     assert len(layout.logical_param("log_z", log_label)) == 1
     assert len(layout.logical_param("log_x", log_label)) == 5
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -78,10 +82,12 @@ def test_repetition_stability_z_type(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 3
     assert len(layout.anc_qubits) == 4
+    assert layout.anc_qubits[0][0] == "Z"
     assert len(layout.logical_qubits) == 0
     assert len(layout.observables) == 1
     assert len(layout.observable_definition("O0")) == 4
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -105,10 +111,12 @@ def test_repetition_stability_x_type(show_figures):
     assert isinstance(layout, Layout)
     assert len(layout.data_qubits) == 6
     assert len(layout.anc_qubits) == 7
+    assert layout.anc_qubits[0][0] == "X"
     assert len(layout.logical_qubits) == 0
     assert len(layout.observables) == 1
     assert len(layout.observable_definition("O0")) == 7
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
