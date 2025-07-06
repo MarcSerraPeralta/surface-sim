@@ -27,6 +27,7 @@ def test_repetition_code_x_type(show_figures):
     assert len(layout.logical_param("log_z", log_label)) == 5
     assert len(layout.logical_param("log_x", log_label)) == 1
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -55,6 +56,7 @@ def test_repetition_code_z_type(show_figures):
     assert len(layout.logical_param("log_z", log_label)) == 1
     assert len(layout.logical_param("log_x", log_label)) == 5
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -82,6 +84,7 @@ def test_repetition_stability_z_type(show_figures):
     assert len(layout.observables) == 1
     assert len(layout.observable_definition("O0")) == 4
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()
@@ -109,6 +112,7 @@ def test_repetition_stability_x_type(show_figures):
     assert len(layout.observables) == 1
     assert len(layout.observable_definition("O0")) == 7
     assert min(layout.get_inds(layout.qubits)) == 10
+    assert "steps" in layout.interaction_order
 
     if show_figures:
         _, ax = plt.subplots()

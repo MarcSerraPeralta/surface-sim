@@ -21,6 +21,7 @@ def repetition_code(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: str = "shallow",
 ) -> Layout:
     """Generates a repetition code layout.
 
@@ -48,6 +49,12 @@ def repetition_code(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        There are two options for interaction order: ``"shallow"`` and
+        ``"surface_code"``. The ``"shallow"`` one corresponds to two two-qubit-gate
+        layers, while the ``"surface_code"`` one corresponds to the same schedule
+        as the surface code layout (mimic what it is usually done in experiments).
+        By default ``"shallow"``.
 
     Returns
     -------
@@ -96,7 +103,18 @@ def repetition_code(
     code = "repetition_code"
     description = ""
 
-    int_order = dict(steps=["left", "right"])
+    if interaction_order == "shallow":
+        int_order = dict(steps=["left", "right"])
+    elif interaction_order == "surface_code":
+        int_order = dict(
+            x_type=["north_east", "north_west", "south_east", "south_west"],
+            z_type=["north_east", "south_east", "north_west", "south_west"],
+        )
+    else:
+        raise ValueError(
+            "'interaction_order' must be 'shallow' or 'surface_code', "
+            f"but {interaction_order} was given."
+        )
 
     log_op = [f"D{i+init_data_qubit_id}" for i in range(distance)]
     log_other_op = [f"D{init_data_qubit_id}"]
@@ -200,6 +218,7 @@ def repetition_stability(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    interaction_order: str = "shallow",
 ) -> Layout:
     """
     Generates a repetition layout for stability experiments.
@@ -227,13 +246,19 @@ def repetition_stability(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    interaction_order
+        There are two options for interaction order: ``"shallow"`` and
+        ``"surface_code"``. The ``"shallow"`` one corresponds to two two-qubit-gate
+        layers, while the ``"surface_code"`` one corresponds to the same schedule
+        as the surface code layout (mimic what it is usually done in experiments).
+        By default ``"shallow"``.
 
     Returns
     -------
     Layout
         The layout.
     """
-    return rot_surface_stability_rectangle(
+    layout = rot_surface_stability_rectangle(
         stab_type=stab_type,
         width=num_stabs - 1,
         height=1,
@@ -244,3 +269,18 @@ def repetition_stability(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
     )
+
+    if interaction_order == "shallow":
+        layout.interaction_order = dict(steps=["left", "right"])
+    elif interaction_order == "surface_code":
+        layout.interaction_order = dict(
+            x_type=["north_east", "north_west", "south_east", "south_west"],
+            z_type=["north_east", "south_east", "north_west", "south_west"],
+        )
+    else:
+        raise ValueError(
+            "'interaction_order' must be 'shallow' or 'surface_code', "
+            f"but {interaction_order} was given."
+        )
+
+    return layout
