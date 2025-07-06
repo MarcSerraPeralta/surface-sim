@@ -168,9 +168,10 @@ def repetition_code(
         ind += 1
 
     s_index = count(start=init_zanc_qubit_id)
+    prefix = "X" if stab_type == "x_type" else "Z"
     for col in range(2, col_size - 1, 2):
         for row in range(col % 4, row_size, 4):
-            anc_qubit = f"Z{next(s_index)}"
+            anc_qubit = f"{prefix}{next(s_index)}"
             qubit_info = dict(
                 qubit=anc_qubit,
                 role="anc",
