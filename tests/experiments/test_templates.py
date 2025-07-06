@@ -6,14 +6,11 @@ from surface_sim.layouts import (
     rot_surface_code_rectangles,
     rot_surface_stability_rectangle,
     ssd_code,
+    repetition_code,
+    repetition_stability,
 )
 
-from surface_sim.experiments import (
-    unrot_surface_code_css,
-    rot_surface_code_css,
-    rot_surface_code_xzzx,
-    small_stellated_dodecahedron_code,
-)
+import surface_sim.experiments as exp
 import surface_sim.circuit_blocks as cb
 from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
@@ -23,19 +20,19 @@ def test_memory_experiments():
     TESTS = [
         (
             unrot_surface_codes(1, 3)[0],
-            unrot_surface_code_css.memory_experiment,
+            exp.unrot_surface_code_css.memory_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            rot_surface_code_css.memory_experiment,
+            exp.rot_surface_code_css.memory_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            rot_surface_code_xzzx.memory_experiment,
+            exp.rot_surface_code_xzzx.memory_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            lambda *args, **kargs: rot_surface_code_css.memory_experiment(
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
                 **kargs,
@@ -43,7 +40,7 @@ def test_memory_experiments():
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            lambda *args, **kargs: rot_surface_code_xzzx.memory_experiment(
+            lambda *args, **kargs: exp.rot_surface_code_xzzx.memory_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_xzzx.gate_to_iterator_pipelined,
                 **kargs,
@@ -51,11 +48,19 @@ def test_memory_experiments():
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.memory_experiment,
+            exp.small_stellated_dodecahedron_code.memory_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            rot_surface_code_xzzx.memory_experiment_google,
+            exp.rot_surface_code_xzzx.memory_experiment_google,
+        ),
+        (
+            repetition_code("x_type", 3),
+            exp.repetition_code.memory_experiment,
+        ),
+        (
+            repetition_code("x_type", 3, interaction_order="surface_code"),
+            exp.repetition_code.memory_experiment,
         ),
     ]
 
@@ -147,15 +152,15 @@ def test_repeated_s_experiments():
     TESTS = [
         (
             unrot_surface_codes(1, 3)[0],
-            unrot_surface_code_css.repeated_s_experiment,
+            exp.unrot_surface_code_css.repeated_s_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            rot_surface_code_css.repeated_s_experiment,
+            exp.rot_surface_code_css.repeated_s_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
-            lambda *args, **kargs: rot_surface_code_css.repeated_s_experiment(
+            lambda *args, **kargs: exp.rot_surface_code_css.repeated_s_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
                 **kargs,
@@ -163,7 +168,7 @@ def test_repeated_s_experiments():
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_s_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_s_like_experiment,
         ),
     ]
 
@@ -261,11 +266,11 @@ def test_repeated_h_experiments():
     TESTS = [
         (
             unrot_surface_codes(1, 3)[0],
-            unrot_surface_code_css.repeated_h_experiment,
+            exp.unrot_surface_code_css.repeated_h_experiment,
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_h_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_h_like_experiment,
         ),
     ]
 
@@ -363,23 +368,23 @@ def test_repeated_swap_experiments():
     TESTS = [
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_swap_r_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_swap_r_like_experiment,
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_swap_s_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_swap_s_like_experiment,
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_swap_a_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_swap_a_like_experiment,
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_swap_b_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_swap_b_like_experiment,
         ),
         (
             ssd_code(),
-            small_stellated_dodecahedron_code.repeated_swap_c_like_experiment,
+            exp.small_stellated_dodecahedron_code.repeated_swap_c_like_experiment,
         ),
     ]
 
@@ -477,15 +482,15 @@ def test_repeated_cnot_experiments():
     TESTS = [
         (
             unrot_surface_codes(2, 3),
-            unrot_surface_code_css.repeated_cnot_experiment,
+            exp.unrot_surface_code_css.repeated_cnot_experiment,
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            rot_surface_code_css.repeated_cnot_experiment,
+            exp.rot_surface_code_css.repeated_cnot_experiment,
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            lambda *args, **kargs: rot_surface_code_css.repeated_cnot_experiment(
+            lambda *args, **kargs: exp.rot_surface_code_css.repeated_cnot_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
                 **kargs,
@@ -598,15 +603,15 @@ def test_repeated_s_injection_experiment():
     TESTS = [
         (
             unrot_surface_codes(2, 3),
-            unrot_surface_code_css.repeated_s_injection_experiment,
+            exp.unrot_surface_code_css.repeated_s_injection_experiment,
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            rot_surface_code_css.repeated_s_injection_experiment,
+            exp.rot_surface_code_css.repeated_s_injection_experiment,
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            lambda *args, **kargs: rot_surface_code_css.repeated_s_injection_experiment(
+            lambda *args, **kargs: exp.rot_surface_code_css.repeated_s_injection_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
                 **kargs,
@@ -743,23 +748,38 @@ def test_stability_experiments():
     TESTS = [
         (
             rot_surface_stability_rectangle("z_type", 3, 4),
-            rot_surface_code_css.stability_experiment,
+            exp.rot_surface_code_css.stability_experiment,
             "x_type",
         ),
         (
             rot_surface_stability_rectangle("x_type", 3, 4),
-            rot_surface_code_css.stability_experiment,
+            exp.rot_surface_code_css.stability_experiment,
             "z_type",
         ),
         (
             rot_surface_stability_rectangle("z_type", 3, 4),
-            rot_surface_code_xzzx.stability_experiment,
+            exp.rot_surface_code_xzzx.stability_experiment,
             "x_type",
         ),
         (
             rot_surface_stability_rectangle("x_type", 3, 4),
-            rot_surface_code_xzzx.stability_experiment,
+            exp.rot_surface_code_xzzx.stability_experiment,
             "z_type",
+        ),
+        (
+            repetition_stability(3, "x_type"),
+            exp.repetition_code.stability_experiment,
+            "z_type",
+        ),
+        (
+            repetition_stability(4, "z_type"),
+            exp.repetition_code.stability_experiment,
+            "x_type",
+        ),
+        (
+            repetition_stability(3, "z_type", interaction_order="surface_code"),
+            exp.repetition_code.stability_experiment,
+            "x_type",
         ),
     ]
 
@@ -843,6 +863,14 @@ def test_stability_experiments():
             if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
                 non_zero_dets.append(instr)
 
-        assert len(non_zero_dets) == 2 + (other_stab_type == "x_type") * 2
+        if layout.code != "repetition_stability":
+            assert len(non_zero_dets) == 2 + (other_stab_type == "x_type") * 2
+        else:
+            # repetition codes do not have stabilizers of the other type, thus
+            # they won't be defined for the logical measurement or initialization
+            if other_stab_type == "z_type":
+                assert len(non_zero_dets) == 2
+            else:
+                assert len(non_zero_dets) == 0
 
     return

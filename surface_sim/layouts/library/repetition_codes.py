@@ -12,8 +12,8 @@ from .util import is_valid, invert_shift, check_distance, set_missing_neighbours
 
 
 def repetition_code(
-    distance: int,
     stab_type: str,
+    distance: int,
     logical_qubit_label: str = "L0",
     init_point: tuple[int | float, int | float] = (1, 1),
     init_data_qubit_id: int = 1,
@@ -27,10 +27,10 @@ def repetition_code(
 
     Parameters
     ----------
-    distance
-        The distance of the code.
     stab_type
         Stabilizer type for the repetition code: ``"x_type"`` or ``"z_type"``.
+    distance
+        The distance of the code.
     logical_qubit_label
         Label for the logical qubit, by default ``"L0"``.
     init_point
@@ -211,8 +211,8 @@ def repetition_code(
 
 
 def repetition_stability(
-    stab_type: str,
     num_stabs: int,
+    stab_type: str,
     observable: str = "O0",
     init_point: tuple[int | float, int | float] = (1, 1),
     init_data_qubit_id: int = 1,
@@ -270,6 +270,8 @@ def repetition_stability(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
     )
+    layout.code = "repetition_stability"
+    layout.name = f"w-{num_stabs - 1} repetition layout for stability experiments."
 
     if interaction_order == "shallow":
         layout.interaction_order = dict(steps=["left", "right"])
