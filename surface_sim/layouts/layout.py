@@ -163,16 +163,6 @@ class Layout:
         self.num_logical_qubits = len(self.logical_qubits)
         self.num_observables = len(self.observables)
 
-        self._qubit_coords = {
-            q: c for q, c in zip(self.qubits, self.get_coords(self.qubits))
-        }
-        self._data_qubit_coords = {
-            q: c for q, c in zip(self.data_qubits, self.get_coords(self.data_qubits))
-        }
-        self._anc_qubit_coords = {
-            q: c for q, c in zip(self.anc_qubits, self.get_coords(self.anc_qubits))
-        }
-
         self._qubit_label_to_ind = {v: k for k, v in self.qubit_inds.items()}
         self._logical_qubit_label_to_ind = {
             v: k for k, v in self.logical_qubit_inds.items()
@@ -562,7 +552,7 @@ class Layout:
         -------
         Coordinates of the given qubits.
         """
-        all_coords = nx.get_node_attributes(self.graph, "coords")
+        all_coords = nx.get_node_attributes(self.graph, "coords", default=tuple())
 
         if set(qubits) > set(all_coords):
             raise ValueError("Some of the given qubits do not have coordinates.")
@@ -580,17 +570,19 @@ class Layout:
     @property
     def qubit_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all the qubits to their coordinates."""
-        return {k: v for k, v in self._qubit_coords.items()}
+        return {q: c for q, c in zip(self.qubits, self.get_coords(self.qubits))}
 
     @property
     def anc_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all ancilla qubits to their coordinates."""
-        return {k: v for k, v in self._anc_qubit_coords.items()}
+        return {q: c for q, c in zip(self.anc_qubits, self.get_coords(self.anc_qubits))}
 
     @property
     def data_coords(self) -> dict[str, tuple[float | int, ...]]:
         """Returns a dictionary mapping all data qubits to their coordinates."""
-        return {k: v for k, v in self._data_qubit_coords.items()}
+        return {
+            q: c for q, c in zip(self.data_qubits, self.get_coords(self.data_qubits))
+        }
 
     #####################################
     # get information from logical qubits
