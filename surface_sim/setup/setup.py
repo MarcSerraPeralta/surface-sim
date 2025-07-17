@@ -16,6 +16,7 @@ class SetupDict(TypedDict):
 class Setup:
     PARENTS = {
         "cz_error_prob": "tq_error_prob",
+        "cy_error_prob": "tq_error_prob",
         "cnot_error_prob": "tq_error_prob",
         "swap_error_prob": "tq_error_prob",
         "h_error_prob": "sq_error_prob",

@@ -100,6 +100,23 @@ class CircuitNoiseModel(Model):
                 circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
+    def cy(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("CY", inds))
+        if self.uniform:
+            prob = self.param("cy_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE2", inds, [prob]))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob = self.param("cy_error_prob", qubit_pair)
+                circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
+        return circ
+
     def cnot(self, qubits: Sequence[str]) -> Circuit:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
@@ -515,6 +532,36 @@ class BiasedCircuitNoiseModel(Model):
                 circ.append(CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs))
         return circ
 
+    def cy(self, qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction("CY", inds))
+
+        if self.uniform:
+            prob = self.param("cy_error_prob")
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli"),
+                biased_factor=self.param("biased_factor"),
+                num_qubits=2,
+            )
+            probs = prob * prefactors
+            circ.append(CircuitInstruction("PAULI_CHANNEL_2", inds, probs))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob = self.param("cy_error_prob", qubit_pair)
+                prefactors = biased_prefactors(
+                    biased_pauli=self.param("biased_pauli", qubit_pair),
+                    biased_factor=self.param("biased_factor", qubit_pair),
+                    num_qubits=2,
+                )
+                probs = prob * prefactors
+                circ.append(CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs))
+        return circ
+
     def cnot(self, qubits: Sequence[str]) -> Circuit:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
@@ -868,6 +915,11 @@ class DecoherenceNoiseModel(Model):
             self._durations[qubit] += self.gate_duration("CZ")
         return self._generic_gate("CZ", qubits)
 
+    def cy(self, qubits: Iterable[str]) -> Circuit:
+        for qubit in qubits:
+            self._durations[qubit] += self.gate_duration("CY")
+        return self._generic_gate("CY", qubits)
+
     def cnot(self, qubits: Iterable[str]) -> Circuit:
         for qubit in qubits:
             self._durations[qubit] += self.gate_duration("CNOT")
@@ -1036,6 +1088,11 @@ class NoiselessModel(Model):
     def cphase(self, qubits: Sequence[str]) -> Circuit:
         circ = Circuit()
         circ.append(CircuitInstruction("CZ", self.get_inds(qubits)))
+        return circ
+
+    def cy(self, qubits: Sequence[str]) -> Circuit:
+        circ = Circuit()
+        circ.append(CircuitInstruction("CY", self.get_inds(qubits)))
         return circ
 
     def cnot(self, qubits: Sequence[str]) -> Circuit:
