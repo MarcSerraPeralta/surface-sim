@@ -39,7 +39,7 @@ layouts = unrot_surface_codes(CIRCUIT.num_qubits, distance=DISTANCE)
 
 setup = CircuitNoiseSetup()
 setup.set_var_param("prob", PROB)
-model = NOISE_MODEL.from_layouts(setup=setup, *layouts)
+model = NOISE_MODEL.from_layouts(setup, *layouts)
 detectors = Detectors.from_layouts(FRAME, *layouts)
 
 schedule = schedule_from_circuit(CIRCUIT, layouts, gate_to_iterator)
