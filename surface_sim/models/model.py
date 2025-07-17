@@ -29,7 +29,7 @@ class Model:
 
     2. ``Model.tick``s do not contain any noise except from the one called by
     ``Model.flush_noise``. ``Model.flush_noise`` adds all the "still-not-added"
-    noise from the previous operation layer (this is useful in e.g. ``DecoherenceNoiseModel``).
+    noise from the previous operation layer (this is useful in e.g. ``T1T2NoiseModel``).
     Note that if ``Model.tick`` are followed one after the other, ``Model.flush_noise``
     is only called for the first one. This is done so that there are no issues when
     merging operation layers and because TICKs are just annotations, not noise.

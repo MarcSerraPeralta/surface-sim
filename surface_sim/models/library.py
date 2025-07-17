@@ -9,6 +9,8 @@ from .model import Model
 from ..setup.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from .util import biased_prefactors, grouper, idle_error_probs
 
+NOT_MEAS = SQ_GATES | TQ_GATES | SQ_RESETS
+
 
 class CircuitNoiseModel(Model):
     def __getattribute__(self, name):
@@ -175,16 +177,7 @@ class SI1000NoiseModel(CircuitNoiseModel):
     def __getattribute__(self, name):
         attr = super().__getattribute__(name)
 
-        meas_reset_ops = [
-            "measure",
-            "measure_x",
-            "measure_y",
-            "measure_z",
-            "reset",
-            "reset_x",
-            "reset_y",
-            "reset_z",
-        ]
+        meas_reset_ops = list(SQ_MEASUREMENTS) + list(SQ_RESETS)
         if callable(attr) and (name in meas_reset_ops):
 
             def wrapper(qubits: Sequence[str], *args, **kargs):
@@ -376,101 +369,11 @@ class BiasedCircuitNoiseModel(Model):
     def incoming_noise(self, qubits: Sequence[str]) -> Circuit:
         return Circuit()
 
-    def measure(self, qubits: Sequence[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
 
-        # separates X_ERROR and MZ for clearer stim diagrams
-        if self.uniform:
-            prob = self.param("meas_error_prob")
-            circ.append(CircuitInstruction("X_ERROR", inds, [prob]))
-            for qubit in qubits:
-                self.add_meas(qubit)
-            if self.param("assign_error_flag"):
-                prob = self.param("assign_error_prob")
-                circ.append(CircuitInstruction("MZ", inds, [prob]))
-            else:
-                circ.append(CircuitInstruction("MZ", inds))
-        else:
-            for qubit, ind in zip(qubits, inds):
-                prob = self.param("meas_error_prob", qubit)
-                circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
-
-            for qubit, ind in zip(qubits, inds):
-                self.add_meas(qubit)
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(CircuitInstruction("MZ", [ind], [prob]))
-                else:
-                    circ.append(CircuitInstruction("MZ", [ind]))
-
-        return circ
-
-    def measure_x(self, qubits: Sequence[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        # separates X_ERROR and MZ for clearer stim diagrams
-        if self.uniform:
-            prob = self.param("meas_error_prob")
-            circ.append(CircuitInstruction("Z_ERROR", inds, [prob]))
-            for qubit in qubits:
-                self.add_meas(qubit)
-            if self.param("assign_error_flag"):
-                prob = self.param("assign_error_prob")
-                circ.append(CircuitInstruction("MX", inds, [prob]))
-            else:
-                circ.append(CircuitInstruction("MX", inds))
-        else:
-            for qubit, ind in zip(qubits, inds):
-                prob = self.param("meas_error_prob", qubit)
-                circ.append(CircuitInstruction("Z_ERROR", [ind], [prob]))
-
-            for qubit, ind in zip(qubits, inds):
-                self.add_meas(qubit)
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(CircuitInstruction("MX", [ind], [prob]))
-                else:
-                    circ.append(CircuitInstruction("MX", [ind]))
-
-        return circ
-
-    def measure_y(self, qubits: Sequence[str]) -> Circuit:
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        # separates X_ERROR and MZ for clearer stim diagrams
-        if self.uniform:
-            prob = self.param("meas_error_prob")
-            circ.append(CircuitInstruction("Z_ERROR", inds, [prob]))
-            for qubit in qubits:
-                self.add_meas(qubit)
-            if self.param("assign_error_flag"):
-                prob = self.param("assign_error_prob")
-                circ.append(CircuitInstruction("MY", inds, [prob]))
-            else:
-                circ.append(CircuitInstruction("MY", inds))
-        else:
-            for qubit, ind in zip(qubits, inds):
-                prob = self.param("meas_error_prob", qubit)
-                circ.append(CircuitInstruction("X_ERROR", [ind], [prob]))
-
-            for qubit, ind in zip(qubits, inds):
-                self.add_meas(qubit)
-                if self.param("assign_error_flag", qubit):
-                    prob = self.param("assign_error_prob", qubit)
-                    circ.append(CircuitInstruction("MY", [ind], [prob]))
-                else:
-                    circ.append(CircuitInstruction("MY", [ind]))
-
-        return circ
-
-
-class DecoherenceNoiseModel(Model):
+class T1T2NoiseModel(Model):
     """A coherence-limited noise model using T1 and T2.
     The noise is added when perfoming gates and when calling
-    ``DecoherenceNoiseModel.tick``.
+    ``T1T2NoiseModel.tick``.
     """
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
@@ -555,80 +458,31 @@ class DecoherenceNoiseModel(Model):
 
         return circ
 
-    def x_gate(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("X")
-        return self._generic_gate("X", qubits)
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
 
-    def z_gate(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("Z")
-        return self._generic_gate("Z", qubits)
+        if not callable(attr):
+            return attr
 
-    def hadamard(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("H")
-        return self._generic_gate("H", qubits)
+        if name != "idle" and (name in NOT_MEAS):
 
-    def s_gate(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("S")
-        return self._generic_gate("S", qubits)
+            def sq_gate(qubits: Sequence[str]) -> Circuit:
+                for qubit in qubits:
+                    self._durations[qubit] += self.gate_duration(NOT_MEAS[name])
+                return self._generic_gate(NOT_MEAS[name], qubits)
 
-    def s_dag_gate(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("S_DAG")
-        return self._generic_gate("S_DAG", qubits)
+            return sq_gate
 
-    def cphase(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("CZ")
-        return self._generic_gate("CZ", qubits)
+        elif name in SQ_MEASUREMENTS:
 
-    def cy(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("CY")
-        return self._generic_gate("CY", qubits)
+            def sq_meas(qubits: Sequence[str]) -> Circuit:
+                for qubit in qubits:
+                    self._durations[qubit] += self.gate_duration(SQ_MEASUREMENTS[name])
+                return self._generic_measurement(SQ_MEASUREMENTS[name], qubits)
 
-    def cnot(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("CNOT")
-        return self._generic_gate("CNOT", qubits)
+            return sq_meas
 
-    def swap(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("SWAP")
-        return self._generic_gate("SWAP", qubits)
-
-    def measure(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("M")
-        return self._generic_measurement("M", qubits)
-
-    def measure_x(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("MX")
-        return self._generic_measurement("MX", qubits)
-
-    def measure_y(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("MY")
-        return self._generic_measurement("MY", qubits)
-
-    def reset(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("R")
-        return self._generic_gate("R", qubits)
-
-    def reset_x(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("RX")
-        return self._generic_gate("RX", qubits)
-
-    def reset_y(self, qubits: Sequence[str]) -> Circuit:
-        for qubit in qubits:
-            self._durations[qubit] += self.gate_duration("RY")
-        return self._generic_gate("RY", qubits)
+        return attr
 
     def idle(self, qubits: Sequence[str]) -> Circuit:
         inds = self.get_inds(qubits)
