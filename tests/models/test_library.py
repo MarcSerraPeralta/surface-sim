@@ -89,65 +89,30 @@ def test_PhenomenologicalNoiseModel():
     setup = Setup(SETUP)
     model = PhenomenologicalNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
 
-    ops = [o.name for o in model.x_gate(["D1"])]
-    assert ops == ["X"]
-
-    ops = [o.name for o in model.z_gate(["D1"])]
-    assert ops == ["Z"]
-
-    ops = [o.name for o in model.hadamard(["D1"])]
-    assert ops == ["H"]
-
-    ops = [o.name for o in model.cphase(["D1", "D2"])]
-    assert ops == ["CZ"]
-
-    ops = [o.name for o in model.cy(["D1", "D2"])]
-    assert ops == ["CY"]
-
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert ops == ["CX"]
-
-    ops = [o.name for o in model.swap(["D1", "D2"])]
-    assert ops == ["SWAP"]
-
-    ops = [o.name for o in model.measure(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_z(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_x(["D1"])]
-    assert "MX" in ops
-    assert set(NOISE_GATES + ["MX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_y(["D1"])]
-    assert "MY" in ops
-    assert set(NOISE_GATES + ["MY"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_z(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_x(["D1"])]
-    assert ops == ["RX"]
-
-    ops = [o.name for o in model.reset_y(["D1"])]
-    assert ops == ["RY"]
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        if name == "idle":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
 
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
 
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) > 1
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
     ops = [o.name for o in model.incoming_noise(["D1"])]
-    assert set(NOISE_GATES) >= set(ops)
-    assert len(ops) > 1
+    assert ops == ["X_ERROR", "Z_ERROR"]
 
     return
 
@@ -156,65 +121,34 @@ def test_PhenomenologicalDepolNoiseModel():
     setup = Setup(SETUP)
     model = PhenomenologicalDepolNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
 
-    ops = [o.name for o in model.x_gate(["D1"])]
-    assert ops == ["X"]
-
-    ops = [o.name for o in model.z_gate(["D1"])]
-    assert ops == ["Z"]
-
-    ops = [o.name for o in model.hadamard(["D1"])]
-    assert ops == ["H"]
-
-    ops = [o.name for o in model.cphase(["D1", "D2"])]
-    assert ops == ["CZ"]
-
-    ops = [o.name for o in model.cy(["D1", "D2"])]
-    assert ops == ["CY"]
-
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert ops == ["CX"]
-
-    ops = [o.name for o in model.swap(["D1", "D2"])]
-    assert ops == ["SWAP"]
-
-    ops = [o.name for o in model.measure(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_z(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_x(["D1"])]
-    assert "MX" in ops
-    assert set(NOISE_GATES + ["MX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_y(["D1"])]
-    assert "MY" in ops
-    assert set(NOISE_GATES + ["MY"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_z(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_x(["D1"])]
-    assert ops == ["RX"]
-
-    ops = [o.name for o in model.reset_y(["D1"])]
-    assert ops == ["RY"]
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        if name == "idle":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
 
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
 
+    ops = [o.name for o in model.idle(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) > 0
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) > 1
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
     ops = [o.name for o in model.incoming_noise(["D1"])]
-    assert set(NOISE_GATES) >= set(ops)
-    assert len(ops) == 1
+    assert ops == ["DEPOLARIZE1"]
 
     return
 
@@ -223,61 +157,27 @@ def test_MeasurementNoiseModel():
     setup = Setup(SETUP)
     model = MeasurementNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
 
-    ops = [o.name for o in model.x_gate(["D1"])]
-    assert ops == ["X"]
-
-    ops = [o.name for o in model.z_gate(["D1"])]
-    assert ops == ["Z"]
-
-    ops = [o.name for o in model.hadamard(["D1"])]
-    assert ops == ["H"]
-
-    ops = [o.name for o in model.cphase(["D1", "D2"])]
-    assert ops == ["CZ"]
-
-    ops = [o.name for o in model.cy(["D1", "D2"])]
-    assert ops == ["CY"]
-
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert ops == ["CX"]
-
-    ops = [o.name for o in model.swap(["D1", "D2"])]
-    assert ops == ["SWAP"]
-
-    ops = [o.name for o in model.measure(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_z(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_x(["D1"])]
-    assert "MX" in ops
-    assert set(NOISE_GATES + ["MX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_y(["D1"])]
-    assert "MY" in ops
-    assert set(NOISE_GATES + ["MY"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_z(["D1"])]
-    assert ops == ["R"]
-
-    ops = [o.name for o in model.reset_x(["D1"])]
-    assert ops == ["RX"]
-
-    ops = [o.name for o in model.reset_y(["D1"])]
-    assert ops == ["RY"]
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        if name == "idle":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
 
     ops = [o.name for o in model.idle(["D1"])]
     assert ops == ["I"]
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) > 1
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert len(ops) == 0
