@@ -20,7 +20,7 @@ class CircuitNoiseModel(Model):
 
         if name in SQ_OPS:
 
-            def sq_op(self, qubits: Sequence[str]) -> Circuit:
+            def sq_op(qubits: Sequence[str]) -> Circuit:
                 inds = self.get_inds(qubits)
                 circ = Circuit()
 
@@ -38,7 +38,7 @@ class CircuitNoiseModel(Model):
 
         if name in TQ_GATES:
 
-            def tq_gate(self, qubits: Sequence[str]) -> Circuit:
+            def tq_gate(qubits: Sequence[str]) -> Circuit:
                 if len(qubits) % 2 != 0:
                     raise ValueError("Expected and even number of qubits.")
 
