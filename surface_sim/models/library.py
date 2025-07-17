@@ -100,23 +100,6 @@ class CircuitNoiseModel(Model):
                 circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
         return circ
 
-    def cphase(self, qubits: Sequence[str]) -> Circuit:
-        if len(qubits) % 2 != 0:
-            raise ValueError("Expected and even number of qubits.")
-
-        inds = self.get_inds(qubits)
-        circ = Circuit()
-
-        circ.append(CircuitInstruction("CZ", inds))
-        if self.uniform:
-            prob = self.param("cz_error_prob")
-            circ.append(CircuitInstruction("DEPOLARIZE2", inds, [prob]))
-        else:
-            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-                prob = self.param("cz_error_prob", qubit_pair)
-                circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
-        return circ
-
     def cy(self, qubits: Sequence[str]) -> Circuit:
         if len(qubits) % 2 != 0:
             raise ValueError("Expected and even number of qubits.")
