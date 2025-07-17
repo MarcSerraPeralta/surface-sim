@@ -208,6 +208,9 @@ class Model:
     def hadamard(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
+    def h_gate(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
     def s_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 

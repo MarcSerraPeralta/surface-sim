@@ -24,7 +24,7 @@ SQ_GATES = {
     "s_dag_gate": "S_DAG",
 }
 TQ_GATES = {
-    "cnot": "CX",
+    "cnot": "CX",  # stim changes the name
     "cx": "CX",
     "cxswap": "CXSWAP",
     "cy": "CY",
@@ -42,28 +42,28 @@ TQ_GATES = {
     "sqrt_zz_dag": "SQRT_ZZ_DAG",
     "swap": "SWAP",
     "swapcx": "SWAPCX",
-    "swapcz": "SWAPCZ",
+    "swapcz": "CZSWAP",  # stim changes the name
     "xcx": "XCX",
     "xcy": "XCY",
     "xcz": "XCZ",
     "ycx": "YCX",
     "ycy": "YCY",
     "ycz": "YCZ",
-    "zcx": "ZCX",
-    "zcy": "ZCY",
-    "zcz": "ZCZ",
+    "zcx": "CX",  # stim changes the name
+    "zcy": "CY",  # stim changes the name
+    "zcz": "CZ",  # stim changes the name
 }
 SQ_MEASUREMENTS = {
     "measure": "M",
     "measure_x": "MX",
     "measure_y": "MY",
-    "measure_z": "MZ",
+    "measure_z": "M",  # stim changes the name
 }
 SQ_RESETS = {
     "reset": "R",
     "reset_x": "RX",
     "reset_y": "RY",
-    "reset_z": "RZ",
+    "reset_z": "R",  # stim changes the name
 }
 
 PARENTS = {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
