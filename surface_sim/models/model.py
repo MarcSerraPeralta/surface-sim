@@ -46,6 +46,7 @@ class Model:
         "s_dag_gate",
         "cnot",
         "cphase",
+        "cy",
         "swap",
         "measure",
         "measure_x",
@@ -230,6 +231,9 @@ class Model:
         raise NotImplementedError
 
     def cphase(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def cy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def swap(self, qubits: Sequence[str]) -> Circuit:

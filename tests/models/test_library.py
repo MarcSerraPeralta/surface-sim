@@ -21,6 +21,7 @@ SETUP = {
         "Z": 1,
         "H": 1,
         "CZ": 1,
+        "CY": 1,
         "CNOT": 1,
         "SWAP": 1,
         "M": 10,
@@ -75,6 +76,9 @@ def test_NoiselessModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
@@ -126,6 +130,9 @@ def test_PhenomenologicalNoiseModel():
 
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
+
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
 
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
@@ -191,6 +198,9 @@ def test_PhenomenologicalDepolNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
@@ -255,6 +265,9 @@ def test_MeasurementNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
@@ -318,6 +331,9 @@ def test_IncomingNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
 
@@ -373,6 +389,9 @@ def test_IncomingDepolNoiseModel():
 
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert ops == ["CZ"]
+
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert ops == ["CY"]
 
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert ops == ["CX"]
@@ -436,6 +455,11 @@ def test_DecoherentNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert "CZ" in ops
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert "CY" in ops
+    assert set(NOISE_GATES + ["CY"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.cnot(["D1", "D2"])]
@@ -541,6 +565,11 @@ def test_SI1000NoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert "CZ" in ops
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert "CY" in ops
+    assert set(NOISE_GATES + ["CY"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.cnot(["D1", "D2"])]
@@ -652,6 +681,11 @@ def test_BiasedCircuitNoiseModel():
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert "CY" in ops
+    assert set(NOISE_GATES + ["CY"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert "CX" in ops
     assert set(NOISE_GATES + ["CX"]) >= set(ops)
@@ -736,6 +770,11 @@ def test_CircuitNoiseModel():
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
     assert len(ops) > 1
 
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert "CY" in ops
+    assert set(NOISE_GATES + ["CY"]) >= set(ops)
+    assert len(ops) > 1
+
     ops = [o.name for o in model.cnot(["D1", "D2"])]
     assert "CX" in ops
     assert set(NOISE_GATES + ["CX"]) >= set(ops)
@@ -818,6 +857,11 @@ def test_MovableQubitsCircuitNoiseModel():
     ops = [o.name for o in model.cphase(["D1", "D2"])]
     assert "CZ" in ops
     assert set(NOISE_GATES + ["CZ"]) >= set(ops)
+    assert len(ops) > 1
+
+    ops = [o.name for o in model.cy(["D1", "D2"])]
+    assert "CY" in ops
+    assert set(NOISE_GATES + ["CY"]) >= set(ops)
     assert len(ops) > 1
 
     ops = [o.name for o in model.cnot(["D1", "D2"])]
