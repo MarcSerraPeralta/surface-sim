@@ -1,11 +1,12 @@
 from __future__ import annotations
-from collections.abc import Sequence, Iterable
+from collections.abc import Sequence
 
 from copy import deepcopy
 
 from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 
 from ..setup import Setup
+from ..setup.setup import ANNOTATIONS, SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from ..layouts import Layout
 
 
@@ -17,7 +18,8 @@ class Model:
 
     The noise models assume that operation layers are separated by ``Model.tick()``,
     and that all qubits participiate in an operation in the opertion layers.
-    Note that ``Model.idling`` is considered an operation, i.e. ``"I"``.
+    Note that ``Model.idle`` and ``Model.idleidle`` considered an operation,
+    i.e. ``"I"`` and ``"II"`` respectively, while ``Model.idle_noise`` is not.
 
     When designing new noise model classes,
 
@@ -27,7 +29,7 @@ class Model:
 
     2. ``Model.tick``s do not contain any noise except from the one called by
     ``Model.flush_noise``. ``Model.flush_noise`` adds all the "still-not-added"
-    noise from the previous operation layer (this is useful in e.g. ``DecoherenceNoiseModel``).
+    noise from the previous operation layer (this is useful in e.g. ``T1T2NoiseModel``).
     Note that if ``Model.tick`` are followed one after the other, ``Model.flush_noise``
     is only called for the first one. This is done so that there are no issues when
     merging operation layers and because TICKs are just annotations, not noise.
@@ -36,28 +38,13 @@ class Model:
     For more information, read the comments in issue #232.
     """
 
-    operations = [
-        "tick",
-        "qubit_coords",
-        "x_gate",
-        "z_gate",
-        "hadamard",
-        "s_gate",
-        "s_dag_gate",
-        "cnot",
-        "cphase",
-        "cy",
-        "swap",
-        "measure",
-        "measure_x",
-        "measure_y",
-        "measure_z",
-        "reset",
-        "reset_x",
-        "reset_y",
-        "reset_z",
-        "idle",
-    ]
+    operations = (
+        list(ANNOTATIONS)
+        + list(SQ_GATES)
+        + list(TQ_GATES)
+        + list(SQ_MEASUREMENTS)
+        + list(SQ_RESETS)
+    )
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._setup = setup
@@ -113,7 +100,7 @@ class Model:
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
-    def get_inds(self, qubits: Iterable[str]) -> list[object]:
+    def get_inds(self, qubits: Sequence[str]) -> list[object]:
         # The proper annotation for this function should be "-> list[int]"
         # but stim gets confused and only accepts list[object] making the
         # LSP unusable with all the errors.
@@ -212,66 +199,141 @@ class Model:
         return circ
 
     # gate/measurement/reset operations
-    def x_gate(self, qubits: Iterable[str]) -> Circuit:
+    def x_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def z_gate(self, qubits: Iterable[str]) -> Circuit:
+    def z_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def hadamard(self, qubits: Iterable[str]) -> Circuit:
+    def hadamard(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def s_gate(self, qubits: Iterable[str]) -> Circuit:
+    def h_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
+    def s_gate(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def s_dag_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def cnot(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cphase(self, qubits: Sequence[str]) -> Circuit:
+    def cx(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def cxswap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def cy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
+    def cphase(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def cz(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def czswap(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def idleidle(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def iswap(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def iswap_dag(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_xx(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_xx_dag(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_yy(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_yy_dag(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_zz(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_zz_dag(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
     def swap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure(self, qubits: Iterable[str]) -> Circuit:
+    def swapcx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+    def swapcz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+    def xcx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_z(self, qubits: Iterable[str]) -> Circuit:
+    def xcy(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def xcz(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def ycx(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def ycy(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def ycz(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def zcx(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def zcy(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def zcz(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure_x(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure_y(self, qubits: Sequence[str]) -> Circuit:
+        raise NotImplementedError
+
+    def measure_z(self, qubits: Sequence[str]) -> Circuit:
         return self.measure(qubits)
 
-    def reset(self, qubits: Iterable[str]) -> Circuit:
+    def reset(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+    def reset_x(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+    def reset_y(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_z(self, qubits: Iterable[str]) -> Circuit:
+    def reset_z(self, qubits: Sequence[str]) -> Circuit:
         return self.reset(qubits)
 
-    def idle(self, qubits: Iterable[str]) -> Circuit:
+    def idle(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     # noise methods
     def flush_noise(self) -> Circuit:
         return Circuit()
 
-    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+    def idle_noise(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+    def incoming_noise(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError

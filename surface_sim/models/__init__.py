@@ -1,7 +1,7 @@
 from .library import (
     CircuitNoiseModel,
     BiasedCircuitNoiseModel,
-    DecoherenceNoiseModel,
+    T1T2NoiseModel,
     NoiselessModel,
     IncomingNoiseModel,
     IncomingDepolNoiseModel,
@@ -17,7 +17,7 @@ __all__ = [
     "Model",
     "CircuitNoiseModel",
     "BiasedCircuitNoiseModel",
-    "DecoherenceNoiseModel",
+    "T1T2NoiseModel",
     "NoiselessModel",
     "IncomingNoiseModel",
     "IncomingDepolNoiseModel",
