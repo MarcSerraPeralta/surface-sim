@@ -5,10 +5,9 @@ from stim import CircuitInstruction, Circuit
 
 from ..setup import Setup
 from ..layouts import Layout
-from .model import Model, SQ_GATES, TQ_GATES, SQ_COLLAPSING_GATES
+from .model import Model
+from ..setup.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from .util import biased_prefactors, grouper, idle_error_probs
-
-SQ_OPS = SQ_GATES | SQ_COLLAPSING_GATES
 
 
 class CircuitNoiseModel(Model):
@@ -18,13 +17,13 @@ class CircuitNoiseModel(Model):
         if not callable(attr):
             return attr
 
-        if name in SQ_OPS:
+        if name in SQ_GATES:
 
-            def sq_op(qubits: Sequence[str]) -> Circuit:
+            def sq_gate(qubits: Sequence[str]) -> Circuit:
                 inds = self.get_inds(qubits)
                 circ = Circuit()
 
-                circ.append(CircuitInstruction(SQ_OPS[name], inds))
+                circ.append(CircuitInstruction(SQ_GATES[name], inds))
                 if self.uniform:
                     prob = self.param(f"{name}_error_prob")
                     circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
@@ -34,9 +33,9 @@ class CircuitNoiseModel(Model):
                         circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
                 return circ
 
-            return sq_op
+            return sq_gate
 
-        if name in TQ_GATES:
+        elif name in TQ_GATES:
 
             def tq_gate(qubits: Sequence[str]) -> Circuit:
                 if len(qubits) % 2 != 0:
@@ -59,6 +58,49 @@ class CircuitNoiseModel(Model):
 
             return tq_gate
 
+        elif name in SQ_MEASUREMENTS:
+
+            def sq_meas(qubits: Sequence[str]) -> Circuit:
+                inds = self.get_inds(qubits)
+                noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
+                circ = Circuit()
+
+                if self.uniform:
+                    for qubit in qubits:
+                        self.add_meas(qubit)
+                    prob = self.param(f"{name}_error_prob")
+                    circ.append(CircuitInstruction(noise_name, inds, [prob]))
+                else:
+                    for qubit, ind in zip(qubits, inds):
+                        self.add_meas(qubit)
+                        prob = self.param(f"{name}_error_prob", qubit)
+                        circ.append(CircuitInstruction(noise_name, [ind], [prob]))
+
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                return circ
+
+            return sq_meas
+
+        elif name in SQ_RESETS:
+
+            def sq_reset(qubits: Sequence[str]) -> Circuit:
+                inds = self.get_inds(qubits)
+                noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
+                circ = Circuit()
+
+                circ.append(CircuitInstruction(SQ_RESETS[name], inds))
+                if self.uniform:
+                    prob = self.param(f"{name}_error_prob")
+                    circ.append(CircuitInstruction(noise_name, inds, [prob]))
+                else:
+                    for qubit, ind in zip(qubits, inds):
+                        prob = self.param(f"{name}_error_prob", qubit)
+                        circ.append(CircuitInstruction(noise_name, [ind], [prob]))
+
+                return circ
+
+            return sq_reset
+
         return attr
 
     def idle_noise(
@@ -80,22 +122,33 @@ class CircuitNoiseModel(Model):
 
 
 class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
-    def swap(self, qubits: Sequence[str]) -> Circuit:
-        if len(qubits) % 2 != 0:
-            raise ValueError("Expected and even number of qubits.")
+    def __getattribute__(self, name):
+        attr = super().__getattribute__(name)
 
-        inds = self.get_inds(qubits)
-        circ = Circuit()
+        if name == "swap" and callable(attr):
 
-        circ.append(CircuitInstruction("SWAP", inds))
-        if self.uniform:
-            prob = self.param("swap_error_prob")
-            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
-        else:
-            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
-                prob = self.param("swap_error_prob", qubit_pair)
-                circ.append(CircuitInstruction("DEPOLARIZE1", ind_pair, [prob]))
-        return circ
+            def swap(qubits: Sequence[str]) -> Circuit:
+                if len(qubits) % 2 != 0:
+                    raise ValueError("Expected and even number of qubits.")
+
+                inds = self.get_inds(qubits)
+                circ = Circuit()
+
+                circ.append(CircuitInstruction("SWAP", inds))
+                if self.uniform:
+                    prob = self.param("swap_error_prob")
+                    circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+                else:
+                    for qubit_pair, ind_pair in zip(
+                        grouper(qubits, 2), grouper(inds, 2)
+                    ):
+                        prob = self.param("swap_error_prob", qubit_pair)
+                        circ.append(CircuitInstruction("DEPOLARIZE1", ind_pair, [prob]))
+                return circ
+
+            return swap
+
+        return attr
 
 
 class SI1000NoiseModel(CircuitNoiseModel):
@@ -143,7 +196,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("X", inds))
 
         if self.uniform:
-            prob = self.param("x_error_prob")
+            prob = self.param("x_gate_error_prob")
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli"),
                 biased_factor=self.param("biased_factor"),
@@ -153,7 +206,7 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_1", inds, probs))
         else:
             for qubit, ind in zip(qubits, inds):
-                prob = self.param("x_error_prob", qubit)
+                prob = self.param("x_gate_error_prob", qubit)
                 prefactors = biased_prefactors(
                     biased_pauli=self.param("biased_pauli", qubit),
                     biased_factor=self.param("biased_factor", qubit),
@@ -170,7 +223,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("Z", inds))
 
         if self.uniform:
-            prob = self.param("z_error_prob")
+            prob = self.param("z_gate_error_prob")
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli"),
                 biased_factor=self.param("biased_factor"),
@@ -180,7 +233,7 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_1", inds, probs))
         else:
             for qubit, ind in zip(qubits, inds):
-                prob = self.param("z_error_prob", qubit)
+                prob = self.param("z_gate_error_prob", qubit)
                 prefactors = biased_prefactors(
                     biased_pauli=self.param("biased_pauli", qubit),
                     biased_factor=self.param("biased_factor", qubit),
@@ -197,7 +250,7 @@ class BiasedCircuitNoiseModel(Model):
         circ.append(CircuitInstruction("H", inds))
 
         if self.uniform:
-            prob = self.param("h_error_prob")
+            prob = self.param("h_gate_error_prob")
             prefactors = biased_prefactors(
                 biased_pauli=self.param("biased_pauli"),
                 biased_factor=self.param("biased_factor"),
@@ -207,7 +260,7 @@ class BiasedCircuitNoiseModel(Model):
             circ.append(CircuitInstruction("PAULI_CHANNEL_1", inds, probs))
         else:
             for qubit, ind in zip(qubits, inds):
-                prob = self.param("h_error_prob", qubit)
+                prob = self.param("h_gate_error_prob", qubit)
                 prefactors = biased_prefactors(
                     biased_pauli=self.param("biased_pauli", qubit),
                     biased_factor=self.param("biased_factor", qubit),

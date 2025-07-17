@@ -13,21 +13,67 @@ class SetupDict(TypedDict):
     setup: Sequence[dict[str, object]]
 
 
+ANNOTATIONS = ["tick", "qubit_coords"]
+SQ_GATES = {
+    "idle": "I",
+    "x_gate": "X",
+    "z_gate": "Z",
+    "hadamard": "H",
+    "h_gate": "H",
+    "s_gate": "S",
+    "s_dag_gate": "S_DAG",
+}
+TQ_GATES = {
+    "cnot": "CX",
+    "cx": "CX",
+    "cxswap": "CXSWAP",
+    "cy": "CY",
+    "cphase": "CZ",
+    "cz": "CZ",
+    "czswap": "CZSWAP",
+    "idleidle": "II",
+    "iswap": "ISWAP",
+    "iswap_dag": "ISWAP_DAG",
+    "sqrt_xx": "SQRT_XX",
+    "sqrt_xx_dag": "SQRT_XX_DAG",
+    "sqrt_yy": "SQRT_YY",
+    "sqrt_yy_dag": "SQRT_YY_DAG",
+    "sqrt_zz": "SQRT_ZZ",
+    "sqrt_zz_dag": "SQRT_ZZ_DAG",
+    "swap": "SWAP",
+    "swapcx": "SWAPCX",
+    "swapcz": "SWAPCZ",
+    "xcx": "XCX",
+    "xcy": "XCY",
+    "xcz": "XCZ",
+    "ycx": "YCX",
+    "ycy": "YCY",
+    "ycz": "YCZ",
+    "zcx": "ZCX",
+    "zcy": "ZCY",
+    "zcz": "ZCZ",
+}
+SQ_MEASUREMENTS = {
+    "measure": "M",
+    "measure_x": "MX",
+    "measure_y": "MY",
+    "measure_z": "MZ",
+}
+SQ_RESETS = {
+    "reset": "R",
+    "reset_x": "RX",
+    "reset_y": "RY",
+    "reset_z": "RZ",
+}
+
+PARENTS = {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
+PARENTS |= {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
+PARENTS |= {f"{n}_error_prob": "sq_error_prob" for n in SQ_RESETS}
+PARENTS |= {f"{n}_error_prob": "sq_error_prob" for n in SQ_MEASUREMENTS}
+
+
 class Setup:
-    PARENTS = {
-        "cz_error_prob": "tq_error_prob",
-        "cy_error_prob": "tq_error_prob",
-        "cnot_error_prob": "tq_error_prob",
-        "swap_error_prob": "tq_error_prob",
-        "h_error_prob": "sq_error_prob",
-        "s_error_prob": "sq_error_prob",
-        "sdag_error_prob": "sq_error_prob",
-        "x_error_prob": "sq_error_prob",
-        "z_error_prob": "sq_error_prob",
-        "reset_error_prob": "sq_error_prob",
-        "meas_error_prob": "sq_error_prob",
-        "idle_error_prob": "sq_error_prob",
-    }
+    PARENTS = PARENTS.copy()
 
     def __init__(self, setup: SetupDict) -> None:
         """Initialises the ``Setup`` class.
