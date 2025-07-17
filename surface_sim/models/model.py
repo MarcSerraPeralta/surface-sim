@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Sequence, Iterable
+from collections.abc import Sequence
 
 from copy import deepcopy
 
@@ -9,54 +9,54 @@ from ..setup import Setup
 from ..layouts import Layout
 
 ANNOTATIONS = ["tick", "qubit_coords"]
-SQ_GATES = [
-    "idle",
-    "x_gate",
-    "z_gate",
-    "hadamard",
-    "s_gate",
-    "s_dag_gate",
-]
-TQ_GATES = [
-    "cnot",
-    "cx",
-    "cxswap",
-    "cy",
-    "cphase",
-    "cz",
-    "czswap",
-    "idleidle",
-    "iswap",
-    "iswap_dag",
-    "sqrt_xx",
-    "sqrt_xx_dag",
-    "sqrt_yy",
-    "sqrt_yy_dag",
-    "sqrt_zz",
-    "sqrt_zz_dag",
-    "swap",
-    "swapcx",
-    "swapcz",
-    "xcx",
-    "xcy",
-    "xcz",
-    "ycx",
-    "ycy",
-    "ycz",
-    "zcx",
-    "zcy",
-    "zcz",
-]
-COLLAPSING_GATES = [
-    "measure",
-    "measure_x",
-    "measure_y",
-    "measure_z",
-    "reset",
-    "reset_x",
-    "reset_y",
-    "reset_z",
-]
+SQ_GATES = {
+    "idle": "I",
+    "x_gate": "X",
+    "z_gate": "Z",
+    "hadamard": "H",
+    "s_gate": "S",
+    "s_dag_gate": "S_DAG",
+}
+TQ_GATES = {
+    "cnot": "CX",
+    "cx": "CX",
+    "cxswap": "CXSWAP",
+    "cy": "CY",
+    "cphase": "CZ",
+    "cz": "CZ",
+    "czswap": "CZSWAP",
+    "idleidle": "II",
+    "iswap": "ISWAP",
+    "iswap_dag": "ISWAP_DAG",
+    "sqrt_xx": "SQRT_XX",
+    "sqrt_xx_dag": "SQRT_XX_DAG",
+    "sqrt_yy": "SQRT_YY",
+    "sqrt_yy_dag": "SQRT_YY_DAG",
+    "sqrt_zz": "SQRT_ZZ",
+    "sqrt_zz_dag": "SQRT_ZZ_DAG",
+    "swap": "SWAP",
+    "swapcx": "SWAPCX",
+    "swapcz": "SWAPCZ",
+    "xcx": "XCX",
+    "xcy": "XCY",
+    "xcz": "XCZ",
+    "ycx": "YCX",
+    "ycy": "YCY",
+    "ycz": "YCZ",
+    "zcx": "ZCX",
+    "zcy": "ZCY",
+    "zcz": "ZCZ",
+}
+SQ_COLLAPSING_GATES = {
+    "measure": "M",
+    "measure_x": "MX",
+    "measure_y": "MY",
+    "measure_z": "MZ",
+    "reset": "R",
+    "reset_x": "RX",
+    "reset_y": "RY",
+    "reset_z": "RZ",
+}
 
 
 class Model:
@@ -67,7 +67,8 @@ class Model:
 
     The noise models assume that operation layers are separated by ``Model.tick()``,
     and that all qubits participiate in an operation in the opertion layers.
-    Note that ``Model.idling`` is considered an operation, i.e. ``"I"``.
+    Note that ``Model.idle`` and ``Model.idleidle`` considered an operation,
+    i.e. ``"I"`` and ``"II"`` respectively, while ``Model.idle_noise`` is not.
 
     When designing new noise model classes,
 
@@ -86,7 +87,9 @@ class Model:
     For more information, read the comments in issue #232.
     """
 
-    operations = ANNOTATIONS + SQ_GATES + TQ_GATES + COLLAPSING_GATES
+    operations = (
+        list(ANNOTATIONS) + list(SQ_GATES) + list(TQ_GATES) + list(SQ_COLLAPSING_GATES)
+    )
 
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._setup = setup
@@ -142,7 +145,7 @@ class Model:
     def gate_duration(self, name: str) -> float:
         return self._setup.gate_duration(name)
 
-    def get_inds(self, qubits: Iterable[str]) -> list[object]:
+    def get_inds(self, qubits: Sequence[str]) -> list[object]:
         # The proper annotation for this function should be "-> list[int]"
         # but stim gets confused and only accepts list[object] making the
         # LSP unusable with all the errors.
@@ -241,19 +244,19 @@ class Model:
         return circ
 
     # gate/measurement/reset operations
-    def x_gate(self, qubits: Iterable[str]) -> Circuit:
+    def x_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def z_gate(self, qubits: Iterable[str]) -> Circuit:
+    def z_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def hadamard(self, qubits: Iterable[str]) -> Circuit:
+    def hadamard(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def s_gate(self, qubits: Iterable[str]) -> Circuit:
+    def s_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def s_dag_gate(self, qubits: Iterable[str]) -> Circuit:
+    def s_dag_gate(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def cnot(self, qubits: Sequence[str]) -> Circuit:
@@ -340,39 +343,39 @@ class Model:
     def zcz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure(self, qubits: Iterable[str]) -> Circuit:
+    def measure(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_x(self, qubits: Iterable[str]) -> Circuit:
+    def measure_x(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_y(self, qubits: Iterable[str]) -> Circuit:
+    def measure_y(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def measure_z(self, qubits: Iterable[str]) -> Circuit:
+    def measure_z(self, qubits: Sequence[str]) -> Circuit:
         return self.measure(qubits)
 
-    def reset(self, qubits: Iterable[str]) -> Circuit:
+    def reset(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_x(self, qubits: Iterable[str]) -> Circuit:
+    def reset_x(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_y(self, qubits: Iterable[str]) -> Circuit:
+    def reset_y(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def reset_z(self, qubits: Iterable[str]) -> Circuit:
+    def reset_z(self, qubits: Sequence[str]) -> Circuit:
         return self.reset(qubits)
 
-    def idle(self, qubits: Iterable[str]) -> Circuit:
+    def idle(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     # noise methods
     def flush_noise(self) -> Circuit:
         return Circuit()
 
-    def idle_noise(self, qubits: Iterable[str]) -> Circuit:
+    def idle_noise(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def incoming_noise(self, qubits: Iterable[str]) -> Circuit:
+    def incoming_noise(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
