@@ -548,84 +548,35 @@ def test_SI1000NoiseModel():
     setup = Setup(SETUP)
     model = SI1000NoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
 
-    ops = [o.name for o in model.x_gate(["D1"])]
-    assert "X" in ops
-    assert set(NOISE_GATES + ["X"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.z_gate(["D1"])]
-    assert "Z" in ops
-    assert set(NOISE_GATES + ["Z"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.hadamard(["D1"])]
-    assert "H" in ops
-    assert set(NOISE_GATES + ["H"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.cphase(["D1", "D2"])]
-    assert "CZ" in ops
-    assert set(NOISE_GATES + ["CZ"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.cy(["D1", "D2"])]
-    assert "CY" in ops
-    assert set(NOISE_GATES + ["CY"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.cnot(["D1", "D2"])]
-    assert "CX" in ops
-    assert set(NOISE_GATES + ["CX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.swap(["D1", "D2"])]
-    assert "SWAP" in ops
-    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_z(["D1"])]
-    assert "M" in ops
-    assert set(NOISE_GATES + ["M"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_x(["D1"])]
-    assert "MX" in ops
-    assert set(NOISE_GATES + ["MX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.measure_y(["D1"])]
-    assert "MY" in ops
-    assert set(NOISE_GATES + ["MY"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset(["D1"])]
-    assert "R" in ops
-    assert set(NOISE_GATES + ["R"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset_z(["D1"])]
-    assert "R" in ops
-    assert set(NOISE_GATES + ["R"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset_x(["D1"])]
-    assert "RX" in ops
-    assert set(NOISE_GATES + ["RX"]) >= set(ops)
-    assert len(ops) > 1
-
-    ops = [o.name for o in model.reset_y(["D1"])]
-    assert "RY" in ops
-    assert set(NOISE_GATES + ["RY"]) >= set(ops)
-    assert len(ops) > 1
+    for name in SQ_GATES:
+        if name == "idle":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) > 1
 
     ops = [o.name for o in model.idle(["D1"])]
     assert set(NOISE_GATES + ["I"]) >= set(ops)
     assert len(ops) > 0
+
+    for name in SQ_RESETS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        assert len(ops) > 1
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        assert len(ops) > 1
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) > 1
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert len(ops) == 0
