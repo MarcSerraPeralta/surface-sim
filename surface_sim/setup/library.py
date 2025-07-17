@@ -18,7 +18,7 @@ class CircuitNoiseSetup(Setup):
                     meas_error_prob="{prob}",
                     reset_error_prob="{prob}",
                     idle_error_prob="{prob}",
-                    assign_error_flag=True,
+                    assign_error_flag=False,
                     assign_error_prob="{prob}",
                 ),
             ],
