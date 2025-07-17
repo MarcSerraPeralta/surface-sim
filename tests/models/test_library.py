@@ -564,12 +564,16 @@ def test_SI1000NoiseModel():
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_RESETS[name] in ops
         assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
         assert len(ops) > 1
 
     for name in SQ_MEASUREMENTS:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_MEASUREMENTS[name] in ops
         assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
         assert len(ops) > 1
 
     for name in TQ_GATES:
@@ -718,12 +722,16 @@ def test_CircuitNoiseModel():
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_RESETS[name] in ops
         assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
         assert len(ops) > 1
 
     for name in SQ_MEASUREMENTS:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_MEASUREMENTS[name] in ops
         assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
         assert len(ops) > 1
 
     for name in TQ_GATES:
@@ -758,12 +766,16 @@ def test_MovableQubitsCircuitNoiseModel():
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_RESETS[name] in ops
         assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
         assert len(ops) > 1
 
     for name in SQ_MEASUREMENTS:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
         assert SQ_MEASUREMENTS[name] in ops
         assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
         assert len(ops) > 1
 
     for name in TQ_GATES:
