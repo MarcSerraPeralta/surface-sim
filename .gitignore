@@ -152,3 +152,6 @@ vscode/
 # profiler files
 *.dot
 *.profile
+
+# sphinx documentation
+docs/source/generated/

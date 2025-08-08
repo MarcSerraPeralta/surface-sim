@@ -3,15 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to the IQ readout documentation
-=======================================
+Welcome to the surface-sim documentation
+========================================
 
 .. toctree::
    :maxdepth: 1
    :hidden:
 
    intro
-   classifier_docs
    api
 
 **Version**: |release|
@@ -26,7 +25,7 @@ Welcome to the IQ readout documentation
         Getting started
         ^^^
 
-        New to IQ readout? Check out what it can offer.
+        New to surface-sim? Check out what it can offer.
 
         +++
 
@@ -46,11 +45,11 @@ Welcome to the IQ readout documentation
         ^^^
 
         The user guide provides in-depth information on the
-        classifiers of IQ readout with useful background information and explanation.
+        functionality of surface-sim with useful background information and explanation.
 
         +++
 
-        .. button-ref:: classifier_docs
+        .. button-ref:: user_guide
             :expand:
             :color: secondary
             :click-parent:
@@ -65,7 +64,7 @@ Welcome to the IQ readout documentation
         ^^^
 
         The reference guide contains a detailed description of the functions,
-        modules, and objects included in IQ readout.
+        modules, and objects included in surface-sim.
 
         +++
 
@@ -80,14 +79,14 @@ Welcome to the IQ readout documentation
         :img-top: _static/contributor.svg
         :text-align: center
 
-        Contributing to IQ readout
+        Contributing to surface-sim
         ^^^
 
         Want to add to the codebase? Go to the GitHub page and contact the contributors.
 
         +++
 
-        .. button-link:: https://github.com/MarcSerraPeralta/iq_readout
+        .. button-link:: https://github.com/MarcSerraPeralta/surface-sim
             :expand:
             :color: secondary
             :click-parent:
