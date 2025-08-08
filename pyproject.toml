@@ -34,4 +34,8 @@ include = ["surface_sim", "surface_sim.*"]  # package names should match these g
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project.optional-dependencies]
-dev = ["pip-tools", "pytest", "black", "pytest-black", "flake8", "flake8-print", "pytest-flake8", "gprof2dot"]
+dev = ["pip-tools",
+       "black",
+       "pytest", "pytest-black", "flake8", "flake8-print", "pytest-flake8",
+       "gprof2dot",
+       "sphinx", "sphinx-rtd-theme", "numpydoc", "pydata_sphinx_theme", "sphinx_design"]

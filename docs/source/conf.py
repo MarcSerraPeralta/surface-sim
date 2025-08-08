@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 project = "surface-sim"
 copyright = "2024, Marc Serra Peralta"
 author = "Marc Serra Peralta"
-release = "0.0.1"
+release = "0.9.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
