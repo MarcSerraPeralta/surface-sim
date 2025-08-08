@@ -12,7 +12,7 @@ including circuit-level noise.
 It uses a code layout that helps with qubit labeling, indexing and connectivity. 
 It also defines the detectors automatically for any sequence of logical gates.
 
-For more information see the documentation in `docs/`. 
+For more information see [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
 
 ## Installation
 
@@ -105,4 +105,4 @@ stim_circuit = experiment_from_schedule(
 )
 ```
 
-For more information and examples about `surface-sim`, please read the `docs/`.
+For more information and examples about `surface-sim`, please read [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
