@@ -1,5 +1,11 @@
-Building noisy circuits with ``Model``, ``Layout``, and ``Detectors`` objects
-=============================================================================
+User guide
+==========
+
+This page provides some motivation to the design choices for ``surface-sim``.
+
+
+``Model``, ``Layout``, and ``Detectors`` objects
+================================================
 
 The noise model class contains the functions that implement noisy operations and the layout class contains the possible interactions between qubits.
 The detectors are managed automatically using the ``Detectors`` class. 
@@ -37,6 +43,10 @@ Finally, this package already contains some common QEC experiments in ``surface_
    :align: center
    :width: 80%
 
+.. raw:: html
+
+   <div style="margin-bottom: 2em;"></div>
+
 
 Structure of a logical circuit
 ==============================
@@ -68,6 +78,9 @@ The TICK must be there to make sure that idling noise is correctly added when th
    :align: center
    :width: 80%
 
+.. raw:: html
+
+   <div style="margin-bottom: 2em;"></div>
 
 Creating and configuring a ``Setup``
 ====================================
@@ -78,7 +91,8 @@ This document explains the structure of these two inputs and the use of *free pa
 For convenience, ``surface_sim.setup.CircuitNoiseSetup`` returns a ``Setup`` initialized for circuit-level noise.
 
 
-## Structure of the configuration for a ``Setup``
+Structure of the configuration for a ``Setup``
+----------------------------------------------
 
 The configuration input must contain a ``setup`` block, including the noise parameters for each qubit.
 It can also contain a ``gate_durations`` block for experimental-based noise models, where the error probabilities depend on the opertaions durations. 
@@ -102,9 +116,10 @@ The configuration input can also contain a ``name`` and a ``description``.
 
 The parameters are classified into three categories:
 
-- **local parameter**: float value that is defined for a specific qubit or pair of qubits for the case of two-qubit gates
-- **global parameter**: float value that is defined for all qubits or all two-qubit gates
+- **local parameter**: float value that is defined for a specific qubit or pair of qubits for the case of two-qubit gates.
+- **global parameter**: float value that is defined for all qubits or all two-qubit gates.
 - **free parameter**: string name that can be set up and modified for an specific qubit or all qubits. 
+
 These parameters can be setup using the ``Setup.set_var_param`` function. 
 
 Examples that represent the same noise:

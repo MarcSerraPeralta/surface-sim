@@ -11,10 +11,10 @@ from ..layouts import Layout
 
 
 class Model:
-    """Noise model class for generating the ``stim.Circuit``s for each
+    """Noise model class for generating the ``stim.Circuit`` for each
     of the physical operations including noise channels.
 
-    **IMPORTANT**
+    IMPORTANT
 
     The noise models assume that operation layers are separated by ``Model.tick()``,
     and that all qubits participiate in an operation in the opertion layers.
@@ -147,7 +147,7 @@ class Model:
         -----
         To access the first measurement in the following example
 
-        .. codeblock::
+        .. code-block::
 
             M 0
             M 1
