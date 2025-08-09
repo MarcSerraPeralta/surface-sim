@@ -3,7 +3,7 @@ Building noisy circuits with ``Model``, ``Layout``, and ``Detectors`` objects
 
 The noise model class contains the functions that implement noisy operations and the layout class contains the possible interactions between qubits.
 The detectors are managed automatically using the ``Detectors`` class. 
-For an overview of the relations between these classes, see ``docs/module_blocks_overview.svg``.
+For an overview of the relations between these classes, see the figure at the end of this section.
 
 The ``Model``'s methods for operations return a ``stim.Circuit`` corresponding to the specified operation and its associated noise. 
 These instructions can be added to a ``stim.Circuit``, for example:
@@ -17,7 +17,7 @@ These instructions can be added to a ``stim.Circuit``, for example:
 
 The building blocks in ``surface_sim.circuit_blocks`` use a layout (from ``surface_sim.Layout``), which simplifies the qubit selection for gate scheduling. 
 As an example, ``Layout.get_qubits(role="anc")`` selects all ancilla qubits from the layout.
-In ``docs/layout_examples``, there is a YAML file that stores the Surface-17 layout, which can be loaded using ``Layout.from_yaml()``.
+In ``docs/source/_static/layout_examples``, there is a YAML file that stores the Surface-17 layout, which can be loaded using ``Layout.from_yaml()``.
 This package also contains functions to generate layouts in ``surface_sim.layouts``.
 
 To understand how to build noisy circuits, we suggest reading the code for the functions in ``surface_sim.circuit_blocks.rot_surface_code_css``.
@@ -31,6 +31,11 @@ It is also important to know that every time a new circuit or experiment is buil
 This restarts the inner state of the classes, in particular for the function ``Model.meas_target`` and the stabilizers in ``Detectors``.
 
 Finally, this package already contains some common QEC experiments in ``surface_sim.experiments``.
+
+.. image:: _static/module_blocks_overview.svg
+   :alt: Model, Layout, Setup, and Detector relations.
+   :align: center
+   :width: 80%
 
 
 Structure of a logical circuit
@@ -57,6 +62,11 @@ It is possible to perform more than one QEC round between logical operation laye
 The logical operations must have one ``model.tick()`` before starting the physical implementation of the operation.
 This TICK is used to add incoming noise (if needed) and to plot the stabilizers before the gate when calling ``stim.Circuit.diagram``.
 The TICK must be there to make sure that idling noise is correctly added when the logical operations have different physical gate layers.
+
+.. image:: _static/arbitrary_experiment.svg
+   :alt: Arbitrary experiment scheme.
+   :align: center
+   :width: 80%
 
 
 Creating and configuring a ``Setup``
@@ -154,7 +164,7 @@ Loading ``Setup`` from YAML file
 
     setup = Setup.from_yaml("path/to/yaml/file.yaml")
 
-Examples of the YAML Setup file can be found in ``docs/setup_examples``.
+Examples of the YAML Setup file can be found in ``docs/source/_static/setup_examples``.
 
 
 Creating ``Setup`` from ``dict``
