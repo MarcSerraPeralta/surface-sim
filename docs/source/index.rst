@@ -11,6 +11,7 @@ Welcome to the surface-sim documentation
    :hidden:
 
    intro
+   user_guide
    api
 
 **Version**: |release|
