@@ -34,7 +34,7 @@ pip install surface-sim/
 ```
 from surface_sim.layouts import rot_surface_code
 from surface_sim.models import CircuitNoiseModel
-from surface_sim.setup import CircuitNoiseSetup
+from surface_sim.setups import CircuitNoiseSetup
 from surface_sim import Detectors
 from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
@@ -68,7 +68,7 @@ stim_circuit = memory_experiment(
 ```
 import stim
 
-from surface_sim.setup import CircuitNoiseSetup
+from surface_sim.setups import CircuitNoiseSetup
 from surface_sim.models import CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule

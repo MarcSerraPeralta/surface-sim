@@ -2,8 +2,8 @@
 
 __version__ = "0.9.1"
 
-from . import experiments, models, util, circuit_blocks, layouts, log_gates, setup
-from .setup import Setup
+from . import experiments, models, util, circuit_blocks, layouts, log_gates, setups
+from .setups import Setup
 from .models import Model
 from .detectors import Detectors
 from .layouts import Layout
@@ -16,7 +16,7 @@ __all__ = [
     "circuit_blocks",
     "layouts",
     "log_gates",
-    "setup",
+    "setups",
     "Setup",
     "Model",
     "Detectors",
