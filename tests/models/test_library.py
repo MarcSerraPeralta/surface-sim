@@ -14,7 +14,7 @@ from surface_sim.models import (
     BiasedCircuitNoiseModel,
     MovableQubitsCircuitNoiseModel,
 )
-from surface_sim.setup import SQ_GATES, SQ_RESETS, SQ_MEASUREMENTS, TQ_GATES
+from surface_sim.setups import SQ_GATES, SQ_RESETS, SQ_MEASUREMENTS, TQ_GATES
 
 SETUP = {
     "gate_durations": {n: 1 for n in (SQ_GATES | TQ_GATES).values()}

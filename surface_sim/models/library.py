@@ -3,10 +3,10 @@ from collections.abc import Sequence
 
 from stim import CircuitInstruction, Circuit
 
-from ..setup import Setup
+from ..setups import Setup
 from ..layouts import Layout
 from .model import Model
-from ..setup.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
+from ..setups.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from .util import biased_prefactors, grouper, idle_error_probs
 
 NOT_MEAS = SQ_GATES | TQ_GATES | SQ_RESETS

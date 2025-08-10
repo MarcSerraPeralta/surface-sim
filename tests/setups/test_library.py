@@ -1,4 +1,4 @@
-from surface_sim.setup import CircuitNoiseSetup, SI1000
+from surface_sim.setups import CircuitNoiseSetup, SI1000
 
 
 def test_CircuitNoiseSetup():

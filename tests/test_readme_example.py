@@ -1,7 +1,7 @@
 def test_readme_example_memory_experiment():
     from surface_sim.layouts import rot_surface_code
     from surface_sim.models import CircuitNoiseModel
-    from surface_sim.setup import CircuitNoiseSetup
+    from surface_sim.setups import CircuitNoiseSetup
     from surface_sim import Detectors
     from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
@@ -37,7 +37,7 @@ def test_readme_example_memory_experiment():
 def test_readme_example_arbitrary_circuit():
     import stim
 
-    from surface_sim.setup import CircuitNoiseSetup
+    from surface_sim.setups import CircuitNoiseSetup
     from surface_sim.models import CircuitNoiseModel
     from surface_sim import Detectors
     from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule

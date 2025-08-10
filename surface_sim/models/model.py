@@ -5,8 +5,8 @@ from copy import deepcopy
 
 from stim import CircuitInstruction, target_rec, GateTarget, Circuit
 
-from ..setup import Setup
-from ..setup.setup import ANNOTATIONS, SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
+from ..setups import Setup
+from ..setups.setup import ANNOTATIONS, SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from ..layouts import Layout
 
 
