@@ -299,7 +299,7 @@ def merge_logical_operations(
     circuit = merge_iterators(op_iterators, model)
 
     # update the detectors due to unitary gates.
-    # the detectors need to be updated before building them for
+    # the detectors need to be updated before building them because of
     # the mid-cycle logical gates.
     for op in op_iterators:
         func, layouts = op[0], op[1:]
