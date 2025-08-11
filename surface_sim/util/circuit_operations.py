@@ -268,6 +268,7 @@ def merge_logical_operations(
         )
 
     # change QEC round iterators to include 'anc_reset' (if needed)
+    # because the 'merge_iterators' only inputs Model and Layout(s), not 'anc_reset'
     if all(qec_ops):
         if anc_reset is None:
             raise ValueError("QEC round found but 'anc_reset' is not specified.")
@@ -297,13 +298,17 @@ def merge_logical_operations(
 
     circuit = merge_iterators(op_iterators, model)
 
-    # update the detectors due to unitary gates
+    # update the detectors due to unitary gates.
+    # the detectors need to be updated before building them for
+    # the mid-cycle logical gates.
     for op in op_iterators:
         func, layouts = op[0], op[1:]
         if func.log_op_type not in GATE_OP_TYPES:
             # detectors do not need to be updated
             continue
 
+        # the only supported inter-layout operations are
+        # for layouts that only contain a single logical qubit.
         if {len(l.logical_qubits) for l in layouts} == {1}:
             gate_label = func.__name__.replace("_iterator", "_")
             gate_label += "_".join([l.logical_qubits[0] for l in layouts])
@@ -312,6 +317,7 @@ def merge_logical_operations(
 
         new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layouts[0], gate_label)
 
+        # only single-qubit and two-qubit logical gates are supported.
         if len(layouts) == 2:
             new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(
                 layouts[1], gate_label
@@ -320,13 +326,15 @@ def merge_logical_operations(
             new_stabs_inv.update(new_stabs_2_inv)
         detectors.update(new_stabs, new_stabs_inv)
 
-    # check if detectors need to be build because of QEC round
+    # check if detectors need to be build because of QEC rounds.
+    # the detectors from the QEC rounds need to be built the ones
+    # from the logical measurements becuase of the 'qec_round_with_meas'.
     if all(qec_ops):
         circuit += detectors.build_from_anc(
             model.meas_target, anc_reset, anc_qubits=anc_detectors
         )
 
-    # check if detectors needs to be built because of measurements
+    # check if detectors needs to be built because of logical measurements.
     meas_ops = [
         k for k, i in enumerate(op_iterators) if i[0].log_op_type in MEAS_OP_TYPES
     ]
@@ -347,7 +355,7 @@ def merge_logical_operations(
         layouts = [op_iterators[k][1] for k in meas_ops]
         rot_bases = [op_iterators[k][0].rot_basis for k in meas_ops]
 
-        # add detectors
+        # build the detectors from the logical measurement
         reconstructable_stabs, anc_support = [], {}
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
@@ -363,7 +371,7 @@ def merge_logical_operations(
             anc_qubits=anc_detectors,
         )
 
-        # add logicals
+        # add logical observable definitions
         for layout, rot_basis in zip(layouts, rot_bases):
             for log_qubit_label in layout.logical_qubits:
                 log_op = "log_x" if rot_basis else "log_z"
@@ -377,21 +385,19 @@ def merge_logical_operations(
                 circuit.append(instr)
                 init_log_obs_ind += 1
 
-        # deactivate ancilla qubits
+        # deactivate (ancilla-qubit) detectors from the logical measurement.
         for k in meas_ops:
             detectors.deactivate_detectors(op_iterators[k][1].anc_qubits)
 
-    # check if detectors need to be activated or deactivated.
-    # This needs to be done after defining the detectors because if not,
-    # they won't be defined as they will correspond to inactive ancillas.
+    # check if detectors need to be activated due to the logical resets.
     reset_ops = [
         k for k, i in enumerate(op_iterators) if i[0].log_op_type == "qubit_init"
     ]
     if reset_ops:
         for k in reset_ops:
-            # add information about gauge detectors so that Detectors.include_gauge_detectors
+            # give information about gauge detectors to Detectors so that Detectors.include_gauge_detectors
             # is the one specifying if gauge detectors are included or not.
-            # if reset in X basis, the Z stabilizers are gauge detectors
+            # e.g. if reset in X basis, the Z stabilizers are gauge detectors
             stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
             gauge_dets = op_iterators[k][1].get_qubits(role="anc", stab_type=stab_type)
             detectors.activate_detectors(
