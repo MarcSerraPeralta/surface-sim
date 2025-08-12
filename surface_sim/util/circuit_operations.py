@@ -10,8 +10,8 @@ from ..circuit_blocks.decorators import (
     LogOpCallable,
     LogicalOperation,
     qec_circuit,
-    qec_circuit_with_x_meas,
-    qec_circuit_with_z_meas,
+    logical_measurement_x,
+    logical_measurement_z,
 )
 
 
@@ -29,17 +29,12 @@ MEAS_INSTR = [
     "MZZ",
     "MPP",
 ]
-VALID_OP_TYPES = [
-    "qubit_init",
-    "sq_unitary_gate",
-    "tq_unitary_gate",
-    "qec_round",
-    "qec_round_with_meas",
-    "measurement",
-]
-QEC_OP_TYPES = ["qec_round", "qec_round_with_meas"]
+
+QEC_OP_TYPES = ["qec_round"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
-MEAS_OP_TYPES = ["measurement", "qec_round_with_meas"]
+MEAS_OP_TYPES = ["measurement"]
+RESET_OP_TYPES = ["qubit_init"]
+VALID_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -259,15 +254,16 @@ def merge_logical_operations(
     circuit
         Circuit from merging the given circuits.
     """
-    if any(op[0].log_op_type not in VALID_OP_TYPES for op in op_iterators):
+    if any(set(op[0].log_op_type) > set(VALID_OP_TYPES) for op in op_iterators):
         raise TypeError(f"'op_iterators' must be valid operation types.")
-    qec_ops = [op[0].log_op_type in QEC_OP_TYPES for op in op_iterators]
+    qec_ops = [set(QEC_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators]
     if any(qec_ops) and (not all(qec_ops)):
         raise ValueError(
             "All logical qubits must be performing QEC cycles at the same time."
         )
 
     # change QEC round iterators to include 'anc_reset' (if needed)
+    # because the 'merge_iterators' only inputs Model and Layout(s), not 'anc_reset'
     if all(qec_ops):
         if anc_reset is None:
             raise ValueError("QEC round found but 'anc_reset' is not specified.")
@@ -278,16 +274,17 @@ def merge_logical_operations(
 
         for k, _ in enumerate(op_iterators):
             func = op_iterators[k][0]
-            if func.log_op_type == "qec_round":
+            if set(func.log_op_type) == set(["qec_round"]):
                 decorator = qec_circuit
-            elif func.log_op_type == "qec_round_with_meas":
-                decorator = (
-                    qec_circuit_with_x_meas
-                    if func.rot_basis
-                    else qec_circuit_with_z_meas
-                )
+            elif set(func.log_op_type) == set(["qec_round", "measurement"]):
+                if func.rot_basis:
+                    decorator = lambda x: logical_measurement_x(qec_circuit(x))
+                else:
+                    decorator = lambda x: logical_measurement_z(qec_circuit(x))
             else:
-                raise TypeError(f"'{func.log_op_type}' not implemented.")
+                raise TypeError(
+                    f"Function of type '{func.log_op_type}' not implemented."
+                )
 
             @decorator
             def iterator(model: Model, layout: Layout):
@@ -297,13 +294,17 @@ def merge_logical_operations(
 
     circuit = merge_iterators(op_iterators, model)
 
-    # update the detectors due to unitary gates
+    # update the detectors due to unitary gates.
+    # the detectors need to be updated before building them because of
+    # the mid-cycle logical gates.
     for op in op_iterators:
         func, layouts = op[0], op[1:]
-        if func.log_op_type not in GATE_OP_TYPES:
+        if set(GATE_OP_TYPES).intersection(func.log_op_type) == set():
             # detectors do not need to be updated
             continue
 
+        # the only supported inter-layout operations are
+        # for layouts that only contain a single logical qubit.
         if {len(l.logical_qubits) for l in layouts} == {1}:
             gate_label = func.__name__.replace("_iterator", "_")
             gate_label += "_".join([l.logical_qubits[0] for l in layouts])
@@ -312,6 +313,7 @@ def merge_logical_operations(
 
         new_stabs, new_stabs_inv = get_new_stab_dict_from_layout(layouts[0], gate_label)
 
+        # only single-qubit and two-qubit logical gates are supported.
         if len(layouts) == 2:
             new_stabs_2, new_stabs_2_inv = get_new_stab_dict_from_layout(
                 layouts[1], gate_label
@@ -320,15 +322,19 @@ def merge_logical_operations(
             new_stabs_inv.update(new_stabs_2_inv)
         detectors.update(new_stabs, new_stabs_inv)
 
-    # check if detectors need to be build because of QEC round
+    # check if detectors need to be build because of QEC rounds.
+    # the detectors from the QEC rounds need to be built the ones
+    # from the logical measurements becuase of the 'qec_round_with_meas'.
     if all(qec_ops):
         circuit += detectors.build_from_anc(
             model.meas_target, anc_reset, anc_qubits=anc_detectors
         )
 
-    # check if detectors needs to be built because of measurements
+    # check if detectors needs to be built because of logical measurements.
     meas_ops = [
-        k for k, i in enumerate(op_iterators) if i[0].log_op_type in MEAS_OP_TYPES
+        k
+        for k, op in enumerate(op_iterators)
+        if set(MEAS_OP_TYPES).intersection(op[0].log_op_type)
     ]
     if meas_ops:
         if anc_reset is None:
@@ -347,8 +353,9 @@ def merge_logical_operations(
         layouts = [op_iterators[k][1] for k in meas_ops]
         rot_bases = [op_iterators[k][0].rot_basis for k in meas_ops]
 
-        # add detectors
-        reconstructable_stabs, anc_support = [], {}
+        # build the detectors from the logical measurement
+        reconstructable_stabs: list[str] = []
+        anc_support: dict[str, Sequence[str]] = {}
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
             stabs = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -363,7 +370,7 @@ def merge_logical_operations(
             anc_qubits=anc_detectors,
         )
 
-        # add logicals
+        # add logical observable definitions
         for layout, rot_basis in zip(layouts, rot_bases):
             for log_qubit_label in layout.logical_qubits:
                 log_op = "log_x" if rot_basis else "log_z"
@@ -377,21 +384,21 @@ def merge_logical_operations(
                 circuit.append(instr)
                 init_log_obs_ind += 1
 
-        # deactivate ancilla qubits
+        # deactivate (ancilla-qubit) detectors from the logical measurement.
         for k in meas_ops:
             detectors.deactivate_detectors(op_iterators[k][1].anc_qubits)
 
-    # check if detectors need to be activated or deactivated.
-    # This needs to be done after defining the detectors because if not,
-    # they won't be defined as they will correspond to inactive ancillas.
+    # check if detectors need to be activated due to the logical resets.
     reset_ops = [
-        k for k, i in enumerate(op_iterators) if i[0].log_op_type == "qubit_init"
+        k
+        for k, i in enumerate(op_iterators)
+        if set(RESET_OP_TYPES).intersection(i[0].log_op_type)
     ]
     if reset_ops:
         for k in reset_ops:
-            # add information about gauge detectors so that Detectors.include_gauge_detectors
+            # give information about gauge detectors to Detectors so that Detectors.include_gauge_detectors
             # is the one specifying if gauge detectors are included or not.
-            # if reset in X basis, the Z stabilizers are gauge detectors
+            # e.g. if reset in X basis, the Z stabilizers are gauge detectors
             stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
             gauge_dets = op_iterators[k][1].get_qubits(role="anc", stab_type=stab_type)
             detectors.activate_detectors(

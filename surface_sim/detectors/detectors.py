@@ -1,9 +1,12 @@
 from __future__ import annotations
 from collections.abc import Callable, Iterable, Sequence
+from typing import TypeVar
 from copy import deepcopy
 import stim
 
 from ..layouts.layout import Layout
+
+T = TypeVar("T")
 
 
 class Detectors:
@@ -67,10 +70,10 @@ class Detectors:
         if len(set(len(c) for c in anc_coords.values())) != 1:
             raise ValueError("Values in 'anc_coords' must have the same lenght.")
 
-        self.anc_qubit_labels = anc_qubits
-        self.frame = frame
-        self.anc_coords = anc_coords
-        self.include_gauge_dets = include_gauge_dets
+        self.anc_qubit_labels: Sequence[str] = anc_qubits
+        self.frame: str = frame
+        self.anc_coords: dict[str, Sequence[float | int]] = anc_coords
+        self.include_gauge_dets: bool = include_gauge_dets
 
         self.new_circuit()
 
@@ -101,11 +104,13 @@ class Detectors:
         """Resets all the current generators and number of rounds in order
         to create a different circuit.
         """
-        self.detectors = {}  # {anc_label: propagation = set of ancilla labels}
-        self.num_rounds = {a: 0 for a in self.anc_qubit_labels}
-        self.total_num_rounds = 0
-        self.update_dict_list = []
-        self.gauge_detectors = set()
+        self.detectors: dict[str, set[str]] = (
+            {}
+        )  # {anc_label: propagation = set of ancilla labels}
+        self.num_rounds: dict[str, int] = {a: 0 for a in self.anc_qubit_labels}
+        self.total_num_rounds: int = 0
+        self.update_dict_list: list[dict[str, set[str]]] = []
+        self.gauge_detectors: set[str] = set()
         return
 
     def activate_detectors(
@@ -263,7 +268,7 @@ class Detectors:
 
     def build_from_anc(
         self,
-        get_rec: Callable,
+        get_rec: Callable[[str, int], stim.GateTarget],
         anc_reset: bool,
         anc_qubits: Iterable[str] | None = None,
     ) -> stim.Circuit:
@@ -342,7 +347,7 @@ class Detectors:
                             propagation.symmetric_difference_update(update_dict[q])
 
             # build the detectors
-            detectors = {}
+            detectors: dict[str, list[tuple[str, int]]] = {}
             anc_reset_curr, anc_reset_prev = anc_reset, anc_reset
             for anc_qubit, (p_gen, c_gen) in zip(
                 self.detectors, self.detectors.items()
@@ -391,7 +396,7 @@ class Detectors:
 
     def build_from_data(
         self,
-        get_rec: Callable,
+        get_rec: Callable[[str, int], stim.GateTarget],
         anc_support: dict[str, Iterable[str]],
         anc_reset: bool,
         reconstructable_stabs: Iterable[str],
@@ -520,7 +525,7 @@ class Detectors:
                             propagation.symmetric_difference_update(update_dict[q])
 
             # build the detectors
-            anc_detectors = {}
+            anc_detectors: dict[str, list[tuple[str, int]]] = {}
             anc_reset_curr, anc_reset_prev = True, anc_reset
             for anc_qubit, (p_gen, c_gen) in zip(
                 self.detectors, self.detectors.items()
@@ -542,10 +547,10 @@ class Detectors:
                 anc_detectors[anc_qubit] = targets
 
         # udpate the (anc, -1) to a the corresponding set of (data, -1)
-        detectors = {}
+        detectors: dict[str, list[tuple[str, int]]] = {}
         for anc_qubit in anc_qubits:
             dets = anc_detectors[anc_qubit]
-            new_dets = []
+            new_dets: list[tuple[str, int]] = []
             for det in dets:
                 if det[1] != -1:
                     # rel_meas need to be updated because the ancillas have not
@@ -641,9 +646,9 @@ def get_new_stab_dict_from_layout(
     return new_stab_gens, new_stab_gens_inv
 
 
-def remove_pairs(elements: list) -> list:
+def remove_pairs(elements: list[T]) -> list[T]:
     """Removes all possible pairs inside the given list."""
-    output = []
+    output: list[T] = []
     for element in elements:
         if elements.count(element) % 2 == 1:
             output.append(element)
