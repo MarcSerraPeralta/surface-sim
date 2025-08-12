@@ -126,6 +126,7 @@ INTERACTION_ORDERS = {
 
 SSD_LAYOUT_DICT = {
     "code": "small_stellated_dodecahedron_code",
+    "name": "Small stellated dodecahedron code (SSD)",
     "logical_qubits": {
         "L1": {
             "ind": 0,

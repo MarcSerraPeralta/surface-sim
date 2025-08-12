@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit, qec_circuit_with_x_meas, qec_circuit_with_z_meas
+from .decorators import qec_circuit, logical_measurement_x, logical_measurement_z
 
 # methods to have in this script
 from .util import qubit_coords, idle_iterator
@@ -462,7 +462,8 @@ def qec_round_google_with_log_meas(
     return circuit
 
 
-@qec_circuit_with_x_meas
+@logical_measurement_x
+@qec_circuit
 def qec_round_google_with_log_x_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
 ) -> Iterator[Circuit]:
@@ -471,7 +472,8 @@ def qec_round_google_with_log_x_meas_iterator(
     )
 
 
-@qec_circuit_with_z_meas
+@logical_measurement_z
+@qec_circuit
 def qec_round_google_with_log_z_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
 ) -> Iterator[Circuit]:

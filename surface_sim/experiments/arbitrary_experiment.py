@@ -95,7 +95,7 @@ def schedule_from_circuit(
         )
     if any(not isinstance(f, LogOpCallable) for f in gate_to_iterator.values()):
         raise TypeError("All values of 'gate_to_iterator' must be LogOpCallable.")
-    if gate_to_iterator["TICK"].log_op_type != "qec_round":
+    if set(["qec_round"]).intersection(gate_to_iterator["TICK"].log_op_type) == set():
         raise TypeError("'TICK' must correspond to a QEC round.")
 
     unique_names = set(i.name for i in circuit)
@@ -113,7 +113,7 @@ def schedule_from_circuit(
         func_iter = gate_to_iterator[instr.name]
         targets = [t.value for t in instr.targets_copy()]
 
-        if func_iter.log_op_type == "tq_unitary_gate":
+        if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
                 instructions.append((func_iter, layouts[i], layouts[j]))
         else:
@@ -218,7 +218,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
     for operation in instructions:
         op = operation[0]
-        if op.log_op_type == "qec_round":
+        if set(["qec_round"]).intersection(op.log_op_type):
             # flush all logical operations and
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
             # if there are no active layouts, raise error as it is not possible
@@ -233,7 +233,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
         # activate layouts. If not the check for layouts in current operation are
         # active does not work for resets (because the layout is inactive previously).
-        if op.log_op_type == "qubit_init":
+        if set(["qubit_init"]).intersection(op.log_op_type):
             layouts = operation[1:]
             if any(l in counter for l in layouts):
                 raise ValueError(
@@ -256,10 +256,10 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
 
         curr_block.append(operation)
-        if op.log_op_type == "measurement":
+        if set(["measurement"]).intersection(op.log_op_type):
             for l in layouts:
                 counter.pop(l)
-        elif op.log_op_type in ["sq_unitary_gate", "tq_unitary_gate"]:
+        elif set(["sq_unitary_gate", "tq_unitary_gate"]).intersection(op.log_op_type):
             for l in layouts:
                 counter[l] += 1
         else:

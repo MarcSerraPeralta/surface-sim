@@ -10,8 +10,8 @@ from ..circuit_blocks.decorators import (
     LogOpCallable,
     LogicalOperation,
     qec_circuit,
-    qec_circuit_with_x_meas,
-    qec_circuit_with_z_meas,
+    logical_measurement_x,
+    logical_measurement_z,
 )
 
 
@@ -29,17 +29,12 @@ MEAS_INSTR = [
     "MZZ",
     "MPP",
 ]
-VALID_OP_TYPES = [
-    "qubit_init",
-    "sq_unitary_gate",
-    "tq_unitary_gate",
-    "qec_round",
-    "qec_round_with_meas",
-    "measurement",
-]
-QEC_OP_TYPES = ["qec_round", "qec_round_with_meas"]
+
+QEC_OP_TYPES = ["qec_round"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
-MEAS_OP_TYPES = ["measurement", "qec_round_with_meas"]
+MEAS_OP_TYPES = ["measurement"]
+RESET_OP_TYPES = ["qubit_init"]
+VALID_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -259,9 +254,9 @@ def merge_logical_operations(
     circuit
         Circuit from merging the given circuits.
     """
-    if any(op[0].log_op_type not in VALID_OP_TYPES for op in op_iterators):
+    if any(set(op[0].log_op_type) > set(VALID_OP_TYPES) for op in op_iterators):
         raise TypeError(f"'op_iterators' must be valid operation types.")
-    qec_ops = [op[0].log_op_type in QEC_OP_TYPES for op in op_iterators]
+    qec_ops = [set(QEC_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators]
     if any(qec_ops) and (not all(qec_ops)):
         raise ValueError(
             "All logical qubits must be performing QEC cycles at the same time."
@@ -279,16 +274,17 @@ def merge_logical_operations(
 
         for k, _ in enumerate(op_iterators):
             func = op_iterators[k][0]
-            if func.log_op_type == "qec_round":
+            if set(func.log_op_type) == set(["qec_round"]):
                 decorator = qec_circuit
-            elif func.log_op_type == "qec_round_with_meas":
-                decorator = (
-                    qec_circuit_with_x_meas
-                    if func.rot_basis
-                    else qec_circuit_with_z_meas
-                )
+            elif set(func.log_op_type) == set(["qec_round", "measurement"]):
+                if func.rot_basis:
+                    decorator = lambda x: logical_measurement_x(qec_circuit(x))
+                else:
+                    decorator = lambda x: logical_measurement_z(qec_circuit(x))
             else:
-                raise TypeError(f"'{func.log_op_type}' not implemented.")
+                raise TypeError(
+                    f"Function of type '{func.log_op_type}' not implemented."
+                )
 
             @decorator
             def iterator(model: Model, layout: Layout):
@@ -303,7 +299,7 @@ def merge_logical_operations(
     # the mid-cycle logical gates.
     for op in op_iterators:
         func, layouts = op[0], op[1:]
-        if func.log_op_type not in GATE_OP_TYPES:
+        if set(GATE_OP_TYPES).intersection(func.log_op_type) == set():
             # detectors do not need to be updated
             continue
 
@@ -336,7 +332,9 @@ def merge_logical_operations(
 
     # check if detectors needs to be built because of logical measurements.
     meas_ops = [
-        k for k, i in enumerate(op_iterators) if i[0].log_op_type in MEAS_OP_TYPES
+        k
+        for k, op in enumerate(op_iterators)
+        if set(MEAS_OP_TYPES).intersection(op[0].log_op_type)
     ]
     if meas_ops:
         if anc_reset is None:
@@ -356,7 +354,8 @@ def merge_logical_operations(
         rot_bases = [op_iterators[k][0].rot_basis for k in meas_ops]
 
         # build the detectors from the logical measurement
-        reconstructable_stabs, anc_support = [], {}
+        reconstructable_stabs: list[str] = []
+        anc_support: dict[str, Sequence[str]] = {}
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
             stabs = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -391,7 +390,9 @@ def merge_logical_operations(
 
     # check if detectors need to be activated due to the logical resets.
     reset_ops = [
-        k for k, i in enumerate(op_iterators) if i[0].log_op_type == "qubit_init"
+        k
+        for k, i in enumerate(op_iterators)
+        if set(RESET_OP_TYPES).intersection(i[0].log_op_type)
     ]
     if reset_ops:
         for k in reset_ops:
