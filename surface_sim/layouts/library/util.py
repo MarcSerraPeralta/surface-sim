@@ -61,7 +61,9 @@ def check_distance(distance: int) -> None:
         raise ValueError("distance must be a positive integer")
 
 
-def set_missing_neighbours_to_none(neighbor_data: dict) -> None:
+def set_missing_neighbours_to_none(
+    neighbor_data: dict[str, dict[str, str | None]],
+) -> None:
     """
     Adds ``None`` for missing neighbours in the neighbor data for
     surface codes. Note that this modifies the dictionary in place.

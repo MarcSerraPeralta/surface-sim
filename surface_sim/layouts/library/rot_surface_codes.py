@@ -2,7 +2,7 @@ from collections import defaultdict
 from functools import partial
 from itertools import count, product
 
-from ..layout import Layout
+from ..layout import Layout, QubitDict
 from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.rot_surface_code_css import (
     set_fold_trans_s,
@@ -146,8 +146,8 @@ def rot_surface_code_rectangle(
         z_type=["north_east", "south_east", "north_west", "south_west"],
     )
 
-    log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
-    log_x = [f"D{i*distance_z+init_data_qubit_id}" for i in range(distance_x)]
+    log_z = [f"D{i + init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [f"D{i * distance_z + init_data_qubit_id}" for i in range(distance_x)]
     logical_qubits = {
         logical_qubit_label: dict(log_x=log_x, log_z=log_z, ind=init_logical_ind)
     }
@@ -174,8 +174,8 @@ def rot_surface_code_rectangle(
     pos_shifts = (1, -1)
     nbr_shifts = tuple(product(pos_shifts, repeat=2))
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -343,7 +343,7 @@ def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]
             f"'num_layouts' must be an int, but {type(num_layouts)} was given."
         )
 
-    layouts = []
+    layouts: list[Layout] = []
     num_data = (distance + 1) * distance
     num_anc = num_data - 1
     for k in range(num_layouts):
@@ -362,7 +362,7 @@ def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]
 
     # set up the parameters for all the logical gates
     for k, layout in enumerate(layouts):
-        set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        set_fold_trans_s(layout, data_qubit=f"D{1 + k * num_data}")
         set_x(layout)
         set_z(layout)
         set_idle(layout)
@@ -474,8 +474,8 @@ def rot_surface_stability_rectangle(
     pos_shifts = (1, -1)
     nbr_shifts = tuple(product(pos_shifts, repeat=2))
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -568,7 +568,7 @@ def rot_surface_stability_rectangle(
 
     set_missing_neighbours_to_none(neighbor_data)
 
-    anc_redundant_stab_type = []
+    anc_redundant_stab_type: list[str] = []
     for qubit_info in layout_data:
         qubit = qubit_info["qubit"]
         qubit_info["neighbors"] = neighbor_data[qubit]

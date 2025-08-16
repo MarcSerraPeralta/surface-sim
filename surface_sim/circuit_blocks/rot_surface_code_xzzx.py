@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -56,7 +56,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -154,7 +154,7 @@ def qec_round_iterator(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    rot_qubits_xzzx = set()
+    rot_qubits_xzzx: set[str] = set()
     for direction in ("north_west", "south_east"):
         stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
@@ -167,7 +167,7 @@ def qec_round_iterator(
 
     # b
     cz_circuit = Circuit()
-    interacted_qubits = set()
+    interacted_qubits: set[str] = set()
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][0]
@@ -263,7 +263,7 @@ def qec_round_pipelined(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -332,7 +332,7 @@ def qec_round_pipelined_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.data_qubits
@@ -388,7 +388,7 @@ def qec_round_google_with_log_meas(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -513,7 +513,7 @@ def qec_round_google_with_log_meas_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
     if not anc_reset:
         raise ValueError("'anc_reset' must be True for this iterator.")
@@ -532,7 +532,7 @@ def qec_round_google_with_log_meas_iterator(
     yield model.hadamard(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
 
-    rot_qubits = set()
+    rot_qubits: set[str] = set()
     for direction in ("north_west", "south_east"):
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
@@ -624,7 +624,7 @@ def qec_round_google(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -690,7 +690,7 @@ def qec_round_google_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
     if not anc_reset:
         raise ValueError("'anc_reset' must be True for this iterator.")

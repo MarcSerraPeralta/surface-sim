@@ -6,6 +6,7 @@ from itertools import count
 import networkx as nx
 
 from .layout import Layout
+from .plotter import Coordinates
 
 
 def set_coords(layout: Layout, override: bool = False) -> None:
@@ -27,11 +28,13 @@ def set_coords(layout: Layout, override: bool = False) -> None:
 
     nodes = list(layout.graph.nodes)  # graph nodes
     init_node = nodes.pop()  # initial node
-    init_coord = [0, 0]  # initial coordinates
+    init_coord: Coordinates = (0, 0)  # initial coordinates
 
-    set_nodes = set()  # Nodes we have already set the coordinates of.
+    set_nodes: set[str] = set()  # Nodes we have already set the coordinates of.
 
-    queue = deque()  # Queue of nodes to set the coordinates of.
+    queue: deque[tuple[str, Coordinates]] = (
+        deque()
+    )  # Queue of nodes to set the coordinates of.
 
     queue.appendleft((init_node, init_coord))
     while queue:
@@ -73,8 +76,8 @@ def index_chain(layout: Layout, init_node: str) -> None:
     if init_node not in nodes:
         raise ValueError("init_node not in graph")
 
-    set_nodes = set()
-    queue = deque()
+    set_nodes: set[str] = set()
+    queue: deque[str] = deque()
 
     queue.appendleft(init_node)
 

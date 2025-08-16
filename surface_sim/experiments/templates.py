@@ -1,6 +1,6 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Collection
 from copy import deepcopy
-from stim import Circuit, CircuitInstruction
+from stim import Circuit, CircuitInstruction, GateTarget
 
 from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
 from ..layouts.layout import Layout
@@ -20,11 +20,11 @@ def memory_experiment(
     detectors: Detectors,
     num_rounds: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -103,11 +103,11 @@ def repeated_s_experiment(
     num_s_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S experiment.
 
@@ -199,11 +199,11 @@ def repeated_h_experiment(
     num_h_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-H experiment.
 
@@ -296,12 +296,12 @@ def repeated_cnot_experiment(
     num_cnot_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     cnot_orientation: str = "alternating",
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-CNOT experiment.
 
@@ -414,11 +414,11 @@ def repeated_s_injection_experiment(
     num_s_injections: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """Returns the circuit for running a repeated-S-injection experiment.
 
@@ -534,11 +534,11 @@ def stability_experiment(
     detectors: Detectors,
     num_rounds: int,
     gate_to_iterator: dict[str, LogOpCallable],
-    init_qubits_iterator: Callable | None = None,
+    init_qubits_iterator: LogOpCallable | None = None,
     data_init: dict[str, int] | None = None,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
-    obs_def_rounds: Sequence[int] = [1],
+    anc_detectors: Collection[str] | None = None,
+    obs_def_rounds: Collection[int] = (1,),
 ) -> Circuit:
     """Returns the circuit for running a memory experiment.
 
@@ -592,9 +592,9 @@ def stability_experiment(
         )
     if num_rounds < 2:
         raise ValueError("'num_rounds' needs to be a positive integer larger than 1.")
-    if not isinstance(obs_def_rounds, Sequence):
+    if not isinstance(obs_def_rounds, Collection):
         raise TypeError(
-            f"'obs_def_rounds' must be a Sequence, but {type(obs_def_rounds)} was given."
+            f"'obs_def_rounds' must be a Collection, but {type(obs_def_rounds)} was given."
         )
     if any(not isinstance(r, int) for r in obs_def_rounds):
         raise TypeError("The elements of 'obs_def_rounds' must be integers.")
@@ -644,7 +644,7 @@ def stability_experiment(
     )
 
     # layout does not contain any logical qubit and thus there is no OBSERVABLE defined
-    targets = []
+    targets: list[GateTarget] = []
     for r in obs_def_rounds:
         for q in observable:
             targets.append(model.meas_target(q, -num_rounds - 1 + r))

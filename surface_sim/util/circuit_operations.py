@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from itertools import chain
 
 import stim
@@ -118,7 +118,7 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
     """
     # check which blocks can be merged to reduce the output circuit length
     ops_blocks = [tuple(instr.name for instr in block) for block in operation_layers]
-    mergeable_blocks = {}
+    mergeable_blocks: dict[tuple[str, ...], list[stim.Circuit]] = {}
     for block, op_block in zip(operation_layers, ops_blocks):
         if op_block not in mergeable_blocks:
             mergeable_blocks[op_block] = [block]
@@ -217,7 +217,7 @@ def merge_logical_operations(
     detectors: Detectors,
     init_log_obs_ind: int | None = None,
     anc_reset: bool | None = None,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> stim.Circuit:
     """
     Returns a circuit in which the given logical operation iterators have been
@@ -355,7 +355,7 @@ def merge_logical_operations(
 
         # build the detectors from the logical measurement
         reconstructable_stabs: list[str] = []
-        anc_support: dict[str, Sequence[str]] = {}
+        anc_support: dict[str, Collection[str]] = {}
         for layout, rot_basis in zip(layouts, rot_bases):
             stab_type = "x_type" if rot_basis else "z_type"
             stabs = layout.get_qubits(role="anc", stab_type=stab_type)
@@ -374,7 +374,9 @@ def merge_logical_operations(
         for layout, rot_basis in zip(layouts, rot_bases):
             for log_qubit_label in layout.logical_qubits:
                 log_op = "log_x" if rot_basis else "log_z"
-                log_data_qubits = layout.logical_param(log_op, log_qubit_label)
+                log_data_qubits: Collection[str] = layout.logical_param(
+                    log_op, log_qubit_label
+                )
                 targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
                 instr = stim.CircuitInstruction(
                     name="OBSERVABLE_INCLUDE",
@@ -408,7 +410,7 @@ def merge_logical_operations(
     return circuit
 
 
-def merge_ticks(blocks: Sequence[stim.Circuit]) -> stim.Circuit:
+def merge_ticks(blocks: Collection[stim.Circuit]) -> stim.Circuit:
     """
     Merges stim circuit containing TICK instructions and noise channels
     so that only one TICK instruction is present while keeping if the noise

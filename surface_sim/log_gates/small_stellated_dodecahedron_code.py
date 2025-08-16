@@ -238,7 +238,7 @@ def set_fold_trans_s(layout: Layout) -> None:
 
     # Store logical gate information to the data qubits
     for qubit in data_qubits:
-        gates = {"local": None, "cz": None}
+        gates: dict[str, str | None] = {"local": None, "cz": None}
         if qubit in s_gates:
             gates["local"] = "S"
         if qubit in s_dag_gates:

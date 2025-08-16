@@ -1,18 +1,22 @@
 from collections.abc import Iterable, Iterator
+from typing import TypeVar
 
 from itertools import product
 
 import numpy as np
+import numpy.typing as npt
 from math import exp
 
 
-def num_biased_ops(n):
+T = TypeVar("T")
+
+
+def num_biased_ops(n: int) -> int:
     inds = np.arange(n)
-    res = np.sum(np.power(4, inds) * np.power(3, n - 1 - inds))
-    return res
+    return np.sum(np.power(4, inds) * np.power(3, n - 1 - inds))
 
 
-def grouper(iterable: Iterable[str], block_size: int) -> Iterator[tuple[str, ...]]:
+def grouper(iterable: Iterable[T], block_size: int) -> Iterator[tuple[T, ...]]:
     "Collect data into non-overlapping fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3) --> ABC DEF ValueError
     args = [iter(iterable)] * block_size
@@ -21,7 +25,7 @@ def grouper(iterable: Iterable[str], block_size: int) -> Iterator[tuple[str, ...
 
 def biased_prefactors(
     biased_pauli: str, biased_factor: float, num_qubits: int
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """Return a biased channel prefactors.
 
     The bias of the channel is defined as any error operator that
@@ -56,7 +60,7 @@ def biased_prefactors(
     nonbias_prefactor = 1 / (num_biased * (biased_factor - 1) + num_ops)
     bias_prefactor = biased_factor * nonbias_prefactor
 
-    prefactors = []
+    prefactors: list[float] = []
     for op in operators:
         if biased_pauli in op:
             prefactors.append(bias_prefactor)

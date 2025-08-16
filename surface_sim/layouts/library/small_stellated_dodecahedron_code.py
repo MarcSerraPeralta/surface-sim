@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection
 from copy import deepcopy
 
 from ..layout import Layout
@@ -15,7 +15,7 @@ from ...log_gates.small_stellated_dodecahedron_code import (
 
 
 def ssd_code(
-    interaction_order: str | dict[str, Sequence[str]] = "parallel-6",
+    interaction_order: str | dict[str, Collection[str]] = "parallel-6",
     define_trans_gates: bool = True,
 ) -> Layout:
     """Returns a layout for the Small Stellated Dodecahedron code.
