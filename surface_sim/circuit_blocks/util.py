@@ -1024,25 +1024,20 @@ def qec_round_iterator(
 
     # CNOT gates
     for step in range(num_steps):
-        cnot_circuit = Circuit()
-        interacted_qubits = set()
+        int_qubits: list[str] = []
 
         # X ancillas
         int_pairs = [(x, int_order[x][step]) for x in x_stabs]
         int_pairs = [pair for pair in int_pairs if pair[1] is not None]
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-        cnot_circuit += model.cnot(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
         # Z ancillas
         int_pairs = [(int_order[z][step], z) for z in z_stabs]
         int_pairs = [pair for pair in int_pairs if pair[0] is not None]
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-        cnot_circuit += model.cnot(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
-        idle_qubits = qubits - interacted_qubits
-        yield cnot_circuit + model.idle(idle_qubits)
+        idle_qubits = qubits - set(int_qubits)
+        yield model.cnot(int_qubits) + model.idle(idle_qubits)
         yield model.tick()
 
     meas = model.measure_x(x_stabs) + model.measure_z(z_stabs)
