@@ -182,7 +182,6 @@ def qec_round_iterator(
     yield model.tick()
 
     # b
-    cz_circuit = Circuit()
     int_pairs: list[tuple[str, str]] = []
     for ord_dir in int_order["steps"][0]:
         int_pairs.extend(
@@ -190,23 +189,18 @@ def qec_round_iterator(
         )
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    cz_circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # c
-    cz_circuit = Circuit()
     int_pairs = []
     for ord_dir in int_order["steps"][1]:
         int_pairs += layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    cz_circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # d

@@ -143,7 +143,7 @@ def qec_round_iterator(
     """
     if layout.code != "unrotated_surface_code":
         raise TypeError(
-            "The given layout is not an unrotated surface code, " f"but a {layout.code}"
+            f"The given layout is not an unrotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.data_qubits
@@ -172,19 +172,15 @@ def qec_round_iterator(
     yield model.tick()
 
     # b
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits: list[str] = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][0]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # c
@@ -192,35 +188,27 @@ def qec_round_iterator(
     yield model.tick()
 
     # d
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][1]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # e
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][2]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # f
@@ -228,19 +216,15 @@ def qec_round_iterator(
     yield model.tick()
 
     # g
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][3]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
+        int_qubits += list(chain.from_iterable(int_pairs))
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # h
