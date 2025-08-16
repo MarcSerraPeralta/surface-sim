@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -57,7 +57,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -183,9 +183,11 @@ def qec_round_iterator(
 
     # b
     cz_circuit = Circuit()
-    int_pairs = []
+    int_pairs: list[tuple[str, str]] = []
     for ord_dir in int_order["steps"][0]:
-        int_pairs += layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
+        int_pairs.extend(
+            layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
+        )
     int_qubits = list(chain.from_iterable(int_pairs))
 
     cz_circuit += model.cphase(int_qubits)

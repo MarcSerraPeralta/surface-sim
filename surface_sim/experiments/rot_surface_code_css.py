@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from stim import Circuit
 
 from ..circuit_blocks.rot_surface_code_css import gate_to_iterator, init_qubits_iterator
@@ -9,7 +8,7 @@ from . import templates
 def memory_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.memory_experiment``."""
@@ -24,7 +23,7 @@ def memory_experiment(
 def repeated_s_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.repeated_s_experiment``."""
@@ -39,7 +38,7 @@ def repeated_s_experiment(
 def repeated_cnot_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.repeated_cnot_experiment``."""
@@ -54,7 +53,7 @@ def repeated_cnot_experiment(
 def repeated_s_injection_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.repeated_s_injection_experiment``."""
@@ -69,7 +68,7 @@ def repeated_s_injection_experiment(
 def stability_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.stability_experiment``."""

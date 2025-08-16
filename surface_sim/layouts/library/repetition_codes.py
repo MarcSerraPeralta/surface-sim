@@ -2,7 +2,7 @@ from collections import defaultdict
 from functools import partial
 from itertools import count, product
 
-from ..layout import Layout
+from ..layout import Layout, QubitDict
 from .rot_surface_codes import (
     rot_surface_stability_rectangle,
     get_data_index,
@@ -116,7 +116,7 @@ def repetition_code(
             f"but {interaction_order} was given."
         )
 
-    log_op = [f"D{i+init_data_qubit_id}" for i in range(distance)]
+    log_op = [f"D{i + init_data_qubit_id}" for i in range(distance)]
     log_other_op = [f"D{init_data_qubit_id}"]
     if stab_type == "x_type":
         log_x, log_z = log_other_op, log_op
@@ -145,8 +145,8 @@ def repetition_code(
     pos_shifts = (1, -1)
     nbr_shifts = tuple(product(pos_shifts, repeat=2))
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -205,8 +205,6 @@ def repetition_code(
 
     layout_setup["layout"] = layout_data
     layout = Layout(layout_setup)
-    return layout
-
     return layout
 
 

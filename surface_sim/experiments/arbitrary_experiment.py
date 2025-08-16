@@ -1,4 +1,5 @@
-from collections.abc import Sequence, Iterable
+from collections.abc import Collection, Iterable
+from typing import TypeVar
 
 import stim
 
@@ -9,8 +10,9 @@ from ..detectors.detectors import Detectors
 from ..circuit_blocks.util import qubit_coords, idle_iterator
 from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation
 
+T = TypeVar("T")
 Instructions = list[tuple[LogOpCallable] | LogicalOperation]
-Schedule = list[Instructions]
+Schedule = list[list[LogicalOperation]]
 
 
 def schedule_from_circuit(
@@ -83,7 +85,7 @@ def schedule_from_circuit(
             f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
         )
     circuit = circuit.flattened()
-    if not isinstance(layouts, Sequence):
+    if not isinstance(layouts, Collection):
         raise TypeError(f"'layouts' must be a list, but {type(layouts)} was given.")
     if circuit.num_qubits > len(layouts):
         raise ValueError("There are more qubits in the circuit than in 'layouts'.")
@@ -104,14 +106,14 @@ def schedule_from_circuit(
             "Not all operations in 'circuit' are present in 'gate_to_iterator'."
         )
 
-    instructions = []
+    instructions: Instructions = []
     for instr in circuit:
         if instr.name == "TICK":
             instructions.append((gate_to_iterator["TICK"],))
             continue
 
         func_iter = gate_to_iterator[instr.name]
-        targets = [t.value for t in instr.targets_copy()]
+        targets: list[int] = [t.value for t in instr.targets_copy()]
 
         if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
@@ -183,11 +185,11 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
             ],
         ]
     """
-    if not isinstance(instructions, Sequence):
+    if not isinstance(instructions, Collection):
         raise TypeError(
             f"'instructions' must be a sequence, but {type(instructions)} was given."
         )
-    if any(not isinstance(op, Sequence) for op in instructions):
+    if any(not isinstance(op, Collection) for op in instructions):
         raise TypeError("Elements of 'instructions' must be sequences.")
     for op in instructions:
         if not isinstance(op[0], LogOpCallable):
@@ -195,11 +197,15 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
         if any(not isinstance(l, Layout) for l in op[1:]):
             raise TypeError("Elements in 'instructions[i][1:]' must be Layouts.")
 
-    blocks = []
-    curr_block = []
-    counter = {}
+    blocks: list[list[LogicalOperation]] = []
+    curr_block: list[LogicalOperation] = []
+    counter: dict[Layout, int] = {}
 
-    def flush(blocks, curr_block, counter):
+    def flush(
+        blocks: list[list[LogicalOperation]],
+        curr_block: list[LogicalOperation],
+        counter: dict[Layout, int],
+    ):
         # if necessary, add idling.
         # only add idling if at least one layout is performing an operation.
         # the situation where no layout is performing anything can happen when
@@ -273,7 +279,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
 def get_layouts_from_schedule(schedule: Schedule) -> list[Layout]:
     """Returns a list of all layouts present in the given schedule."""
-    layouts = []
+    layouts: list[Layout] = []
     for block in schedule:
         for op in block:
             if len(op) > 1:
@@ -286,7 +292,7 @@ def experiment_from_schedule(
     model: Model,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -348,6 +354,6 @@ def experiment_from_schedule(
     return experiment
 
 
-def _grouper(iterable: Iterable, n: int):
+def _grouper(iterable: Iterable[T], n: int) -> Iterable[tuple[T, ...]]:
     args = [iter(iterable)] * n
     return zip(*args, strict=True)

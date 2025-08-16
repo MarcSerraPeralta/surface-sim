@@ -61,7 +61,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     # get the jump coordinates
-    neighbors = layout.param("neighbors", data_qubit)
+    neighbors: dict[str, str] = layout.param("neighbors", data_qubit)
     dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
     dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
     data_qubit_h = layout.get_neighbors(anc_qubit_x, direction=dir_z)[0]
@@ -70,14 +70,16 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
         layout.param("coords", data_qubit)
     )
     jump_v = np.array([jump_h[1], -jump_h[0]])  # perpendicular vector
-    data_qubit_coords = np.array(layout.param("coords", data_qubit))
+    data_qubit_coords = np.array(layout.param("coords", data_qubit), dtype=float)
 
     # get the CZs from the data qubit positions
     coords_to_label_dict = {
         tuple(attr["coords"]): node for node, attr in layout.graph.nodes.items()
     }
 
-    def coords_to_label(c):
+    def coords_to_label(
+        c: tuple[int | float, ...] | np.typing.NDArray[np.float64],
+    ) -> None | str:
         c = tuple(c)
         if c not in coords_to_label_dict:
             return None
@@ -86,7 +88,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
 
     top_column = deepcopy(data_qubit_coords)
     curr_level = 0
-    cz_gates = {}
+    cz_gates: dict[str, str] = {}
     while True:
         if coords_to_label(top_column) is None:
             break
@@ -145,15 +147,14 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             anc_to_new_stab[anc_x] = [anc_x]
             continue
 
-        z_stab = set()
+        z_stab: set[str] = set()
         for d in stab:
             if s_gates[d] == "I":
                 z_stab.symmetric_difference_update([cz_gates[d]])
             else:
                 z_stab.symmetric_difference_update([d, cz_gates[d]])
 
-        z_stab = tuple(sorted(z_stab))
-        anc_z = zstab_to_anc[z_stab]
+        anc_z = zstab_to_anc[tuple(sorted(z_stab))]
         anc_to_new_stab[anc_x] = [anc_x, anc_z]
         anc_to_new_stab[anc_z] = [anc_z]
 

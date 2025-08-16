@@ -1,4 +1,6 @@
+from collections.abc import Callable
 import numpy as np
+import numpy.typing as npt
 
 from ..layouts.layout import Layout
 from .util import set_x, set_z, set_idle, set_trans_cnot
@@ -62,7 +64,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     # get the reflection function
-    neighbors = layout.param("neighbors", data_qubit)
+    neighbors: dict[str, str] = layout.param("neighbors", data_qubit)
     dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
     dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
 
@@ -73,9 +75,9 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     point = np.array(layout.param("coords", data_qubit))
     fold_reflection = lambda x: reflection(x, point, sym_vector)
 
-    coords_to_label_dict = {}
+    coords_to_label_dict: dict[tuple[float, float], str] = {}
     for node, attr in layout.graph.nodes.items():
-        coords = attr["coords"]
+        coords: npt.NDArray[np.float64] = attr["coords"]
         coords = np.round(coords, decimals=5)  # to avoid numerical issues
         coords_to_label_dict[tuple(coords)] = node
 
@@ -114,15 +116,14 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     }
     anc_to_new_stab = {}
     for anc_x, stab in anc_to_xstab.items():
-        z_stab = set()
+        z_stab: set[str] = set()
         for d in stab:
             if s_gates[d] == "I":
                 z_stab.symmetric_difference_update([cz_gates[d]])
             else:
                 z_stab.symmetric_difference_update([d])
 
-        z_stab = tuple(sorted(z_stab))
-        anc_z = zstab_to_anc[z_stab]
+        anc_z = zstab_to_anc[tuple(sorted(z_stab))]
         anc_to_new_stab[anc_x] = [anc_x, anc_z]
         anc_to_new_stab[anc_z] = [anc_z]
 
@@ -141,12 +142,16 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     return
 
 
-def reflection(x: np.ndarray, point: np.ndarray, line_vector: np.ndarray) -> np.ndarray:
+def reflection(
+    x: npt.NDArray[np.float64],
+    point: npt.NDArray[np.float64],
+    line_vector: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     """Performs a reflection to ``x`` given the vector and point that define
     the reflection line.
     """
     x = np.array(x)
-    theta = -np.arctan(line_vector[1] / line_vector[0])
+    theta: np.float64 = -np.arctan(line_vector[1] / line_vector[0])
     rot_matrix = np.array(
         [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
     )
@@ -212,7 +217,7 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
     gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
 
     # get the reflection function
-    neighbors = layout.param("neighbors", data_qubit)
+    neighbors: dict[str, str] = layout.param("neighbors", data_qubit)
     dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
     dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
 
@@ -221,11 +226,13 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
         layout.param("coords", data_qubit)
     )
     point = np.array(layout.param("coords", data_qubit))
-    fold_reflection = lambda x: reflection(x, point, sym_vector)
+    fold_reflection: Callable[[npt.NDArray[np.float64]], npt.NDArray[np.float64]] = (
+        lambda x: reflection(x, point, sym_vector)
+    )
 
-    coords_to_label_dict = {}
+    coords_to_label_dict: dict[tuple[float, ...], str] = {}
     for node, attr in layout.graph.nodes.items():
-        coords = attr["coords"]
+        coords: npt.NDArray[np.float64] = attr["coords"]
         coords = np.round(coords, decimals=5)  # to avoid numerical issues
         coords_to_label_dict[tuple(coords)] = node
 

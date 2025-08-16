@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Sequence
+from collections.abc import Collection
 from typing import TypedDict, overload, Literal
 
 from copy import deepcopy
@@ -17,8 +17,8 @@ IntOrder = IntDirections | dict[str, IntDirections]
 
 class LogQubitsDict(TypedDict):
     ind: int
-    log_x: Sequence[str]
-    log_z: Sequence[str]
+    log_x: Collection[str]
+    log_z: Collection[str]
 
 
 class QubitDict(TypedDict):
@@ -30,9 +30,9 @@ class QubitDict(TypedDict):
 class LayoutDict(TypedDict):
     code: str
     logical_qubits: dict[str, LogQubitsDict]
-    observables: dict[str, Sequence[str]]
-    interaction_order: dict[str, list]
-    layout: Sequence[QubitDict]
+    observables: dict[str, Collection[str]]
+    interaction_order: dict[str, list[str]]
+    layout: Collection[QubitDict]
 
 
 class Layout:
@@ -135,15 +135,17 @@ class Layout:
         if not isinstance(setup, dict):
             raise ValueError(f"'setup' must be a dict, instead got {type(setup)}.")
 
-        self.name = setup.get("name", "")
-        self.code = setup.get("code", "")
-        self._log_qubits = setup.get("logical_qubits", {})
-        self._observables = setup.get("observables", {})
-        self.distance = setup.get("distance", -1)
-        self.distance_z = setup.get("distance_z", -1)
-        self.distance_x = setup.get("distance_x", -1)
-        self.description = setup.get("description", "")
-        self.interaction_order = setup.get("interaction_order", {})
+        self.name: str = setup.get("name", "")
+        self.code: str = setup.get("code", "")
+        self._log_qubits: dict[str, LogQubitsDict] = setup.get("logical_qubits", {})
+        self._observables: dict[str, Collection[str]] = setup.get("observables", {})
+        self.distance: int = setup.get("distance", -1)
+        self.distance_z: int = setup.get("distance_z", -1)
+        self.distance_x: int = setup.get("distance_x", -1)
+        self.description: str = setup.get("description", "")
+        self.interaction_order: dict[str, list[str]] = setup.get(
+            "interaction_order", {}
+        )
 
         self._load_layout(setup)
         self._check_logical_qubits()
@@ -151,20 +153,22 @@ class Layout:
 
         # precompute specific attributes
         # make then tuples so that they areunmutable
-        self.qubits = tuple(self.get_qubits())
-        self.data_qubits = tuple(self.get_qubits(role="data"))
-        self.anc_qubits = tuple(self.get_qubits(role="anc"))
-        self.logical_qubits = tuple(self._log_qubits)
-        self.observables = tuple(self._observables)
+        self.qubits: tuple[str, ...] = tuple(self.get_qubits())
+        self.data_qubits: tuple[str, ...] = tuple(self.get_qubits(role="data"))
+        self.anc_qubits: tuple[str, ...] = tuple(self.get_qubits(role="anc"))
+        self.logical_qubits: tuple[str, ...] = tuple(self._log_qubits)
+        self.observables: tuple[str, ...] = tuple(self._observables)
 
-        self.num_qubits = len(self.qubits)
-        self.num_data_qubits = len(self.data_qubits)
-        self.num_anc_qubits = len(self.anc_qubits)
-        self.num_logical_qubits = len(self.logical_qubits)
-        self.num_observables = len(self.observables)
+        self.num_qubits: int = len(self.qubits)
+        self.num_data_qubits: int = len(self.data_qubits)
+        self.num_anc_qubits: int = len(self.anc_qubits)
+        self.num_logical_qubits: int = len(self.logical_qubits)
+        self.num_observables: int = len(self.observables)
 
-        self._qubit_label_to_ind = {v: k for k, v in self.qubit_inds.items()}
-        self._logical_qubit_label_to_ind = {
+        self._qubit_ind_to_label: dict[int, str] = {
+            v: k for k, v in self.qubit_inds.items()
+        }
+        self._logical_qubit_ind_to_label: dict[int, str] = {
             v: k for k, v in self.logical_qubit_inds.items()
         }
 
@@ -193,9 +197,9 @@ class Layout:
 
         for log_p in ["log_x", "log_z"]:
             for l, params in self._log_qubits.items():
-                if not isinstance(params[log_p], Sequence):
+                if not isinstance(params[log_p], Collection):
                     raise TypeError(
-                        f"'{log_p}' in logical {l} must be an Sequence, "
+                        f"'{log_p}' in logical {l} must be an Collection, "
                         f"but {type(params[log_p])} was given."
                     )
                 if set(params[log_p]) > set(self._qubit_inds):
@@ -218,9 +222,9 @@ class Layout:
             )
 
         for l, support in self._observables.items():
-            if not isinstance(support, Sequence):
+            if not isinstance(support, Collection):
                 raise TypeError(
-                    f"Attribute of observable {l} must be a Sequence, "
+                    f"Attribute of observable {l} must be a Collection, "
                     f"but {type(support)} was given."
                 )
             if set(support) > set(self._qubit_inds):
@@ -251,8 +255,8 @@ class Layout:
         if layout is None:
             raise ValueError("'setup' does not contain a 'layout' key.")
 
-        self._qubit_inds = {}
-        self.graph = nx.DiGraph()
+        self._qubit_inds: dict[str, int] = {}
+        self.graph: nx.DiGraph[str] = nx.DiGraph()
 
         for qubit_info in layout:
             qubit = qubit_info.pop("qubit", None)
@@ -323,7 +327,7 @@ class Layout:
             The dictionary of the setup.
             A copyt of this ``Layout`` can be initalized using ``Layout(setup)``.
         """
-        setup = dict()
+        setup: dict[str, object] = dict()
 
         if self.name != "":
             setup["name"] = self.name
@@ -344,12 +348,12 @@ class Layout:
         if self.interaction_order != {}:
             setup["interaction_order"] = self.interaction_order
 
-        layout = []
+        layout: list[dict[str, object]] = []
         for node, attrs in self.graph.nodes(data=True):
             node_dict = deepcopy(attrs)
             node_dict["qubit"] = node
 
-            nbr_dict = dict()
+            nbr_dict: dict[str, Collection[str]] = dict()
             adj_view = self.graph.adj[node]
 
             for nbr_node, edge_attrs in adj_view.items():
@@ -384,7 +388,7 @@ class Layout:
             raise ValueError("Given path doesn't exist")
 
         with open(filename, "r") as file:
-            layout_setup = yaml.safe_load(file)
+            layout_setup: LayoutDict = yaml.safe_load(file)
             return cls(layout_setup)
 
     def to_yaml(self, filename: str | Path) -> None:
@@ -424,7 +428,7 @@ class Layout:
         else:
             return self.graph.nodes[qubit][param]
 
-    def get_inds(self, qubits: Sequence[str]) -> tuple[int, ...]:
+    def get_inds(self, qubits: Collection[str]) -> tuple[int, ...]:
         """Returns the indices of the qubits.
 
         Parameters
@@ -451,7 +455,7 @@ class Layout:
         """Returns the smallest qubit index in the layout."""
         return min(self._qubit_inds.values())
 
-    def get_qubits(self, **conds: object) -> tuple[str]:
+    def get_qubits(self, **conds: object) -> tuple[str, ...]:
         """Return the qubit labels that meet a set of conditions.
 
         Parameters
@@ -484,22 +488,21 @@ class Layout:
     @overload
     def get_neighbors(
         self,
-        qubits: Sequence[str],
+        qubits: Collection[str],
         direction: str | None = None,
-        as_pairs: Literal[False] = False,
     ) -> tuple[str, ...]: ...
 
     @overload
     def get_neighbors(
         self,
-        qubits: Sequence[str],
-        direction: str | None = None,
-        as_pairs: Literal[True] = True,
-    ) -> tuple[str, ...]: ...
+        qubits: Collection[str],
+        direction: str | None,
+        as_pairs: Literal[True],
+    ) -> tuple[tuple[str, str], ...]: ...
 
     def get_neighbors(
         self,
-        qubits: Sequence[str],
+        qubits: Collection[str],
         direction: str | None = None,
         as_pairs: bool = False,
     ) -> tuple[str, ...] | tuple[tuple[str, str], ...]:
@@ -529,8 +532,8 @@ class Layout:
         """
         edge_view = self.graph.out_edges(qubits, data=True)
 
-        start_nodes = []
-        end_nodes = []
+        start_nodes: list[str] = []
+        end_nodes: list[str] = []
         for start_node, end_node, attrs in edge_view:
             if direction is None or attrs["direction"] == direction:
                 start_nodes.append(start_node)
@@ -540,7 +543,7 @@ class Layout:
             return tuple(zip(start_nodes, end_nodes))
         return tuple(end_nodes)
 
-    def get_coords(self, qubits: Sequence[str]) -> tuple[tuple[float | int], ...]:
+    def get_coords(self, qubits: Collection[str]) -> tuple[tuple[float | int], ...]:
         """Returns the coordinates of the given qubits.
 
         Parameters
@@ -559,13 +562,13 @@ class Layout:
 
         return tuple(tuple(all_coords[q]) for q in qubits)
 
-    def get_support(self, qubits: Sequence[str]) -> dict[str, tuple[str, ...]]:
+    def get_support(self, qubits: Collection[str]) -> dict[str, tuple[str, ...]]:
         """Returns a dictionary mapping the qubits to their support."""
         return {q: self.get_neighbors([q]) for q in qubits}
 
-    def get_labels_from_inds(self, inds: Sequence[int]) -> tuple[str, ...]:
+    def get_labels_from_inds(self, inds: Collection[int]) -> tuple[str, ...]:
         """Returns list of qubit labels for the given qubit indicies."""
-        return tuple(self._qubit_label_to_ind[ind] for ind in inds)
+        return tuple(self._qubit_ind_to_label[ind] for ind in inds)
 
     @property
     def qubit_coords(self) -> dict[str, tuple[float | int, ...]]:
@@ -608,7 +611,7 @@ class Layout:
             return None
         return params.get(param)
 
-    def get_logical_inds(self, logical_qubits: Sequence[str]) -> tuple[int, ...]:
+    def get_logical_inds(self, logical_qubits: Collection[str]) -> tuple[int, ...]:
         """Returns the indices of the specified logical qubits."""
         if set(logical_qubits) > set(self._log_qubits):
             raise ValueError(
@@ -629,10 +632,9 @@ class Layout:
         """Returns the largest logical qubit index in the layout."""
         return min(self.logical_qubit_inds.values())
 
-    def get_logical_labels_from_inds(self, inds: Sequence[int]) -> tuple[str, ...]:
+    def get_logical_labels_from_inds(self, inds: Collection[int]) -> tuple[str, ...]:
         """Returns list of logical qubit labels for the given logical qubit indicies."""
-        label_to_ind = {v: k for k, v in self.logical_qubit_inds.items()}
-        return tuple(label_to_ind[ind] for ind in inds)
+        return tuple(self._logical_qubit_ind_to_label[ind] for ind in inds)
 
     #####################################
     # get information from observables
@@ -720,7 +722,9 @@ class Layout:
         """
         node_view = self.graph.nodes(data=True)
 
-        coords = [node_view[anc]["coords"] for anc in self.anc_qubits]
+        coords: list[tuple[float | int, ...]] = [
+            node_view[anc]["coords"] for anc in self.anc_qubits
+        ]
 
         rows, cols = zip(*coords)
 

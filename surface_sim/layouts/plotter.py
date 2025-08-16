@@ -11,8 +11,8 @@ from matplotlib.text import Text
 from .layout import Layout
 
 
-Coordinates = tuple[float, float]
-CoordRange = tuple[float, float]
+Coordinates = tuple[float | int, float | int]
+CoordRange = tuple[float | int, float | int]
 
 # Regex to filter qubit labels for TeX text.
 RE_FILTER = re.compile("([a-zA-Z]+)([0-9]+)")
@@ -60,13 +60,12 @@ def clockwise_sort(coordinates: Iterable[Coordinates]) -> list[Coordinates]:
     x_center = np.mean(x_coords)
     y_center = np.mean(y_coords)
 
-    x_vectors = [x - x_center for x in x_coords]
-    y_vectors = [y - y_center for y in y_coords]
+    x_vectors: list[float] = [x - x_center for x in x_coords]
+    y_vectors: list[float] = [y - y_center for y in y_coords]
 
     angles = np.arctan2(x_vectors, y_vectors)
     inds = np.argsort(angles)
-    sorted_coords = [coords[ind] for ind in inds]
-    return sorted_coords
+    return [coords[ind] for ind in inds]
 
 
 def get_label(qubit: str, coords: Coordinates, **kwargs) -> Text:
@@ -198,7 +197,7 @@ def qubit_labels(layout: Layout, label_fontsize: float | int = 11) -> Iterable[T
         fontsize=label_fontsize,
     )
     for qubit in layout.qubits:
-        coords = layout.param("coords", qubit)
+        coords: Coordinates = layout.param("coords", qubit)
         if len(coords) != 2:
             raise ValueError(
                 "Coordinates must be 2D to be plotted, "
@@ -227,7 +226,7 @@ def qubit_connections(layout: Layout) -> Iterable[Line2D]:
     )
 
     for anc_qubit in layout.anc_qubits:
-        anc_coords = layout.param("coords", anc_qubit)
+        anc_coords: Coordinates = layout.param("coords", anc_qubit)
         if len(anc_coords) != 2:
             raise ValueError(
                 "Coordinates must be 2D to be plotted, "
@@ -266,7 +265,7 @@ def qubit_artists(layout: Layout) -> Iterable[Circle]:
     default_params = dict(edgecolor="black")
 
     for qubit in layout.qubits:
-        coords = layout.param("coords", qubit)
+        coords: Coordinates = layout.param("coords", qubit)
         if len(coords) != 2:
             raise ValueError(
                 "Coordinates must be 2D to be plotted, "
@@ -311,7 +310,7 @@ def logical_artists(layout: Layout) -> Iterable[Wedge]:
     if len(logical_qubits) == 0:
         return
     angle = 360 / len(logical_qubits)
-    support = {
+    support: dict[str, dict[str, tuple[str]]] = {
         "z": {l: layout.logical_param("log_z", l) for l in logical_qubits},
         "x": {l: layout.logical_param("log_x", l) for l in logical_qubits},
     }
@@ -320,7 +319,7 @@ def logical_artists(layout: Layout) -> Iterable[Wedge]:
     for k, logical_qubit in enumerate(logical_qubits):
         for pauli in ["z", "x"]:
             for qubit in support[pauli][logical_qubit]:
-                coords = layout.param("coords", qubit)
+                coords: Coordinates = layout.param("coords", qubit)
                 if len(coords) != 2:
                     raise ValueError(
                         "Coordinates must be 2D to be plotted, "
@@ -355,7 +354,7 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
     """
     default_params = dict(edgecolor="black")
     for anc_qubit in layout.anc_qubits:
-        anc_coords = layout.param("coords", anc_qubit)
+        anc_coords: Coordinates = layout.param("coords", anc_qubit)
         if len(anc_coords) != 2:
             raise ValueError(
                 "Coordinates must be 2D to be plotted, "
@@ -363,7 +362,7 @@ def patch_artists(layout: Layout) -> Iterable[Polygon]:
             )
 
         neigbors = layout.get_neighbors(anc_qubit)
-        coords = [layout.param("coords", nbr) for nbr in neigbors]
+        coords: list[Coordinates] = [layout.param("coords", nbr) for nbr in neigbors]
 
         # if the ancilla is only connected to two other data qubits,
         # then the ancilla is one of the vertices of the stabilizer patch.
@@ -401,12 +400,13 @@ def get_coord_range(layout: Layout) -> tuple[CoordRange, CoordRange]:
     -------
     [(x_min, x_max), (y_min, y_max)].
     """
-    list_coords = [layout.param("coords", qubit) for qubit in layout.qubits]
+    list_coords: list[Coordinates] = [
+        layout.param("coords", qubit) for qubit in layout.qubits
+    ]
     for coords in list_coords:
         if len(coords) != 2:
             raise ValueError(
-                "Coordinates must be 2D to be plotted, "
-                f"but {len(coords)}D were given."
+                f"Coordinates must be 2D to be plotted, but {len(coords)}D were given."
             )
     x_coords, y_coords = zip(*list_coords)
 

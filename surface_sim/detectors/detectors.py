@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection
 from typing import TypeVar
 from copy import deepcopy
 import stim
@@ -12,9 +12,9 @@ T = TypeVar("T")
 class Detectors:
     def __init__(
         self,
-        anc_qubits: Sequence[str],
+        anc_qubits: Collection[str],
         frame: str,
-        anc_coords: dict[str, Sequence[float | int]] | None = None,
+        anc_coords: dict[str, Collection[float | int]] | None = None,
         include_gauge_dets: bool = False,
     ) -> None:
         """Initalises the ``Detectors`` class.
@@ -46,9 +46,9 @@ class Detectors:
         Detector frame ``'gate-independent'`` builds the detectors as ``m_{a,r} ^ m_{a,r-1}``
         independently of how the stabilizer generators have been transformed.
         """
-        if not isinstance(anc_qubits, Sequence):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
-                f"'anc_qubits' must be a Sequence, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be a Collection, but {type(anc_qubits)} was given."
             )
         if not isinstance(frame, str):
             raise TypeError(f"'frame' must be a str, but {type(frame)} was given.")
@@ -65,14 +65,14 @@ class Detectors:
             )
         if not (set(anc_coords) == set(anc_qubits)):
             raise ValueError("'anc_coords' must have 'anc_qubits' as its keys.")
-        if any(not isinstance(c, Sequence) for c in anc_coords.values()):
+        if any(not isinstance(c, Collection) for c in anc_coords.values()):
             raise TypeError("Values in 'anc_coords' must be a collection.")
         if len(set(len(c) for c in anc_coords.values())) != 1:
             raise ValueError("Values in 'anc_coords' must have the same lenght.")
 
-        self.anc_qubit_labels: Sequence[str] = anc_qubits
+        self.anc_qubit_labels: Collection[str] = anc_qubits
         self.frame: str = frame
-        self.anc_coords: dict[str, Sequence[float | int]] = anc_coords
+        self.anc_coords: dict[str, Collection[float | int]] = anc_coords
         self.include_gauge_dets: bool = include_gauge_dets
 
         self.new_circuit()
@@ -89,7 +89,8 @@ class Detectors:
         """Creates a ``Detectors`` object using the information from the layouts.
         It loads all the ancilla qubits and their coordinates.
         """
-        anc_coords, anc_qubits = {}, []
+        anc_coords: dict[str, Collection[float | int]] = {}
+        anc_qubits: list[str] = []
         for layout in layouts:
             anc_coords |= layout.anc_coords  # updates dict
             anc_qubits += layout.anc_qubits
@@ -114,7 +115,7 @@ class Detectors:
         return
 
     def activate_detectors(
-        self, anc_qubits: Iterable[str], gauge_dets: Iterable[str] | None = None
+        self, anc_qubits: Collection[str], gauge_dets: Collection[str] | None = None
     ):
         """Activates the given ancilla detectors.
 
@@ -127,9 +128,9 @@ class Detectors:
             outcome in their first QEC round. This is only important if
             ``include_gauge_dets = False`` was set when initializing this object.
         """
-        if not isinstance(anc_qubits, Iterable):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
-                f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be an Collection, but {type(anc_qubits)} was given."
             )
         if set(anc_qubits) > set(self.anc_qubit_labels):
             raise ValueError(
@@ -143,9 +144,9 @@ class Detectors:
             )
         if gauge_dets is None:
             gauge_dets = []
-        if not isinstance(gauge_dets, Iterable):
+        if not isinstance(gauge_dets, Collection):
             raise TypeError(
-                f"'gauge_dets' must be an Iterable, but {type(gauge_dets)} was given."
+                f"'gauge_dets' must be an Collection, but {type(gauge_dets)} was given."
             )
         if set(gauge_dets) > set(self.anc_qubit_labels):
             raise ValueError(
@@ -162,11 +163,11 @@ class Detectors:
 
         return
 
-    def deactivate_detectors(self, anc_qubits: Iterable[str]):
+    def deactivate_detectors(self, anc_qubits: Collection[str]):
         """Deactivates the given ancilla detectors."""
-        if not isinstance(anc_qubits, Iterable):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
-                f"'anc_qubits' must be an Iterable, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be an Collection, but {type(anc_qubits)} was given."
             )
         if set(anc_qubits) > set(self.anc_qubit_labels):
             raise ValueError(
@@ -270,7 +271,7 @@ class Detectors:
         self,
         get_rec: Callable[[str, int], stim.GateTarget],
         anc_reset: bool,
-        anc_qubits: Iterable[str] | None = None,
+        anc_qubits: Collection[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the ancilla qubits have been measured.
@@ -303,9 +304,9 @@ class Detectors:
         if anc_qubits is None:
             # use only active detectors
             anc_qubits = list(self.detectors)
-        if not isinstance(anc_qubits, Iterable):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
-                f"'anc_qubits' must be an Iterable or None, but {type(anc_qubits)} was given."
+                f"'anc_qubits' must be an Collection or None, but {type(anc_qubits)} was given."
             )
         if not isinstance(get_rec, Callable):
             raise TypeError(
@@ -397,10 +398,10 @@ class Detectors:
     def build_from_data(
         self,
         get_rec: Callable[[str, int], stim.GateTarget],
-        anc_support: dict[str, Iterable[str]],
+        anc_support: dict[str, Collection[str]],
         anc_reset: bool,
-        reconstructable_stabs: Iterable[str],
-        anc_qubits: Iterable[str] | None = None,
+        reconstructable_stabs: Collection[str],
+        anc_qubits: Collection[str] | None = None,
     ) -> stim.Circuit:
         """Returns the stim circuit with the corresponding detectors
         given that the data qubits have been measured.
@@ -456,7 +457,7 @@ class Detectors:
         TICK
         M 0
         """
-        if not isinstance(reconstructable_stabs, Iterable):
+        if not isinstance(reconstructable_stabs, Collection):
             raise TypeError(
                 "'reconstructable_stabs' must be iterable, "
                 f"but {type(reconstructable_stabs)} was given."
@@ -464,7 +465,7 @@ class Detectors:
         if anc_qubits is None:
             # use only active detectors
             anc_qubits = list(self.detectors)
-        if not isinstance(anc_qubits, Iterable):
+        if not isinstance(anc_qubits, Collection):
             raise TypeError(
                 f"'anc_qubits' must be iterable or None, but {type(anc_qubits)} was given."
             )
