@@ -319,6 +319,58 @@ def rot_surface_code(
     )
 
 
+def rot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
+    """
+    Returns a list of (square) rotated surface codes of the specified distance that
+    are set up to be used in any logical circuit (i.e. they have all the
+    implemented logical gate attributes).
+
+    Parameters
+    ----------
+    num_layouts
+        Number of layouts to generate.
+    distance
+        The code distance.
+
+    Returns
+    -------
+    layouts
+        List of layouts.
+    """
+    if not isinstance(num_layouts, int):
+        raise TypeError(
+            f"'num_layouts' must be an int, but {type(num_layouts)} was given."
+        )
+
+    layouts: list[Layout] = []
+    num_data = distance**2
+    num_anc = num_data - 1
+    for k in range(num_layouts):
+        layout = rot_surface_code(
+            distance=distance,
+            logical_qubit_label=f"L{k}",
+            init_point=(0, (2 * distance + 4) * k),
+            init_data_qubit_id=1 + k * num_data,
+            init_zanc_qubit_id=1 + k * num_anc // 2,
+            init_xanc_qubit_id=1 + k * (num_anc // 2 + 1),
+            init_ind=k * (num_data + num_anc),
+            init_logical_ind=k,
+        )
+        layouts.append(layout)
+
+    # set up the parameters for all the logical gates
+    for k, layout in enumerate(layouts):
+        set_x(layout)
+        set_z(layout)
+        set_idle(layout)
+        for other_layout in layouts:
+            if layout == other_layout:
+                continue
+            set_trans_cnot(layout, other_layout)
+
+    return layouts
+
+
 def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]:
     """
     Returns a list of rotated surface codes of the specified distance that

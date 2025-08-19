@@ -1,5 +1,6 @@
 from .rot_surface_codes import (
     rot_surface_code,
+    rot_surface_codes,
     rot_surface_code_rectangle,
     rot_surface_code_rectangles,
     rot_surface_stability_rectangle,
@@ -14,6 +15,7 @@ from .repetition_codes import repetition_code, repetition_stability
 
 __all__ = [
     "rot_surface_code",
+    "rot_surface_codes",
     "rot_surface_code_rectangle",
     "rot_surface_code_rectangles",
     "rot_surface_stability_rectangle",

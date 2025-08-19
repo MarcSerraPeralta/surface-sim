@@ -1,6 +1,7 @@
 from .layout import Layout
 from .library import (
     rot_surface_code,
+    rot_surface_codes,
     rot_surface_code_rectangle,
     rot_surface_code_rectangles,
     rot_surface_stability_rectangle,
@@ -22,6 +23,7 @@ from .operations import (
 __all__ = [
     "Layout",
     "rot_surface_code",
+    "rot_surface_codes",
     "rot_surface_code_rectangle",
     "rot_surface_code_rectangles",
     "rot_surface_stability_rectangle",
