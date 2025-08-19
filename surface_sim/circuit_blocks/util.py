@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -19,7 +19,7 @@ from .decorators import (
 
 def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
     """Returns a stim circuit that sets up the coordinates of the qubits."""
-    coord_dict = {}
+    coord_dict: dict[str, Collection[int | float]] = {}
     for layout in layouts:
         coord_dict.update(layout.qubit_coords)
     return model.qubit_coords(coord_dict)
@@ -54,7 +54,7 @@ def log_meas(
     detectors: Detectors,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
@@ -992,7 +992,7 @@ def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
 
 
 @qec_circuit
-def qec_round_iterator(
+def qec_round_iterator_cnots(
     model: Model, layout: Layout, anc_reset: bool = True
 ) -> Iterator[Circuit]:
     """

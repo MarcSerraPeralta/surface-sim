@@ -58,6 +58,7 @@ __all__ = [
     "qec_round_pipelined",
     "qec_round_pipelined_iterator",
     "gate_to_iterator",
+    "gate_to_iterator_cnots",
     "gate_to_iterator_pipelined",
 ]
 
@@ -246,6 +247,121 @@ def qec_round_iterator(
     yield model.tick()
 
 
+@qec_circuit
+def qec_round_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    anc_reset: bool = True,
+) -> Iterator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to a QEC round
+    of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+
+    Notes
+    -----
+    This implementation uses the following instructions: CNOT, RZ, RX, MZ, MX.
+    Note that if ``anc_reset = False``, then the ancillas are not reset in the first round
+    and stim assumes that, if not specified, they are reset in the Z-basis, which is the
+    incorrect basis for the X-type ancillas. See the initialization iterators from the
+    dodecahedron code.
+    """
+    if layout.code not in (
+        "rotated_surface_code",
+        "rotated_surface_stability",
+        "repetition_code",
+        "repetition_stability",
+    ):
+        raise TypeError(
+            f"The given layout is not a rotated surface or repetition code, but a {layout.code}"
+        )
+
+    data_qubits = layout.data_qubits
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
+    z_stabs = layout.get_qubits(role="anc", stab_type="z_type")
+    qubits = set(layout.qubits)
+
+    int_order = layout.interaction_order
+    stab_types = list(int_order.keys())
+
+    yield model.incoming_noise(data_qubits)
+    yield model.tick()
+
+    if anc_reset:
+        resets = model.reset_x(x_stabs) + model.reset_z(z_stabs)
+        yield resets + model.idle(data_qubits)
+        yield model.tick()
+
+    # a
+    int_qubits: list[str] = []
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][0]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        if stab_type == "z_type":
+            int_pairs = [(b, a) for (a, b) in int_pairs]
+        int_qubits += list(chain.from_iterable(int_pairs))
+
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # b
+    int_qubits = []
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][1]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        if stab_type == "z_type":
+            int_pairs = [(b, a) for (a, b) in int_pairs]
+        int_qubits += list(chain.from_iterable(int_pairs))
+
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # c
+    int_qubits = []
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][2]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        if stab_type == "z_type":
+            int_pairs = [(b, a) for (a, b) in int_pairs]
+        int_qubits += list(chain.from_iterable(int_pairs))
+
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # d
+    int_qubits = []
+    for stab_type in stab_types:
+        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
+        ord_dir = int_order[stab_type][3]
+        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
+        if stab_type == "z_type":
+            int_pairs = [(b, a) for (a, b) in int_pairs]
+        int_qubits += list(chain.from_iterable(int_pairs))
+
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+    # e
+    yield model.measure_x(x_stabs) + model.measure_z(z_stabs) + model.idle(data_qubits)
+    yield model.tick()
+
+
 def qec_round_pipelined(
     model: Model,
     layout: Layout,
@@ -372,6 +488,21 @@ def qec_round_pipelined_iterator(
 
 gate_to_iterator = {
     "TICK": qec_round_iterator,
+    "I": idle_iterator,
+    "S": log_fold_trans_s_iterator,
+    "X": log_x_iterator,
+    "Z": log_z_iterator,
+    "CX": log_trans_cnot_iterator,
+    "CNOT": log_trans_cnot_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}
+gate_to_iterator_cnots = {
+    "TICK": qec_round_iterator_cnots,
     "I": idle_iterator,
     "S": log_fold_trans_s_iterator,
     "X": log_x_iterator,
