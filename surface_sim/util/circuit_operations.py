@@ -89,7 +89,8 @@ def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
 
 
 def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
-    """Merges operation layers acting on different qubits to simplify
+    """
+    Merges operation layers acting on different qubits to simplify
     the final circuit.
     It tries to merge the different blocks if they have the same sequence
     of operations and noise channels, if not, blocks are stacked together.
@@ -118,6 +119,12 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
     """
     # check which blocks can be merged to reduce the output circuit length
     ops_blocks = [tuple(instr.name for instr in block) for block in operation_layers]
+
+    # avoid changing the order of the measurements, which happens if
+    # each operation layer contains the two circuit instructions corresponding to measurements.
+    if any(sum(names.count(n) for n in MEAS_INSTR) > 1 for names in ops_blocks):
+        return sum(operation_layers, start=stim.Circuit())
+
     mergeable_blocks: dict[tuple[str, ...], list[stim.Circuit]] = {}
     for block, op_block in zip(operation_layers, ops_blocks):
         if op_block not in mergeable_blocks:
