@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from typing import TypeVar
 from copy import deepcopy
 import stim
@@ -398,7 +398,7 @@ class Detectors:
     def build_from_data(
         self,
         get_rec: Callable[[str, int], stim.GateTarget],
-        anc_support: dict[str, Collection[str]],
+        anc_support: Mapping[str, Collection[str]],
         anc_reset: bool,
         reconstructable_stabs: Collection[str],
         anc_qubits: Collection[str] | None = None,

@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from stim import Circuit
 
 from .arbitrary_experiment import experiment_from_schedule
@@ -80,7 +81,7 @@ def memory_experiment_google(
         reset = qubit_init_x if rot_basis else qubit_init_z
 
         @reset
-        def custom_reset_iterator(model: Model, layout: Layout):
+        def custom_reset_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
             return init_qubits_iterator(
                 model, layout, data_init=data_init, rot_basis=rot_basis
             )

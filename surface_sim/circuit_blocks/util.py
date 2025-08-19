@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -26,7 +26,7 @@ def qubit_coords(model: Model, *layouts: Layout) -> Circuit:
 
 
 @sq_gate
-def idle_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def idle_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical idling
     of the given model.
@@ -121,7 +121,7 @@ def log_meas_iterator(
     model: Model,
     layout: Layout,
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical measurement
     of the given model without the definition of the detectors and observables.
@@ -152,7 +152,7 @@ def log_meas_iterator(
 
 
 @logical_measurement_z
-def log_meas_z_iterator(model: Model, layout: Layout):
+def log_meas_z_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical Z measurement
     of the given model without the definition of the detectors and observables.
@@ -168,7 +168,7 @@ def log_meas_z_iterator(model: Model, layout: Layout):
 
 
 @logical_measurement_x
-def log_meas_x_iterator(model: Model, layout: Layout):
+def log_meas_x_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical X measurement
     of the given model without the definition of the detectors and observables.
@@ -220,7 +220,7 @@ def init_qubits_iterator(
     layout: Layout,
     data_init: dict[str, int],
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization
     of the given model.
@@ -249,7 +249,7 @@ def init_qubits_iterator(
 
 
 @qubit_init_z
-def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
     state of the given model.
@@ -266,7 +266,7 @@ def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_z
-def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
     state of the given model.
@@ -287,7 +287,7 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
     state of the given model.
@@ -304,7 +304,7 @@ def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->
     state of the given model.
@@ -334,7 +334,7 @@ def log_x(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
 
 @sq_gate
-def log_x_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_x_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
     of the given model.
@@ -369,7 +369,7 @@ def log_z(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
 
 @sq_gate
-def log_z_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_z_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate
     of the given model.
@@ -412,7 +412,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """Yields the stim circuits corresponding to a transversal logical S gate
     implemented following:
 
@@ -432,9 +432,9 @@ def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
     anc_qubits = layout.anc_qubits
     gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
-    cz_pairs = set()
-    qubits_s_gate = set()
-    qubits_s_dag_gate = set()
+    cz_pairs: set[tuple[str, str]] = set()
+    qubits_s_gate: set[str] = set()
+    qubits_s_dag_gate: set[str] = set()
     for data_qubit in data_qubits:
         trans_s = layout.param(gate_label, data_qubit)
         if trans_s is None:
@@ -480,7 +480,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """Yields the stim circuits corresponding to a fold-transversal logical H gate
     implemented following the circuit show in:
 
@@ -495,8 +495,8 @@ def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]
     qubits = set(layout.qubits)
     gate_label = f"log_fold_trans_h_{layout.logical_qubits[0]}"
 
-    swap_pairs = set()
-    qubits_h_gate = set()
+    swap_pairs: set[tuple[str, str]] = set()
+    qubits_h_gate: set[str] = set()
     for data_qubit in data_qubits:
         trans_h = layout.param(gate_label, data_qubit)
         if trans_h is None:
@@ -561,7 +561,7 @@ def log_trans_cnot(
 @tq_gate
 def log_trans_cnot_iterator(
     model: Model, layout_c: Layout, layout_t: Layout
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """Returns the stim circuit corresponding to a transversal logical CNOT gate.
 
     Parameters
@@ -593,7 +593,7 @@ def log_trans_cnot_iterator(
         f"log_trans_cnot_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
     )
 
-    cz_pairs = set()
+    cz_pairs: set[tuple[str, str]] = set()
     qubits_h_gate = set(data_qubits_t)
     for data_qubit in data_qubits_c:
         trans_cnot = layout_c.param(gate_label, data_qubit)
@@ -631,7 +631,7 @@ def log_meas_xzzx(
     detectors: Detectors,
     rot_basis: bool = False,
     anc_reset: bool = True,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a logical measurement
@@ -701,7 +701,7 @@ def log_meas_xzzx_iterator(
     model: Model,
     layout: Layout,
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical measurement
     of the given model without the definition of the detectors and observables.
@@ -727,7 +727,7 @@ def log_meas_xzzx_iterator(
     yield model.incoming_noise(data_qubits)
     yield model.tick()
 
-    rot_qubits = set()
+    rot_qubits: set[str] = set()
     for direction in ("north_west", "south_east"):
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
@@ -741,7 +741,7 @@ def log_meas_xzzx_iterator(
 
 
 @logical_measurement_z
-def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical Z measurement
     of the given model without the definition of the detectors and observables.
@@ -750,7 +750,7 @@ def log_meas_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @logical_measurement_x
-def log_meas_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_meas_x_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which in total correspond to a logical X measurement
     of the given model without the definition of the detectors and observables.
@@ -768,7 +768,7 @@ def log_x_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
 
 @sq_gate
-def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_x_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical X gate
     of the given model.
@@ -788,7 +788,7 @@ def log_x_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     yield model.tick()
 
     # apply log X
-    rot_qubits = []
+    rot_qubits: list[str] = []
     stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
     for direction in ("north_west", "south_east"):
         rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
@@ -809,7 +809,7 @@ def log_z_xzzx(model: Model, layout: Layout, detectors: Detectors) -> Circuit:
 
 
 @sq_gate
-def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_z_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical Z gate
     of the given model.
@@ -829,7 +829,7 @@ def log_z_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
     yield model.tick()
 
     # apply log Z
-    rot_qubits = []
+    rot_qubits: list[str] = []
     stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
     for direction in ("north_west", "south_east"):
         rot_qubits += layout.get_neighbors(stab_qubits, direction=direction)
@@ -874,7 +874,7 @@ def init_qubits_xzzx_iterator(
     layout: Layout,
     data_init: dict[str, int],
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization
     of the given model.
@@ -905,7 +905,7 @@ def init_qubits_xzzx_iterator(
     stab_type = "x_type" if rot_basis else "z_type"
     stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
 
-    rot_qubits = set()
+    rot_qubits: set[str] = set()
     for direction in ("north_west", "south_east"):
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
@@ -916,7 +916,7 @@ def init_qubits_xzzx_iterator(
 
 
 @qubit_init_z
-def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
     state of the given model.
@@ -933,7 +933,7 @@ def init_qubits_z0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
 
 
 @qubit_init_z
-def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
     state of the given model.
@@ -954,7 +954,7 @@ def init_qubits_z1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
 
 
 @qubit_init_x
-def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
     state of the given model.
@@ -971,7 +971,7 @@ def init_qubits_x0_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
 
 
 @qubit_init_x
-def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->
     state of the given model.
@@ -994,7 +994,7 @@ def init_qubits_x1_xzzx_iterator(model: Model, layout: Layout) -> Iterator[Circu
 @qec_circuit
 def qec_round_iterator_cnots(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuits corresponds to a QEC round for the given model and layout.
 
