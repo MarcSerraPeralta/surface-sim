@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -108,7 +108,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -152,7 +152,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical S-like gate.
     See the corresponding setting function for more information.
@@ -214,7 +214,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical H-like gate.
     See the corresponding setting function for more information.
@@ -279,7 +279,7 @@ def log_fold_trans_swap_r(
 
 
 @sq_gate
-def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_r` gate.
@@ -346,7 +346,7 @@ def log_fold_trans_swap_s(
 
 
 @sq_gate
-def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_s` gate.
@@ -413,7 +413,7 @@ def log_fold_trans_swap_a(
 
 
 @sq_gate
-def log_fold_trans_swap_a_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_a_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_a` gate.
@@ -471,7 +471,7 @@ def log_fold_trans_swap_b(
 
 
 @sq_gate
-def log_fold_trans_swap_b_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_b_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_b` gate.
@@ -529,7 +529,7 @@ def log_fold_trans_swap_c(
 
 
 @sq_gate
-def log_fold_trans_swap_c_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_c_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_c` gate.
@@ -609,7 +609,7 @@ def init_qubits_iterator(
     layout: Layout,
     data_init: dict[str, int],
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization
     of the given model.
@@ -643,7 +643,7 @@ def init_qubits_iterator(
 
 
 @qubit_init_z
-def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
     state of the given model.
@@ -662,7 +662,7 @@ def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_z
-def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
     state of the given model.
@@ -685,7 +685,7 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
     state of the given model.
@@ -704,7 +704,7 @@ def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->
     state of the given model.

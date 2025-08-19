@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -114,7 +114,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.

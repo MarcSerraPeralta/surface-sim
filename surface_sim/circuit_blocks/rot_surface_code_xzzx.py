@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Collection
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -108,7 +108,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -299,7 +299,7 @@ def qec_round_pipelined_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -450,7 +450,7 @@ def qec_round_google_with_log_meas(
 @qec_circuit
 def qec_round_google_with_log_x_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     return qec_round_google_with_log_meas_iterator(
         model, layout, rot_basis=True, anc_reset=anc_reset
     )
@@ -460,7 +460,7 @@ def qec_round_google_with_log_x_meas_iterator(
 @qec_circuit
 def qec_round_google_with_log_z_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     return qec_round_google_with_log_meas_iterator(
         model, layout, rot_basis=False, anc_reset=anc_reset
     )
@@ -471,7 +471,7 @@ def qec_round_google_with_log_meas_iterator(
     layout: Layout,
     rot_basis: bool = False,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to a QEC round
     that includes the logical measurement
@@ -531,7 +531,7 @@ def qec_round_google_with_log_meas_iterator(
 
 def coherent_qec_part_google_iterator(
     model: Model, layout: Layout
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to the steps "a" to "h" from the QEC round
     described in Google's paper for the given model.
@@ -654,7 +654,7 @@ def qec_round_google(
 @qec_circuit
 def qec_round_google_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to a QEC round
     of the given model.
