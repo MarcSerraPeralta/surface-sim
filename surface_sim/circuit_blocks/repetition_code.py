@@ -27,7 +27,7 @@ from .util import (
     init_qubits_x0_iterator,
     init_qubits_x1_iterator,
 )
-from .rot_surface_code_css import qec_round_iterator as qec_round_iterator_sc
+from .util import qec_round_iterator as qec_round_iterator_sc
 
 __all__ = [
     "qubit_coords",

@@ -32,6 +32,8 @@ from .util import (
     log_fold_trans_h_iterator,
     log_trans_cnot,
     log_trans_cnot_iterator,
+    qec_round_iterator,
+    qec_round_iterator_cnots,
 )
 
 __all__ = [
@@ -59,6 +61,7 @@ __all__ = [
     "log_trans_cnot_iterator",
     "qec_round",
     "qec_round_iterator",
+    "qec_round_iterator_cnots",
     "gate_to_iterator",
     "gate_to_iterator_cnots",
 ]

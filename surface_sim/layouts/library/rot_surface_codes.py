@@ -349,10 +349,10 @@ def rot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
         layout = rot_surface_code(
             distance=distance,
             logical_qubit_label=f"L{k}",
-            init_point=(0, (2 * distance + 4) * k),
+            init_point=(0, (2 * distance + 2) * k),
             init_data_qubit_id=1 + k * num_data,
             init_zanc_qubit_id=1 + k * num_anc // 2,
-            init_xanc_qubit_id=1 + k * (num_anc // 2 + 1),
+            init_xanc_qubit_id=1 + k * num_anc // 2,
             init_ind=k * (num_data + num_anc),
             init_logical_ind=k,
         )

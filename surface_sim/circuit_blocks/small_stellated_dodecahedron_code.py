@@ -17,7 +17,7 @@ from .util import (
     log_meas_z_iterator,
     log_meas_x_iterator,
 )
-from .util import qec_round_iterator_cnots as general_qec_round_iterator
+from .util import general_qec_round_iterator_cnots as general_qec_round_iterator
 
 __all__ = [
     "qubit_coords",
