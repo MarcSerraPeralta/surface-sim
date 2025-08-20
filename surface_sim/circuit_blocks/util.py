@@ -14,6 +14,8 @@ from .decorators import (
     logical_measurement_z,
     logical_measurement_x,
     qec_circuit,
+    to_mid_cycle_circuit,
+    to_end_cycle_circuit,
 )
 
 
@@ -1045,15 +1047,13 @@ def general_qec_round_iterator_cnots(
     yield model.tick()
 
 
-@qec_circuit
-def qec_round_iterator(
-    model: Model,
-    layout: Layout,
-    anc_reset: bool = True,
+@to_mid_cycle_circuit
+def to_mid_cycle_iterator(
+    model: Model, layout: Layout, anc_reset: bool = True
 ) -> Generator[Circuit]:
     """
-    Yields stim circuit blocks which as a whole correspond to a QEC round
-    of the given model without the detectors.
+    Yields stim circuit blocks which as a whole correspond to the first half
+    of a QEC round of the given model without the detectors.
 
     Parameters
     ----------
@@ -1080,7 +1080,7 @@ def qec_round_iterator(
     ):
         raise TypeError(
             "The given layout is not a rotated surface, unrotated surface code, "
-            f"or repetition code, but a {layout.code}"
+            f"or repetition code, but a {layout.code}."
         )
 
     data_qubits = layout.data_qubits
@@ -1136,8 +1136,48 @@ def qec_round_iterator(
     yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
+
+@to_end_cycle_circuit
+def to_end_cycle_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to the second half
+    of a QEC round of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    This implementation follows:
+
+    https://doi.org/10.1103/PhysRevApplied.8.034021
+    """
+    if layout.code not in (
+        "rotated_surface_code",
+        "rotated_surface_stability",
+        "unrotated_surface_code",
+        "repetition_code",
+        "repetition_stability",
+    ):
+        raise TypeError(
+            "The given layout is not a rotated surface, unrotated surface code, "
+            f"or repetition code, but a {layout.code}."
+        )
+
+    data_qubits = layout.data_qubits
+    anc_qubits = layout.anc_qubits
+    qubits = set(layout.qubits)
+
+    int_order = layout.interaction_order
+    stab_types = list(int_order.keys())
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
+
     # e
-    int_qubits = []
+    int_qubits: list[str] = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][2]
@@ -1180,7 +1220,7 @@ def qec_round_iterator(
 
 
 @qec_circuit
-def qec_round_iterator_cnots(
+def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
@@ -1188,6 +1228,36 @@ def qec_round_iterator_cnots(
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+
+    Notes
+    -----
+    This implementation follows:
+
+    https://doi.org/10.1103/PhysRevApplied.8.034021
+    """
+    yield from to_mid_cycle_iterator(model, layout, anc_reset=anc_reset)
+    yield from to_end_cycle_iterator(model, layout)
+
+
+@to_mid_cycle_circuit
+def to_mid_cycle_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    anc_reset: bool = True,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to the first half
+    of a QEC round of the given model without the detectors.
 
     Parameters
     ----------
@@ -1216,7 +1286,7 @@ def qec_round_iterator_cnots(
     ):
         raise TypeError(
             "The given layout is not a rotated surface, unrotated surface code, "
-            f"or repetition code, but a {layout.code}"
+            f"or repetition code, but a {layout.code}."
         )
 
     data_qubits = layout.data_qubits
@@ -1263,8 +1333,46 @@ def qec_round_iterator_cnots(
     yield model.cnot(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
+
+@to_end_cycle_circuit
+def to_end_cycle_iterator_cnots(model: Model, layout: Layout) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to the second half
+    of a QEC round of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    This implementation uses the following instructions: CNOT, RZ, RX, MZ, MX.
+    """
+    if layout.code not in (
+        "rotated_surface_code",
+        "rotated_surface_stability",
+        "unrotated_surface_code",
+        "repetition_code",
+        "repetition_stability",
+    ):
+        raise TypeError(
+            "The given layout is not a rotated surface, unrotated surface code, "
+            f"or repetition code, but a {layout.code}."
+        )
+
+    data_qubits = layout.data_qubits
+    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
+    z_stabs = layout.get_qubits(role="anc", stab_type="z_type")
+    qubits = set(layout.qubits)
+
+    int_order = layout.interaction_order
+    stab_types = list(int_order.keys())
+
     # c
-    int_qubits = []
+    int_qubits: list[str] = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][2]
@@ -1294,3 +1402,35 @@ def qec_round_iterator_cnots(
     # e
     yield model.measure_x(x_stabs) + model.measure_z(z_stabs) + model.idle(data_qubits)
     yield model.tick()
+
+
+@qec_circuit
+def qec_round_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    anc_reset: bool = True,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to a QEC round
+    of the given model without the detectors.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+
+    Notes
+    -----
+    This implementation uses the following instructions: CNOT, RZ, RX, MZ, MX.
+    Note that if ``anc_reset = False``, then the ancillas are not reset in the first round
+    and stim assumes that, if not specified, they are reset in the Z-basis, which is the
+    incorrect basis for the X-type ancillas. See the initialization iterators from the
+    dodecahedron code.
+    """
+    yield from to_mid_cycle_iterator_cnots(model, layout, anc_reset=anc_reset)
+    yield from to_end_cycle_iterator_cnots(model, layout)

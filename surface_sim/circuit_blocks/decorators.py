@@ -40,10 +40,19 @@ LogicalOperation = tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, L
 
 
 def qec_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"qec_round"`` to a function.
-    """
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    func.log_op_type += ["qec_round"]
+    return func
+
+
+def to_mid_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    return func
+
+
+def to_end_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["qec_round"]
@@ -51,10 +60,6 @@ def qec_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def sq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"sq_unitary_gate"`` to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["sq_unitary_gate"]
@@ -63,10 +68,6 @@ def sq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def tq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attribute ``"log_op_type"`` and setting it to
-    ``"tq_unitary_gate"`` to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["tq_unitary_gate"]
@@ -76,10 +77,6 @@ def tq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def qubit_init_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attribute ``"log_op_type", "rot_basis"`` and setting
-    them to ``"qubit_init", False`` (respectively) to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["qubit_init"]
@@ -88,10 +85,6 @@ def qubit_init_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def qubit_init_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attribute ``"log_op_type", "rot_basis"`` and setting
-    them to ``"qubit_init", False`` (respectively) to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["qubit_init"]
@@ -100,10 +93,6 @@ def qubit_init_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def logical_measurement_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attributes ``"log_op_type", "rot_basis"`` and setting
-    them to ``"measurement", False`` (respectively) to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["measurement"]
@@ -112,10 +101,6 @@ def logical_measurement_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 
 
 def logical_measurement_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-    """
-    Decorator for adding the attributes ``"log_op_type", "rot_basis"`` and setting
-    them to ``"measurement", True`` (respectively) to a function.
-    """
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
     func.log_op_type += ["measurement"]
