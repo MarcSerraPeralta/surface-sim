@@ -278,21 +278,19 @@ def log_trans_cnot_mid_cycle_css_iterator(
             f"The given layout is not a rotated surface code, but a {layout_t.code}"
         )
 
-    data_qubits_c = layout_c.data_qubits
-    data_qubits_t = layout_t.data_qubits
     qubits = set(layout_c.qubits + layout_t.qubits)
     gate_label = f"log_trans_cnot_mid_cycle_css_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
 
     cnot_pairs: set[tuple[str, str]] = set()
-    for data_qubit in data_qubits_c:
-        trans_cnot = layout_c.param(gate_label, data_qubit)
+    for qubit in layout_c.qubits:
+        trans_cnot = layout_c.param(gate_label, qubit)
         if trans_cnot is None:
             raise ValueError(
                 "The layout does not have the information to run "
-                f"{gate_label} gate on qubit {data_qubit}. "
+                f"{gate_label} gate on qubit {qubit}. "
                 "Use the 'log_gates' module to set it up."
             )
-        cnot_pairs.add((data_qubit, trans_cnot["cnot"]))
+        cnot_pairs.add((qubit, trans_cnot["cnot"]))
 
     # long-range CNOT gates
     int_qubits = list(chain.from_iterable(cnot_pairs))
