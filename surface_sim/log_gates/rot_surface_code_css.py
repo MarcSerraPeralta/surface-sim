@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..layouts.layout import Layout
+from ..layouts.operations import check_overlap_layouts
 from .util import set_x, set_z, set_idle, set_trans_cnot
 
 __all__ = [
@@ -167,6 +168,97 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             {
                 "new_stab_gen": anc_to_new_stab[anc_qubit],
                 "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
+            },
+        )
+
+    return
+
+
+def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
+    """Adds the required attributes (in place) for the layout to run the
+    transversal CNOT gate for the rotated surface code in the mid cycle state,
+    which corresponds to a CSS unrotated surface code.
+
+    Parameters
+    ----------
+    layout_c
+        The layout for the control of the CNOT for which to add the attributes.
+    layout_t
+        The layout for the target of the CNOT for which to add the attributes.
+
+    Notes
+    -----
+    This mid-cycle transversal gate is intended for the QEC cycle the uses CNOTs,
+    thus this transversal gate is implemented using CNOTs.
+    """
+    if (layout_c.code != "rotated_surface_code") or (
+        layout_t.code != "rotated_surface_code"
+    ):
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but layouts for {layout_t.code} and {layout_c.code} were given."
+        )
+    if (layout_c.distance_x != layout_t.distance_x) or (
+        layout_c.distance_z != layout_t.distance_z
+    ):
+        raise ValueError("This function requires two surface codes of the same size.")
+    check_overlap_layouts(layout_c, layout_t)
+
+    gate_label = f"log_trans_cnot_mid_cycle_css_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+
+    qubit_coords_c = layout_c.qubit_coords
+    qubit_coords_t = layout_t.qubit_coords
+    bottom_left_qubit_c = sorted(
+        qubit_coords_c.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
+    )
+    bottom_left_qubit_t = sorted(
+        qubit_coords_t.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
+    )
+    mapping_t_to_c = {}
+    mapping_c_to_t = {}
+    for (qc, _), (qt, _) in zip(bottom_left_qubit_c, bottom_left_qubit_t):
+        mapping_t_to_c[qt] = qc
+        mapping_c_to_t[qc] = qt
+
+    # Store the logical information for the data qubits
+    for qubit in layout_c.qubits:
+        layout_c.set_param(
+            gate_label, qubit, {"cnot": mapping_c_to_t[qubit], "local": "I"}
+        )
+    for qubit in layout_t.qubits:
+        layout_t.set_param(
+            gate_label, qubit, {"cnot": mapping_t_to_c[qubit], "local": "I"}
+        )
+
+    # Compute the new stabilizer generators based on the CNOT connections
+    anc_to_new_stab = {}
+    for anc in layout_c.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc]
+    for anc in layout_c.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc, mapping_c_to_t[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc]
+
+    # Store new stabilizer generators to the ancilla qubits
+    # CNOT^\dagger = CNOT
+    for anc in layout_c.anc_qubits:
+        layout_c.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+            },
+        )
+    for anc in layout_t.anc_qubits:
+        layout_t.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
             },
         )
 

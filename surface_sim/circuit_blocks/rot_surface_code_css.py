@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit
+from .decorators import qec_circuit, tq_gate
 
 # methods to have in this script
 from .util import (
@@ -32,6 +32,8 @@ from .util import (
     log_trans_cnot_iterator,
     qec_round_iterator,
     qec_round_iterator_cnots,
+    to_mid_cycle_iterator_cnots,
+    to_end_cycle_iterator_cnots,
 )
 
 __all__ = [
@@ -60,8 +62,11 @@ __all__ = [
     "qec_round_iterator_cnots",
     "qec_round_pipelined",
     "qec_round_pipelined_iterator",
+    "log_trans_cnot_mid_cycle_css_iterator",
     "gate_to_iterator",
     "gate_to_iterator_cnots",
+    "gate_to_iterator_mid_cycle_cnots",
+    "tick_iterators_mid_cycle_cnots",
     "gate_to_iterator_pipelined",
 ]
 
@@ -242,6 +247,60 @@ def qec_round_pipelined_iterator(
     yield model.tick()
 
 
+@tq_gate
+def log_trans_cnot_mid_cycle_css_iterator(
+    model: Model, layout_c: Layout, layout_t: Layout
+) -> Generator[Circuit]:
+    """Returns the stim circuit corresponding to a transversal logical CNOT gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CNOT.
+    layout_t
+        Code layout for the target of the logical CNOT.
+    detectors
+        Detector definitions to use.
+
+    Notes
+    -----
+    The implementation uses CNOTs and it does not add incoming noise because this
+    logical gate is executed in the mid-cycle code.
+    """
+    if layout_c.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout_c.code}"
+        )
+    if layout_t.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout_t.code}"
+        )
+
+    data_qubits_c = layout_c.data_qubits
+    data_qubits_t = layout_t.data_qubits
+    qubits = set(layout_c.qubits + layout_t.qubits)
+    gate_label = f"log_trans_cnot_mid_cycle_css_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+
+    cnot_pairs: set[tuple[str, str]] = set()
+    for data_qubit in data_qubits_c:
+        trans_cnot = layout_c.param(gate_label, data_qubit)
+        if trans_cnot is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        cnot_pairs.add((data_qubit, trans_cnot["cnot"]))
+
+    # long-range CNOT gates
+    int_qubits = list(chain.from_iterable(cnot_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
 gate_to_iterator = {
     "TICK": qec_round_iterator,
     "I": idle_iterator,
@@ -272,6 +331,20 @@ gate_to_iterator_cnots = {
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
 }
+gate_to_iterator_mid_cycle_cnots = {
+    "CX": log_trans_cnot_mid_cycle_css_iterator,
+    "CNOT": log_trans_cnot_mid_cycle_css_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}
+tick_iterators_mid_cycle_cnots = [
+    to_mid_cycle_iterator_cnots,
+    to_end_cycle_iterator_cnots,
+]
 gate_to_iterator_pipelined = {
     "TICK": qec_round_pipelined_iterator,
     "I": idle_iterator,
