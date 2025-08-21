@@ -221,14 +221,10 @@ def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
         mapping_c_to_t[qc] = qt
 
     # Store the logical information for the data qubits
-    for qubit in layout_c.qubits:
-        layout_c.set_param(
-            gate_label, qubit, {"cnot": mapping_c_to_t[qubit], "local": "I"}
-        )
-    for qubit in layout_t.qubits:
-        layout_t.set_param(
-            gate_label, qubit, {"cnot": mapping_t_to_c[qubit], "local": "I"}
-        )
+    for qubit in layout_c.data_qubits:
+        layout_c.set_param(gate_label, qubit, {"cnot": mapping_c_to_t[qubit]})
+    for qubit in layout_t.data_qubits:
+        layout_t.set_param(gate_label, qubit, {"cnot": mapping_t_to_c[qubit]})
 
     # Compute the new stabilizer generators based on the CNOT connections
     anc_to_new_stab = {}
@@ -250,6 +246,7 @@ def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
             {
                 "new_stab_gen": anc_to_new_stab[anc],
                 "new_stab_gen_inv": anc_to_new_stab[anc],
+                "cnot": mapping_c_to_t[anc],
             },
         )
     for anc in layout_t.anc_qubits:
@@ -259,6 +256,7 @@ def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
             {
                 "new_stab_gen": anc_to_new_stab[anc],
                 "new_stab_gen_inv": anc_to_new_stab[anc],
+                "cnot": mapping_t_to_c[anc],
             },
         )
 
