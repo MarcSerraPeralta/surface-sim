@@ -12,6 +12,7 @@ from ..circuit_blocks.decorators import (
     qec_circuit,
     logical_measurement_x,
     logical_measurement_z,
+    to_mid_cycle_circuit,
 )
 
 
@@ -30,7 +31,9 @@ MEAS_INSTR = [
     "MPP",
 ]
 
-QEC_OP_TYPES = ["qec_round"]
+QEC_OP_TYPES = ["qec_round", "to_mid_cycle_circuit", "to_end_cycle_circuit"]
+QEC_DETS_OP_TYPES = ["qec_round", "to_end_cycle_circuit"]
+QEC_RESET_OP_TYPES = ["qec_round", "to_mid_cycle_circuit"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 MEAS_OP_TYPES = ["measurement"]
 RESET_OP_TYPES = ["qubit_init"]
@@ -263,15 +266,20 @@ def merge_logical_operations(
     """
     if any(set(op[0].log_op_type) > set(VALID_OP_TYPES) for op in op_iterators):
         raise TypeError(f"'op_iterators' must be valid operation types.")
-    qec_ops = [set(QEC_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators]
-    if any(qec_ops) and (not all(qec_ops)):
+    qec_dets_ops = [
+        set(QEC_DETS_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
+    ]
+    if any(qec_dets_ops) and (not all(qec_dets_ops)):
         raise ValueError(
             "All logical qubits must be performing QEC cycles at the same time."
         )
 
     # change QEC round iterators to include 'anc_reset' (if needed)
     # because the 'merge_iterators' only inputs Model and Layout(s), not 'anc_reset'
-    if all(qec_ops):
+    qec_reset_ops = [
+        set(QEC_RESET_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
+    ]
+    if any(qec_reset_ops):
         if anc_reset is None:
             raise ValueError("QEC round found but 'anc_reset' is not specified.")
         if any(len(op[1:]) > 1 for op in op_iterators):
@@ -279,8 +287,11 @@ def merge_logical_operations(
                 "Incorrect schedule format when specifying the QEC round iterators."
             )
 
-        for k, _ in enumerate(op_iterators):
+        for k, (reset, _) in enumerate(zip(qec_reset_ops, op_iterators)):
+            if not reset:
+                continue
             func = op_iterators[k][0]
+
             if set(func.log_op_type) == set(["qec_round"]):
                 decorator = qec_circuit
             elif set(func.log_op_type) == set(["qec_round", "measurement"]):
@@ -288,6 +299,8 @@ def merge_logical_operations(
                     decorator = lambda x: logical_measurement_x(qec_circuit(x))
                 else:
                     decorator = lambda x: logical_measurement_z(qec_circuit(x))
+            elif set(func.log_op_type) == set(["to_mid_cycle_circuit"]):
+                decorator = to_mid_cycle_circuit
             else:
                 raise TypeError(
                     f"Function of type '{func.log_op_type}' not implemented."
@@ -311,7 +324,7 @@ def merge_logical_operations(
             continue
 
         # the only supported inter-layout operations are
-        # for layouts that only contain a single logical qubit.
+        # for layouts/codes that only contain a single logical qubit.
         if {len(l.logical_qubits) for l in layouts} == {1}:
             gate_label = func.__name__.replace("_iterator", "_")
             gate_label += "_".join([l.logical_qubits[0] for l in layouts])
@@ -332,7 +345,7 @@ def merge_logical_operations(
     # check if detectors need to be build because of QEC rounds.
     # the detectors from the QEC rounds need to be built the ones
     # from the logical measurements becuase of the 'qec_round_with_meas'.
-    if all(qec_ops):
+    if all(qec_dets_ops):
         circuit += detectors.build_from_anc(
             model.meas_target, anc_reset, anc_qubits=anc_detectors
         )
