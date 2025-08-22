@@ -10,6 +10,7 @@ from ...log_gates.rot_surface_code_css import (
     set_z,
     set_idle,
     set_trans_cnot,
+    set_trans_cnot_mid_cycle_css,
 )
 
 
@@ -367,6 +368,7 @@ def rot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
             if layout == other_layout:
                 continue
             set_trans_cnot(layout, other_layout)
+            set_trans_cnot_mid_cycle_css(layout, other_layout)
 
     return layouts
 

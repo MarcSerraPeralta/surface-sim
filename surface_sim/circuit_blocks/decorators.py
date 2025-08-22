@@ -49,13 +49,14 @@ def qec_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
 def to_mid_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
+    func.log_op_type += ["to_mid_cycle_circuit"]
     return func
 
 
 def to_end_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["qec_round"]
+    func.log_op_type += ["to_end_cycle_circuit"]
     return func
 
 
