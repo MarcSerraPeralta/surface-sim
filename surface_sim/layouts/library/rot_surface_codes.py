@@ -1,3 +1,4 @@
+from collections.abc import Sequence, Mapping
 from collections import defaultdict
 from functools import partial
 from itertools import count, product
@@ -11,6 +12,12 @@ from ...log_gates.rot_surface_code_css import (
     set_idle,
     set_trans_cnot,
     set_trans_cnot_mid_cycle_css,
+)
+
+
+DEFAULT_INTERACTION_ORDER = dict(
+    x_type=["north_east", "north_west", "south_east", "south_west"],
+    z_type=["north_east", "south_east", "north_west", "south_west"],
 )
 
 
@@ -74,6 +81,7 @@ def rot_surface_code_rectangle(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -101,6 +109,10 @@ def rot_surface_code_rectangle(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -142,11 +154,6 @@ def rot_surface_code_rectangle(
     code = "rotated_surface_code"
     description = ""
 
-    int_order = dict(
-        x_type=["north_east", "north_west", "south_east", "south_west"],
-        z_type=["north_east", "south_east", "north_west", "south_west"],
-    )
-
     log_z = [f"D{i + init_data_qubit_id}" for i in range(distance_z)]
     log_x = [f"D{i * distance_z + init_data_qubit_id}" for i in range(distance_x)]
     logical_qubits = {
@@ -160,7 +167,7 @@ def rot_surface_code_rectangle(
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
@@ -438,6 +445,7 @@ def rot_surface_stability_rectangle(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """
     Generates a rotated surface layout for stability experiments.
@@ -469,6 +477,10 @@ def rot_surface_stability_rectangle(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -512,11 +524,6 @@ def rot_surface_stability_rectangle(
     name = f"Rotated w-{width} h-{height} surface layout for stability experiments."
     code = "rotated_surface_stability"
     description = ""
-
-    int_order = dict(
-        x_type=["north_east", "north_west", "south_east", "south_west"],
-        z_type=["north_east", "south_east", "north_west", "south_west"],
-    )
 
     col_size = 2 * width
     row_size = 2 * height
@@ -635,7 +642,7 @@ def rot_surface_stability_rectangle(
         code=code,
         observables={observable: anc_redundant_stab_type},
         description=description,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     layout_setup["layout"] = layout_data
 
