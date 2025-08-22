@@ -14,7 +14,7 @@ class Detectors:
         self,
         anc_qubits: Collection[str],
         frame: str,
-        anc_coords: dict[str, Collection[float | int]] | None = None,
+        anc_coords: Mapping[str, Collection[float | int]] | None = None,
         include_gauge_dets: bool = False,
     ) -> None:
         """Initalises the ``Detectors`` class.
