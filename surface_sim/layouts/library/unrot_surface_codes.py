@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from collections import defaultdict
 from functools import partial
 from itertools import count
@@ -11,6 +12,12 @@ from ...log_gates.unrot_surface_code_css import (
     set_x,
     set_z,
     set_idle,
+)
+
+
+DEFAULT_INTERACTION_ORDER = dict(
+    x_type=["north", "west", "east", "south"],
+    z_type=["north", "east", "west", "south"],
 )
 
 
@@ -84,6 +91,7 @@ def unrot_surface_code_rectangle(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -111,6 +119,10 @@ def unrot_surface_code_rectangle(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north"``, ``"west"``, ``"south"``, and ``"east"``.
 
     Returns
     -------
@@ -152,11 +164,6 @@ def unrot_surface_code_rectangle(
     code = "unrotated_surface_code"
     description = ""
 
-    int_order = dict(
-        x_type=["north", "west", "east", "south"],
-        z_type=["north", "east", "west", "south"],
-    )
-
     log_z = [f"D{i + init_data_qubit_id}" for i in range(distance_z)]
     log_x = [
         f"D{i * (2 * distance_z - 1) + init_data_qubit_id}" for i in range(distance_x)
@@ -172,7 +179,7 @@ def unrot_surface_code_rectangle(
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z

@@ -1,3 +1,4 @@
+from collections.abc import Mapping, Sequence
 from collections import defaultdict
 from functools import partial
 from itertools import count, product
@@ -21,7 +22,7 @@ def repetition_code(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
-    interaction_order: str = "shallow",
+    interaction_order: str | Mapping[str, Sequence[str]] = "shallow",
 ) -> Layout:
     """Generates a repetition code layout.
 
@@ -50,10 +51,12 @@ def repetition_code(
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
     interaction_order
-        There are two options for interaction order: ``"shallow"`` and
+        There are two options for built-in interaction orders: ``"shallow"`` and
         ``"surface_code"``. The ``"shallow"`` one corresponds to two two-qubit-gate
         layers, while the ``"surface_code"`` one corresponds to the same schedule
         as the surface code layout (mimic what it is usually done in experiments).
+        One can always specify the interaction order in the same format as for
+        the rotated surface code layouts.
         By default ``"shallow"``.
 
     Returns
@@ -104,12 +107,14 @@ def repetition_code(
     description = ""
 
     if interaction_order == "shallow":
-        int_order = dict(steps=["left", "right"])
+        interaction_order = dict(steps=["left", "right"])
     elif interaction_order == "surface_code":
-        int_order = dict(
+        interaction_order = dict(
             x_type=["north_east", "north_west", "south_east", "south_west"],
             z_type=["north_east", "south_east", "north_west", "south_west"],
         )
+    elif isinstance(interaction_order, dict):
+        pass
     else:
         raise ValueError(
             "'interaction_order' must be 'shallow' or 'surface_code', "
@@ -134,7 +139,7 @@ def repetition_code(
         distance_x=distance_x,
         distance_z=distance_z,
         distance=distance,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
 
     col_size = 2 * distance + 1
