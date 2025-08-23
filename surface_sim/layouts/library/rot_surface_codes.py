@@ -16,8 +16,8 @@ from ...log_gates.rot_surface_code_css import (
 
 
 DEFAULT_INTERACTION_ORDER = dict(
-    x_type=["north_east", "north_west", "south_east", "south_west"],
-    z_type=["north_east", "south_east", "north_west", "south_west"],
+    z_type=["north_west", "north_east", "south_west", "south_east"],
+    x_type=["north_west", "south_west", "north_east", "south_east"],
 )
 
 
@@ -283,6 +283,7 @@ def rot_surface_code(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -308,6 +309,10 @@ def rot_surface_code(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -324,6 +329,7 @@ def rot_surface_code(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
         init_logical_ind=init_logical_ind,
+        interaction_order=interaction_order,
     )
 
 
