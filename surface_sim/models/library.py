@@ -91,10 +91,12 @@ class CircuitNoiseModel(Model):
                         if self.param("assign_error_flag", qubit):
                             prob: float = self.param("assign_error_prob", qubit)
                             circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
                             )
                         else:
-                            circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                            circ.append(
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind])
+                            )
 
                 return circ
 
@@ -308,10 +310,12 @@ class BiasedCircuitNoiseModel(Model):
                         if self.param("assign_error_flag", qubit):
                             prob: float = self.param("assign_error_prob", qubit)
                             circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
                             )
                         else:
-                            circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                            circ.append(
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind])
+                            )
 
                 return circ
 
@@ -766,10 +770,12 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
                         if self.param("assign_error_flag", qubit):
                             prob: float = self.param("assign_error_prob", qubit)
                             circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
                             )
                         else:
-                            circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                            circ.append(
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind])
+                            )
 
                 return circ
 
@@ -811,14 +817,47 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
                         if self.param("assign_error_flag", qubit):
                             prob: float = self.param("assign_error_prob", qubit)
                             circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
                             )
                         else:
-                            circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                            circ.append(
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind])
+                            )
 
                 return circ
 
             return sq_meas
+
+        return attr
+
+
+class IncResMeasNoiseModel(PhenomenologicalNoiseModel):
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if (name in SQ_RESETS) and callable(attr):
+
+            def sq_reset(qubits: Collection[str]) -> Circuit:
+                inds = self.get_inds(qubits)
+                noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
+                circ = Circuit()
+
+                # separates X_ERROR and RZ lines for clearer stim.Circuits and diagrams
+                if self.uniform:
+                    prob: float = self.param(f"{name}_error_prob")
+                    circ.append(CircuitInstruction(SQ_RESETS[name], inds))
+                    circ.append(CircuitInstruction(noise_name, inds, [prob]))
+                else:
+                    for qubit, ind in zip(qubits, inds):
+                        circ.append(CircuitInstruction(SQ_RESETS[name], [ind]))
+                    for qubit, ind in zip(qubits, inds):
+                        prob: float = self.param(f"{name}_error_prob", qubit)
+                        circ.append(CircuitInstruction(noise_name, [ind], [prob]))
+
+                return circ
+
+            return sq_reset
 
         return attr
 
@@ -871,10 +910,12 @@ class MeasurementNoiseModel(NoiselessModel):
                         if self.param("assign_error_flag", qubit):
                             prob: float = self.param("assign_error_prob", qubit)
                             circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
                             )
                         else:
-                            circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+                            circ.append(
+                                CircuitInstruction(SQ_MEASUREMENTS[name], [ind])
+                            )
 
                 return circ
 
