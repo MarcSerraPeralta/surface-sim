@@ -73,17 +73,12 @@ class Model:
         attr: object = object.__getattribute__(self, name)
 
         if callable(attr) and (name in self.operations):
-
-            def wrapper(*args, **kwargs):
-                # this function is before running the called method.
-                # if I only store the last operation it will be overwritten
-                # by the new called method, thus I need to store the last and
-                # new operations.
-                self._last_op = deepcopy(self._new_op)
-                self._new_op = name
-                return attr(*args, **kwargs)
-
-            return wrapper
+            # this function is before running the called method.
+            # if I only store the last operation it will be overwritten
+            # by the new called method, thus I need to store the last and
+            # new operations.
+            self._last_op = deepcopy(self._new_op)
+            self._new_op = name
 
         return attr
 
