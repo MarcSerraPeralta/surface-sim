@@ -343,6 +343,17 @@ def test_SI1000NoiseModel():
     noise_channels = [o for o in circ if o.name in NOISE_GATES]
     assert len(noise_channels) == 2
 
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 6
+
     return
 
 
