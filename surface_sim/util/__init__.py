@@ -5,6 +5,7 @@ from .circuit_operations import (
     merge_ticks,
     merge_operation_layers,
 )
+from .circuit_modifications import add_noise_to_circuit
 from .observables import remove_nondeterministic_observables
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "merge_logical_operations",
     "merge_ticks",
     "merge_operation_layers",
+    "add_noise_to_circuit",
     "remove_nondeterministic_observables",
 ]
