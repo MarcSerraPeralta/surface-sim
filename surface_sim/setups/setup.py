@@ -13,7 +13,7 @@ class SetupDict(TypedDict):
     setup: Collection[dict[str, Param]]
 
 
-ANNOTATIONS = ["tick", "qubit_coords"]
+ANNOTATIONS = {"tick": "TICK", "qubit_coords": "QUBIT_COORDS"}
 SQ_GATES = {
     "idle": "I",
     "x_gate": "X",
