@@ -324,7 +324,7 @@ def test_SD6NoiseModel():
     for name in TQ_GATES:
         if name not in ["cx", "cnot"]:
             with pytest.raises(ValueError):
-                model.__getattribute__(name)(["D1"])
+                model.__getattribute__(name)(["D1", "D2"])
             continue
 
         ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
@@ -377,7 +377,7 @@ def test_SI1000NoiseModel():
     for name in TQ_GATES:
         if name not in ["cphase", "cz"]:
             with pytest.raises(ValueError):
-                model.__getattribute__(name)(["D1"])
+                model.__getattribute__(name)(["D1", "D2"])
             continue
 
         ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]

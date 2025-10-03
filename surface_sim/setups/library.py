@@ -11,7 +11,7 @@ class CircuitNoiseSetup(Setup):
         """
         setup_dict = dict(
             name="Circuit-level noise setup",
-            description="Setup for a circuit-level noise model that can be used for any distance.",
+            description="Setup for a circuit-level noise model that can be used for any code and distance.",
             setup=[
                 dict(
                     sq_error_prob="{prob}",
@@ -31,7 +31,7 @@ class CircuitNoiseSetup(Setup):
 class SD6(Setup):
     def __init__(self) -> None:
         """
-        Initialises a ``Setup`` class for the SD6 circuit-level noise described in:
+        Initialises a ``Setup`` class for the SD6 noise described in:
 
         C. Gidney, M. Newman, A. Fowler, and M. Broughton.
         A Fault-Tolerant honeycomb memory. Quantum, 5:605, Dec. 2021.
@@ -53,7 +53,7 @@ class SD6(Setup):
         """
         setup_dict = dict(
             name="SD6 noise setup",
-            description="Setup for a SD6 noise model that can be used for any distance.",
+            description="Setup for a SD6 noise model that can be used for any code and distance.",
             setup=[
                 dict(
                     sq_error_prob="{prob}",
@@ -73,7 +73,7 @@ class SD6(Setup):
 class SI1000(Setup):
     def __init__(self) -> None:
         """
-        Initialises a ``Setup`` class for the SI1000 circuit-level noise described in:
+        Initialises a ``Setup`` class for the SI1000 noise described in:
 
         C. Gidney, M. Newman, A. Fowler, and M. Broughton.
         A Fault-Tolerant honeycomb memory. Quantum, 5:605, Dec. 2021.
@@ -96,7 +96,7 @@ class SI1000(Setup):
         """
         setup_dict = dict(
             name="SI1000 noise setup",
-            description="Setup for the SI1000 noise model that can be used for any distance.",
+            description="Setup for the SI1000 noise model that can be used for any code and distance.",
             setup=[
                 dict(
                     sq_error_prob="{prob} / 10",
