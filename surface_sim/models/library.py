@@ -11,6 +11,7 @@ from ..setups.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from .util import biased_prefactors, grouper, idle_error_probs
 
 NOT_MEAS = SQ_GATES | TQ_GATES | SQ_RESETS
+ALL_OPS = SQ_GATES | TQ_GATES | SQ_MEASUREMENTS | SQ_RESETS
 
 
 class CircuitNoiseModel(Model):
@@ -175,9 +176,82 @@ class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
         return attr
 
 
+class SD6NoiseModel(CircuitNoiseModel):
+    """
+    The SD6 noise model is defined in the following paper:
+
+    Gidney, C., Newman, M., & McEwen, M. (2022).
+    Benchmarking the planar honeycomb code. Quantum, 6, 813.
+    https://doi.org/10.22331/q-2022-09-21-813
+
+    see Table 2 and Table 3 for a description of the noise models.
+
+    To correctly use the SD6 noise model (i.e. with the correct error rate relations),
+    one needs to use the `surface_sim.setups.SD6` setup.
+
+    The only physical operations available in this noise model are:
+    - CX
+    - any single-qubit Clifford
+    - initialization in the Z basis
+    - measurement in the Z basis
+    - idling
+    """
+
+    _supported_operations: list[str] = list(SQ_GATES) + [
+        "cnot",
+        "cx",
+        "measure",
+        "measure_z",
+        "reset",
+        "reset_z",
+    ]
+
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if callable(attr) and (name in ALL_OPS):
+            if name not in self._supported_operations:
+                raise ValueError(
+                    f"Operation {name} is not available in the SD6 noise model."
+                )
+
+        return attr
+
+
 class SI1000NoiseModel(CircuitNoiseModel):
+    """
+    The SI1000 noise model is defined in the following paper:
+
+    Gidney, C., Newman, M., & McEwen, M. (2022).
+    Benchmarking the planar honeycomb code. Quantum, 6, 813.
+    https://doi.org/10.22331/q-2022-09-21-813
+
+    see Table 2 and Table 3 for a description of the noise models.
+
+    To correctly use the SI1000 noise model (i.e. with the correct error rate relations),
+    one needs to use the `surface_sim.setups.SI1000` setup.
+
+    The only physical operations available in this noise model are:
+    - CZ
+    - any single-qubit Clifford
+    - initialization in the Z basis
+    - measurement in the Z basis
+    - idling
+    """
+
+    _supported_operations: list[str] = list(SQ_GATES) + [
+        "cphase",
+        "cz",
+        "measure",
+        "measure_z",
+        "reset",
+        "reset_z",
+    ]
+
     def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
         self._meas_or_reset_qubits: list[str] = []
+        self._meas_reset_ops: list[str] = list(SQ_MEASUREMENTS) + list(SQ_RESETS)
         super().__init__(setup, qubit_inds)
         return
 
@@ -185,14 +259,19 @@ class SI1000NoiseModel(CircuitNoiseModel):
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
 
-        meas_reset_ops = list(SQ_MEASUREMENTS) + list(SQ_RESETS)
-        if callable(attr) and (name in meas_reset_ops):
+        if callable(attr) and (name in ALL_OPS):
+            if name not in self._supported_operations:
+                raise ValueError(
+                    f"Operation {name} is not available in the SI1000 noise model."
+                )
 
-            def wrapper(qubits: Collection[str], *args, **kargs):
-                self._meas_or_reset_qubits += list(qubits)
-                return attr(qubits, *args, **kargs)
+            if name in self._meas_reset_ops:
 
-            return wrapper
+                def wrapper(qubits: Collection[str], *args, **kargs):
+                    self._meas_or_reset_qubits += list(qubits)
+                    return attr(qubits, *args, **kargs)
+
+                return wrapper
 
         return attr
 

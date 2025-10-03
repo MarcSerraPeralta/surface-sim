@@ -11,6 +11,7 @@ from .library import (
     MeasurementNoiseModel,
     SI1000NoiseModel,
     MovableQubitsCircuitNoiseModel,
+    SD6NoiseModel,
 )
 from .model import Model
 
@@ -28,4 +29,5 @@ __all__ = [
     "MeasurementNoiseModel",
     "SI1000NoiseModel",
     "MovableQubitsCircuitNoiseModel",
+    "SD6NoiseModel",
 ]
