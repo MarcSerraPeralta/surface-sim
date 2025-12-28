@@ -82,6 +82,12 @@ def log_meas(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
+
+    Notes
+    -----
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     anc_qubits = layout.anc_qubits
     if anc_detectors is None:
@@ -93,6 +99,11 @@ def log_meas(
         log_meas_iterator(model=model, layout=layout, rot_basis=rot_basis),
         start=Circuit(),
     )
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
@@ -659,6 +670,12 @@ def log_meas_xzzx(
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors.
         By default ``None``.
+
+    Notes
+    -----
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
@@ -674,6 +691,11 @@ def log_meas_xzzx(
         log_meas_xzzx_iterator(model=model, layout=layout, rot_basis=rot_basis),
         start=Circuit(),
     )
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     # detectors and logical observables
     stab_type = "x_type" if rot_basis else "z_type"
