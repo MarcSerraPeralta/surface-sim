@@ -136,6 +136,9 @@ class Detectors:
             raise ValueError(
                 "Elements in 'anc_qubits' are not ancilla qubits in this object."
             )
+        if len(anc_qubits) == 0:
+            return
+
         if not set(anc_qubits).isdisjoint(self.detectors):
             raise ValueError("Ancilla(s) were already active.")
         if (gauge_dets is None) and (not self.include_gauge_dets):

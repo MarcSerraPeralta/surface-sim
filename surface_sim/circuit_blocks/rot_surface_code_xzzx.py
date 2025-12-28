@@ -83,6 +83,10 @@ def qec_round(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -95,6 +99,11 @@ def qec_round(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
@@ -274,6 +283,10 @@ def qec_round_pipelined(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_pipelined_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -286,6 +299,11 @@ def qec_round_pipelined(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
@@ -403,6 +421,10 @@ def qec_round_google_with_log_meas(
     The circuits are based on the following paper by Google AI:
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_google_with_log_meas_iterator(
@@ -417,6 +439,11 @@ def qec_round_google_with_log_meas(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset=True, anc_qubits=anc_detectors
@@ -632,6 +659,10 @@ def qec_round_google(
     The circuits are based on the following paper by Google AI:
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_google_iterator(model=model, layout=layout), start=Circuit()
@@ -643,6 +674,11 @@ def qec_round_google(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset=True, anc_qubits=anc_detectors

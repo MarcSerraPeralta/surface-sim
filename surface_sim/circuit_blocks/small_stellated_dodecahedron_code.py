@@ -83,6 +83,10 @@ def qec_round(
     -----
     This implementation follows the interaction order specified in the layout.
     This implementation uses CNOTs, and resets and measurements in the X basis.
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -95,6 +99,11 @@ def qec_round(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
