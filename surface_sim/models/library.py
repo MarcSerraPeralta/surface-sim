@@ -825,16 +825,14 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
                 # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
                 if self.uniform:
                     prob: float = self.param(f"{name}_error_prob")
-                    if prob != 0:
-                        circ.append(CircuitInstruction(noise_name, inds, [prob]))
+                    circ.append(CircuitInstruction(noise_name, inds, [prob]))
                     for qubit in qubits:
                         self.add_meas(qubit)
                     if self.param("assign_error_flag"):
                         prob: float = self.param("assign_error_prob")
-                        if prob != 0:
-                            circ.append(
-                                CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
-                            )
+                        circ.append(
+                            CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob])
+                        )
                     else:
                         circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
                 else:
@@ -876,8 +874,7 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
                 # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
                 if self.uniform:
                     prob: float = self.param(f"{name}_error_prob")
-                    if prob != 0:
-                        circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+                    circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
                     for qubit in qubits:
                         self.add_meas(qubit)
                     if self.param("assign_error_flag"):
@@ -890,10 +887,7 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
                 else:
                     for qubit, ind in zip(qubits, inds):
                         prob: float = self.param(f"{name}_error_prob", qubit)
-                        if prob != 0:
-                            circ.append(
-                                CircuitInstruction("DEPOLARIZE1", [ind], [prob])
-                            )
+                        circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
                     for qubit, ind in zip(qubits, inds):
                         self.add_meas(qubit)
                         if self.param("assign_error_flag", qubit):
