@@ -28,7 +28,7 @@ SETUP = {
 def test_qubit_inds():
     setup = Setup(SETUP)
     qubit_inds = {"D1": 300, "d3": 2}
-    model = Model(setup, qubit_inds=qubit_inds)
+    model = Model(qubit_inds, setup)
 
     assert set(model.qubits) == set(qubit_inds.keys())
 
@@ -41,7 +41,7 @@ def test_qubit_inds():
 def test_setup_from_model():
     setup = Setup(SETUP)
     qubit_inds = {"D1": 300, "d3": 2}
-    model = Model(setup, qubit_inds=qubit_inds)
+    model = Model(qubit_inds, setup)
 
     assert setup == model.setup
     assert SETUP["gate_durations"]["X"] == model.gate_duration("X")
@@ -53,7 +53,7 @@ def test_setup_from_model():
 def test_new_circuit():
     setup = Setup(SETUP)
     qubit_inds = {"D1": 300, "d3": 2}
-    model = Model(setup, qubit_inds=qubit_inds)
+    model = Model(qubit_inds, setup)
 
     model._num_meas = 123
     model.new_circuit()

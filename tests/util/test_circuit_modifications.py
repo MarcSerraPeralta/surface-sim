@@ -2,7 +2,6 @@ import stim
 
 from surface_sim.util import add_noise_to_circuit
 from surface_sim.models import CircuitNoiseModel
-from surface_sim.setups import CircuitNoiseSetup
 
 
 def test_add_noise_to_circuit():
@@ -24,9 +23,8 @@ def test_add_noise_to_circuit():
         """
     )
 
-    setup = CircuitNoiseSetup()
-    setup.set_var_param("prob", 0.6)
-    noise_model = CircuitNoiseModel(setup, {"a": 0, "b": 1})
+    noise_model = CircuitNoiseModel({"a": 0, "b": 1})
+    noise_model.setup.set_var_param("prob", 0.6)
 
     noisy_circuit = add_noise_to_circuit(noiseless_circuit, noise_model)
 

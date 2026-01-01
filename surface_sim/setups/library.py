@@ -112,3 +112,97 @@ class SI1000(Setup):
         )
         super().__init__(setup_dict)
         return
+
+
+class BiasedCircuitNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """Initialises a ``Setup`` class for the biased circuit-level noise."""
+        setup_dict = dict(
+            name="Biased circuit-level noise setup",
+            description="Setup for a Pauli-biased circuit-level noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                    tq_error_prob="{prob}",
+                    meas_error_prob="{prob}",
+                    reset_error_prob="{prob}",
+                    idle_error_prob="{prob}",
+                    assign_error_flag=False,
+                    assign_error_prob="{prob}",
+                    biased_pauli="{biased_pauli}",
+                    biased_factor="{biased_factor}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
+class IncomingNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """Initialises a ``Setup`` class for incoming noise."""
+        setup_dict = dict(
+            name="Incoming noise setup",
+            description="Setup for incoming noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
+class PhenomenologicalNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """Initialises a ``Setup`` class for phenomenological noise."""
+        setup_dict = dict(
+            name="Phenomenological noise setup",
+            description="Setup for phenomenological noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                    assign_error_flag=True,
+                    assign_error_prob="{prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
+class IncResMeasNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """Initialises a ``Setup`` class for incoming+reset+measurement noise."""
+        setup_dict = dict(
+            name="Incoming+reset+measurement noise setup",
+            description="Setup for incoming+reset+measurement noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                    assign_error_flag=True,
+                    assign_error_prob="{prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
+class MeasurementNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """Initialises a ``Setup`` class for measurement noise."""
+        setup_dict = dict(
+            name="Measurement noise setup",
+            description="Setup for measurement noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                    assign_error_flag=True,
+                    assign_error_prob="{prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
