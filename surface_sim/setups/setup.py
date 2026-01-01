@@ -138,6 +138,11 @@ class Setup:
         """Returns the unset variable parameters."""
         return [param for param, val in self._var_params.items() if val is None]
 
+    @property
+    def var_params(self) -> list[str]:
+        """Returns all variable parameters."""
+        return list(self._var_params)
+
     @classmethod
     def from_yaml(cls: type[Setup], filename: str | Path) -> Setup:
         """Create new ``surface_sim.setup.Setup`` instance from YAML

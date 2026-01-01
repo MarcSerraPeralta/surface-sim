@@ -1,7 +1,6 @@
 import pytest
 import stim
 
-from surface_sim.setups import CircuitNoiseSetup
 from surface_sim.models import NoiselessModel, CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
@@ -222,9 +221,8 @@ def test_experiment_from_schedule_no_gauge_detectors():
 
 def test_module_2_operations_in_detectors():
     layouts = unrot_surface_codes(2, distance=3)
-    setup = CircuitNoiseSetup()
-    setup.set_var_param("prob", 1e-3)
-    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    model.setup.set_var_param("prob", 1e-3)
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     circuit = stim.Circuit(
@@ -265,9 +263,8 @@ def test_module_2_operations_in_detectors():
 
 def test_noiseless_decorator():
     layouts = unrot_surface_codes(2, distance=3)
-    setup = CircuitNoiseSetup()
-    setup.set_var_param("prob", 1e-3)
-    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    model.setup.set_var_param("prob", 1e-3)
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     noisy_schedule = [
@@ -296,9 +293,8 @@ def test_noiseless_decorator():
     )
 
     layouts = unrot_surface_codes(2, distance=3)
-    setup = CircuitNoiseSetup()
-    setup.set_var_param("prob", 1e-3)
-    model = CircuitNoiseModel.from_layouts(setup, *layouts)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    model.setup.set_var_param("prob", 1e-3)
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
     noiseless_schedule = [

@@ -47,8 +47,10 @@ class Model:
         + list(SQ_RESETS)
     )
 
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        self._setup: Setup = setup
+    DEFAULT_SETUP: Setup | None = None
+
+    def __init__(self, qubit_inds: dict[str, int], setup: Setup | None = None) -> None:
+        self._setup: Setup = setup if setup is not None else self._get_default_setup()
         self._qubit_inds: dict[str, int] = qubit_inds
         self._meas_order: dict[str, list[int]] = {q: [] for q in qubit_inds}
         self._num_meas: int = 0
@@ -57,12 +59,21 @@ class Model:
         return
 
     @classmethod
-    def from_layouts(cls: type[Model], setup: Setup, *layouts: Layout) -> "Model":
+    def from_layouts(
+        cls: type[Model], *layouts: Layout, setup: Setup | None = None
+    ) -> "Model":
         """Creates a ``Model`` object using the information from the layouts."""
         qubit_inds: dict[str, int] = {}
         for layout in layouts:
             qubit_inds |= layout.qubit_inds  # updates dict
-        return cls(setup=setup, qubit_inds=qubit_inds)
+        return cls(qubit_inds=qubit_inds, setup=setup)
+
+    def _get_default_setup(self) -> Setup:
+        if self.DEFAULT_SETUP is None:
+            raise ValueError(
+                f"This model does not have a default setup, so it must be specified."
+            )
+        return self.DEFAULT_SETUP
 
     @override
     def __getattribute__(self, name: str) -> object:

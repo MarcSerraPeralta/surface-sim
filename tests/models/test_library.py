@@ -71,8 +71,8 @@ def test_NoiselessModel():
 
 
 def test_PhenomenologicalNoiseModel():
-    setup = Setup(SETUP)
-    model = PhenomenologicalNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = PhenomenologicalNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
     for name in SQ_NOISELESS_OPS:
@@ -98,8 +98,8 @@ def test_PhenomenologicalNoiseModel():
 
 
 def test_PhenomenologicalDepolNoiseModel():
-    setup = Setup(SETUP)
-    model = PhenomenologicalDepolNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = PhenomenologicalDepolNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
     for name in SQ_NOISELESS_OPS:
@@ -129,8 +129,8 @@ def test_PhenomenologicalDepolNoiseModel():
 
 
 def test_IncResMeasNoiseModel():
-    setup = Setup(SETUP)
-    model = IncResMeasNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = IncResMeasNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_NOISELESS_OPS = SQ_GATES
     for name in SQ_NOISELESS_OPS:
@@ -160,8 +160,8 @@ def test_IncResMeasNoiseModel():
 
 
 def test_MeasurementNoiseModel():
-    setup = Setup(SETUP)
-    model = MeasurementNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = MeasurementNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
     for name in SQ_NOISELESS_OPS:
@@ -187,8 +187,8 @@ def test_MeasurementNoiseModel():
 
 
 def test_IncomingNoiseModel():
-    setup = Setup(SETUP)
-    model = IncomingNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = IncomingNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
     for name in SQ_OPS:
@@ -206,8 +206,8 @@ def test_IncomingNoiseModel():
 
 
 def test_IncomingDepolNoiseModel():
-    setup = Setup(SETUP)
-    model = IncomingDepolNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = IncomingDepolNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
     for name in SQ_OPS:
@@ -226,7 +226,7 @@ def test_IncomingDepolNoiseModel():
 
 def test_T1T2NoiseModel():
     setup = Setup(SETUP)
-    model = T1T2NoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = T1T2NoiseModel(setup=setup, qubit_inds={"D1": 0, "D2": 1})
 
     SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
     for name in SQ_OPS:
@@ -286,8 +286,8 @@ def test_T1T2NoiseModel():
 
 
 def test_SD6NoiseModel():
-    setup = Setup(SETUP)
-    model = SD6NoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = SD6NoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     for name in SQ_GATES:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
@@ -339,8 +339,8 @@ def test_SD6NoiseModel():
 
 
 def test_SI1000NoiseModel():
-    setup = Setup(SETUP)
-    model = SI1000NoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = SI1000NoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     for name in SQ_GATES:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
@@ -428,8 +428,10 @@ def test_SI1000NoiseModel():
 
 
 def test_BiasedCircuitNoiseModel():
-    setup = Setup(SETUP)
-    model = BiasedCircuitNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = BiasedCircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+    model.setup.set_var_param("biased_pauli", "X")
+    model.setup.set_var_param("biased_factor", 3.1)
 
     SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
     for name in SQ_OPS:
@@ -451,8 +453,8 @@ def test_BiasedCircuitNoiseModel():
 
 
 def test_CircuitNoiseModel():
-    setup = Setup(SETUP)
-    model = CircuitNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = CircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     for name in SQ_GATES:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
@@ -489,8 +491,8 @@ def test_CircuitNoiseModel():
 
 
 def test_MovableQubitsCircuitNoiseModel():
-    setup = Setup(SETUP)
-    model = MovableQubitsCircuitNoiseModel(setup, qubit_inds={"D1": 0, "D2": 1})
+    model = MovableQubitsCircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
 
     for name in SQ_GATES:
         ops = [o.name for o in model.__getattribute__(name)(["D1"])]
@@ -538,12 +540,12 @@ def test_model_meas_order():
     setup = Setup(SETUP)
     qubit_inds = {"D1": 1, "D2": 2}
     models = [
-        CircuitNoiseModel(setup, qubit_inds=qubit_inds),
+        CircuitNoiseModel(setup=setup, qubit_inds=qubit_inds),
         NoiselessModel(qubit_inds=qubit_inds),
-        T1T2NoiseModel(setup, qubit_inds=qubit_inds),
-        IncomingNoiseModel(setup, qubit_inds=qubit_inds),
-        PhenomenologicalNoiseModel(setup, qubit_inds=qubit_inds),
-        SI1000NoiseModel(setup, qubit_inds=qubit_inds),
+        T1T2NoiseModel(setup=setup, qubit_inds=qubit_inds),
+        IncomingNoiseModel(setup=setup, qubit_inds=qubit_inds),
+        PhenomenologicalNoiseModel(setup=setup, qubit_inds=qubit_inds),
+        SI1000NoiseModel(setup=setup, qubit_inds=qubit_inds),
     ]
 
     for model in models:

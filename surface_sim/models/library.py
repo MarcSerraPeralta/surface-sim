@@ -4,7 +4,17 @@ from collections.abc import Collection
 
 from stim import CircuitInstruction, Circuit
 
-from ..setups import Setup
+from ..setups import (
+    Setup,
+    CircuitNoiseSetup,
+    SD6,
+    SI1000,
+    BiasedCircuitNoiseSetup,
+    IncomingNoiseSetup,
+    PhenomenologicalNoiseSetup,
+    MeasurementNoiseSetup,
+    IncResMeasNoiseSetup,
+)
 from ..layouts import Layout
 from .model import Model
 from ..setups.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
@@ -15,6 +25,8 @@ ALL_OPS = SQ_GATES | TQ_GATES | SQ_MEASUREMENTS | SQ_RESETS
 
 
 class CircuitNoiseModel(Model):
+    DEFAULT_SETUP = CircuitNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -146,6 +158,8 @@ class CircuitNoiseModel(Model):
 
 
 class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
+    DEFAULT_SETUP = CircuitNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -206,6 +220,8 @@ class SD6NoiseModel(CircuitNoiseModel):
         "reset_z",
     ]
 
+    DEFAULT_SETUP = SD6()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -249,10 +265,12 @@ class SI1000NoiseModel(CircuitNoiseModel):
         "reset_z",
     ]
 
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+    DEFAULT_SETUP = SI1000()
+
+    def __init__(self, qubit_inds: dict[str, int], setup: Setup | None = None) -> None:
         self._meas_or_reset_qubits: list[str] = []
         self._meas_reset_ops: list[str] = list(SQ_MEASUREMENTS) + list(SQ_RESETS)
-        super().__init__(setup, qubit_inds)
+        super().__init__(qubit_inds=qubit_inds, setup=setup)
         return
 
     @override
@@ -286,6 +304,8 @@ class SI1000NoiseModel(CircuitNoiseModel):
 
 
 class BiasedCircuitNoiseModel(Model):
+    DEFAULT_SETUP = BiasedCircuitNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -471,7 +491,7 @@ class T1T2NoiseModel(Model):
     ``T1T2NoiseModel.tick``.
     """
 
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
+    def __init__(self, qubit_inds: dict[str, int], setup: Setup | None = None) -> None:
         self._durations: dict[str, float] = {q: 0.0 for q in qubit_inds}
         super().__init__(setup=setup, qubit_inds=qubit_inds)
         return
@@ -669,10 +689,7 @@ class T1T2NoiseModel(Model):
 
 
 class NoiselessModel(Model):
-    def __init__(
-        self, qubit_inds: dict[str, int], setup: Setup = Setup(dict(setup=[{}]))
-    ) -> None:
-        return super().__init__(setup=setup, qubit_inds=qubit_inds)
+    DEFAULT_SETUP = Setup(dict(setup=[{}]))
 
     @override
     @classmethod
@@ -747,19 +764,7 @@ class NoiselessModel(Model):
 
 
 class IncomingNoiseModel(NoiselessModel):
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
-
-    @override
-    @classmethod
-    def from_layouts(
-        cls: type[IncomingNoiseModel], setup: Setup, *layouts: Layout
-    ) -> "IncomingNoiseModel":
-        """Creates a ``Model`` object using the information from the layouts."""
-        qubit_inds: dict[str, int] = {}
-        for layout in layouts:
-            qubit_inds |= layout.qubit_inds  # updates dict
-        return cls(setup=setup, qubit_inds=qubit_inds)
+    DEFAULT_SETUP = IncomingNoiseSetup()
 
     @override
     def incoming_noise(self, qubits: Collection[str]) -> Circuit:
@@ -785,19 +790,7 @@ class IncomingNoiseModel(NoiselessModel):
 
 
 class IncomingDepolNoiseModel(NoiselessModel):
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
-
-    @override
-    @classmethod
-    def from_layouts(
-        cls: type[IncomingDepolNoiseModel], setup: Setup, *layouts: Layout
-    ) -> "IncomingDepolNoiseModel":
-        """Creates a ``Model`` object using the information from the layouts."""
-        qubit_inds: dict[str, int] = {}
-        for layout in layouts:
-            qubit_inds |= layout.qubit_inds  # updates dict
-        return cls(setup=setup, qubit_inds=qubit_inds)
+    DEFAULT_SETUP = IncomingNoiseSetup()
 
     @override
     def incoming_noise(self, qubits: Collection[str]) -> Circuit:
@@ -816,6 +809,8 @@ class IncomingDepolNoiseModel(NoiselessModel):
 
 
 class PhenomenologicalNoiseModel(IncomingNoiseModel):
+    DEFAULT_SETUP = PhenomenologicalNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -864,6 +859,8 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
 
 
 class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
+    DEFAULT_SETUP = PhenomenologicalNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -911,6 +908,8 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
 
 
 class IncResMeasNoiseModel(PhenomenologicalNoiseModel):
+    DEFAULT_SETUP = IncResMeasNoiseSetup()
+
     @override
     def __getattribute__(self, name: str) -> object:
         attr = super().__getattribute__(name)
@@ -942,19 +941,7 @@ class IncResMeasNoiseModel(PhenomenologicalNoiseModel):
 
 
 class MeasurementNoiseModel(NoiselessModel):
-    def __init__(self, setup: Setup, qubit_inds: dict[str, int]) -> None:
-        return Model.__init__(self, setup=setup, qubit_inds=qubit_inds)
-
-    @override
-    @classmethod
-    def from_layouts(
-        cls: type[MeasurementNoiseModel], setup: Setup, *layouts: Layout
-    ) -> "MeasurementNoiseModel":
-        """Creates a ``Model`` object using the information from the layouts."""
-        qubit_inds: dict[str, int] = {}
-        for layout in layouts:
-            qubit_inds |= layout.qubit_inds  # updates dict
-        return cls(setup=setup, qubit_inds=qubit_inds)
+    DEFAULT_SETUP = MeasurementNoiseSetup()
 
     @override
     def __getattribute__(self, name: str) -> object:

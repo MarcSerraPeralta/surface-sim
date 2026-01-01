@@ -34,14 +34,12 @@ pip install surface-sim/
 ```
 from surface_sim.layouts import rot_surface_code
 from surface_sim.models import CircuitNoiseModel
-from surface_sim.setups import CircuitNoiseSetup
 from surface_sim import Detectors
 from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
 # prepare the layout, model, and detectors objects
 layout = rot_surface_code(distance=3)
-setup = CircuitNoiseSetup()
-model = CircuitNoiseModel(setup, layout.qubit_inds)
+model = CircuitNoiseModel(layout.qubit_inds)
 detectors = Detectors(layout.anc_qubits, frame="pre-gate")
 
 # create a memory experiment
@@ -51,7 +49,7 @@ ROT_BASIS = True  # X basis
 MEAS_RESET = True  # reset after ancilla measurements
 PROB = 1e-5
 
-setup.set_var_param("prob", PROB)
+model.setup.set_var_param("prob", PROB)
 stim_circuit = memory_experiment(
     model,
     layout,
@@ -68,7 +66,6 @@ stim_circuit = memory_experiment(
 ```
 import stim
 
-from surface_sim.setups import CircuitNoiseSetup
 from surface_sim.models import CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
@@ -93,11 +90,10 @@ circuit = stim.Circuit(
 )
 
 layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
-setup = CircuitNoiseSetup()
-model = CircuitNoiseModel.from_layouts(setup, *layouts)
+model = CircuitNoiseModel.from_layouts(*layouts)
 detectors = Detectors.from_layouts("pre-gate", *layouts)
 
-setup.set_var_param("prob", 1e-3)
+model.setup.set_var_param("prob", 1e-3)
 
 schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 stim_circuit = experiment_from_schedule(
