@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit
+from .decorators import qec_circuit, tq_gate
 
 # methods to have in this script
 from .util import (
@@ -30,6 +30,10 @@ from .util import (
     log_fold_trans_s_iterator,
     log_trans_cnot,
     log_trans_cnot_iterator,
+    qec_round_iterator,
+    qec_round_iterator_cnots,
+    to_mid_cycle_iterator_cnots,
+    to_end_cycle_iterator_cnots,
 )
 
 __all__ = [
@@ -55,9 +59,14 @@ __all__ = [
     "log_trans_cnot_iterator",
     "qec_round",
     "qec_round_iterator",
+    "qec_round_iterator_cnots",
     "qec_round_pipelined",
     "qec_round_pipelined_iterator",
+    "log_trans_cnot_mid_cycle_css_iterator",
     "gate_to_iterator",
+    "gate_to_iterator_cnots",
+    "gate_to_iterator_mid_cycle_cnots",
+    "tick_iterators_mid_cycle_cnots",
     "gate_to_iterator_pipelined",
 ]
 
@@ -67,7 +76,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -94,6 +103,10 @@ def qec_round(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -107,6 +120,11 @@ def qec_round(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -114,160 +132,12 @@ def qec_round(
     return circuit
 
 
-@qec_circuit
-def qec_round_iterator(
-    model: Model,
-    layout: Layout,
-    anc_reset: bool = True,
-) -> Iterator[Circuit]:
-    """
-    Yields stim circuit blocks which as a whole correspond to a QEC round
-    of the given model without the detectors.
-
-    Parameters
-    ----------
-    model
-        Noise model for the gates.
-    layout
-        Code layout.
-    anc_reset
-        If ``True``, ancillas are reset at the beginning of the QEC round.
-        By default ``True``.
-
-    Notes
-    -----
-    This implementation follows:
-
-    https://doi.org/10.1103/PhysRevApplied.8.034021
-    """
-    if layout.code not in (
-        "rotated_surface_code",
-        "rotated_surface_stability",
-        "repetition_code",
-        "repetition_stability",
-    ):
-        raise TypeError(
-            f"The given layout is not a rotated surface or repetition code, but a {layout.code}"
-        )
-
-    data_qubits = layout.data_qubits
-    anc_qubits = layout.anc_qubits
-    qubits = set(layout.qubits)
-
-    int_order = layout.interaction_order
-    stab_types = list(int_order.keys())
-    x_stabs = layout.get_qubits(role="anc", stab_type="x_type")
-
-    yield model.incoming_noise(data_qubits)
-    yield model.tick()
-
-    if anc_reset:
-        yield model.reset(anc_qubits) + model.idle(data_qubits)
-        yield model.tick()
-
-    # a
-    directions = [int_order["x_type"][0], int_order["x_type"][3]]
-    rot_qubits = set(anc_qubits)
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    idle_qubits = qubits - rot_qubits
-
-    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
-    yield model.tick()
-
-    # b
-    cz_circuit = Circuit()
-    interacted_qubits = set()
-    for stab_type in stab_types:
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        ord_dir = int_order[stab_type][0]
-        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
-    yield model.tick()
-
-    # c
-    yield model.hadamard(data_qubits) + model.idle(anc_qubits)
-    yield model.tick()
-
-    # d
-    cz_circuit = Circuit()
-    interacted_qubits = set()
-    for stab_type in stab_types:
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        ord_dir = int_order[stab_type][1]
-        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
-    yield model.tick()
-
-    # e
-    cz_circuit = Circuit()
-    interacted_qubits = set()
-    for stab_type in stab_types:
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        ord_dir = int_order[stab_type][2]
-        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
-    yield model.tick()
-
-    # f
-    yield model.hadamard(data_qubits) + model.idle(anc_qubits)
-    yield model.tick()
-
-    # g
-    cz_circuit = Circuit()
-    interacted_qubits = set()
-    for stab_type in stab_types:
-        stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
-        ord_dir = int_order[stab_type][3]
-        int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
-        int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
-
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
-    yield model.tick()
-
-    # h
-    directions = [int_order["x_type"][0], int_order["x_type"][3]]
-    rot_qubits = set(anc_qubits)
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
-    rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    idle_qubits = qubits - rot_qubits
-
-    yield model.hadamard(rot_qubits) + model.idle(idle_qubits)
-    yield model.tick()
-
-    # i
-    yield model.measure(anc_qubits) + model.idle(data_qubits)
-    yield model.tick()
-
-
 def qec_round_pipelined(
     model: Model,
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -294,6 +164,10 @@ def qec_round_pipelined(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_pipelined_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -307,6 +181,11 @@ def qec_round_pipelined(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -319,7 +198,7 @@ def qec_round_pipelined_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -336,7 +215,7 @@ def qec_round_pipelined_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.data_qubits
@@ -386,6 +265,58 @@ def qec_round_pipelined_iterator(
     yield model.tick()
 
 
+@tq_gate
+def log_trans_cnot_mid_cycle_css_iterator(
+    model: Model, layout_c: Layout, layout_t: Layout
+) -> Generator[Circuit]:
+    """Returns the stim circuit corresponding to a transversal logical CNOT gate.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout_c
+        Code layout for the control of the logical CNOT.
+    layout_t
+        Code layout for the target of the logical CNOT.
+    detectors
+        Detector definitions to use.
+
+    Notes
+    -----
+    The implementation uses CNOTs and it does not add incoming noise because this
+    logical gate is executed in the mid-cycle code.
+    """
+    if layout_c.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout_c.code}"
+        )
+    if layout_t.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout_t.code}"
+        )
+
+    qubits = set(layout_c.qubits + layout_t.qubits)
+    gate_label = f"log_trans_cnot_mid_cycle_css_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+
+    cnot_pairs: set[tuple[str, str]] = set()
+    for qubit in layout_c.qubits:
+        trans_cnot = layout_c.param(gate_label, qubit)
+        if trans_cnot is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        cnot_pairs.add((qubit, trans_cnot["cnot"]))
+
+    # long-range CNOT gates
+    int_qubits = list(chain.from_iterable(cnot_pairs))
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cnot(int_qubits) + model.idle(idle_qubits)
+    yield model.tick()
+
+
 gate_to_iterator = {
     "TICK": qec_round_iterator,
     "I": idle_iterator,
@@ -401,6 +332,35 @@ gate_to_iterator = {
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
 }
+gate_to_iterator_cnots = {
+    "TICK": qec_round_iterator_cnots,
+    "I": idle_iterator,
+    "S": log_fold_trans_s_iterator,
+    "X": log_x_iterator,
+    "Z": log_z_iterator,
+    "CX": log_trans_cnot_iterator,
+    "CNOT": log_trans_cnot_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}
+gate_to_iterator_mid_cycle_cnots = {
+    "CX": log_trans_cnot_mid_cycle_css_iterator,
+    "CNOT": log_trans_cnot_mid_cycle_css_iterator,
+    "R": init_qubits_z0_iterator,
+    "RZ": init_qubits_z0_iterator,
+    "RX": init_qubits_x0_iterator,
+    "M": log_meas_z_iterator,
+    "MZ": log_meas_z_iterator,
+    "MX": log_meas_x_iterator,
+}
+tick_iterators_mid_cycle_cnots = [
+    to_mid_cycle_iterator_cnots,
+    to_end_cycle_iterator_cnots,
+]
 gate_to_iterator_pipelined = {
     "TICK": qec_round_pipelined_iterator,
     "I": idle_iterator,

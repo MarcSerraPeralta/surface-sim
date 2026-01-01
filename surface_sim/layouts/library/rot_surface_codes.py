@@ -1,8 +1,9 @@
+from collections.abc import Sequence, Mapping
 from collections import defaultdict
 from functools import partial
 from itertools import count, product
 
-from ..layout import Layout
+from ..layout import Layout, QubitDict
 from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.rot_surface_code_css import (
     set_fold_trans_s,
@@ -10,6 +11,13 @@ from ...log_gates.rot_surface_code_css import (
     set_z,
     set_idle,
     set_trans_cnot,
+    set_trans_cnot_mid_cycle_css,
+)
+
+
+DEFAULT_INTERACTION_ORDER = dict(
+    z_type=["north_west", "north_east", "south_west", "south_east"],
+    x_type=["north_west", "south_west", "north_east", "south_east"],
 )
 
 
@@ -73,6 +81,7 @@ def rot_surface_code_rectangle(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -100,6 +109,10 @@ def rot_surface_code_rectangle(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -141,13 +154,8 @@ def rot_surface_code_rectangle(
     code = "rotated_surface_code"
     description = ""
 
-    int_order = dict(
-        x_type=["north_east", "north_west", "south_east", "south_west"],
-        z_type=["north_east", "south_east", "north_west", "south_west"],
-    )
-
-    log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
-    log_x = [f"D{i*distance_z+init_data_qubit_id}" for i in range(distance_x)]
+    log_z = [f"D{i + init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [f"D{i * distance_z + init_data_qubit_id}" for i in range(distance_x)]
     logical_qubits = {
         logical_qubit_label: dict(log_x=log_x, log_z=log_z, ind=init_logical_ind)
     }
@@ -159,7 +167,7 @@ def rot_surface_code_rectangle(
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
@@ -174,8 +182,8 @@ def rot_surface_code_rectangle(
     pos_shifts = (1, -1)
     nbr_shifts = tuple(product(pos_shifts, repeat=2))
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -275,6 +283,7 @@ def rot_surface_code(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -300,6 +309,10 @@ def rot_surface_code(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -316,7 +329,61 @@ def rot_surface_code(
         init_xanc_qubit_id=init_xanc_qubit_id,
         init_ind=init_ind,
         init_logical_ind=init_logical_ind,
+        interaction_order=interaction_order,
     )
+
+
+def rot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
+    """
+    Returns a list of (square) rotated surface codes of the specified distance that
+    are set up to be used in any logical circuit (i.e. they have all the
+    implemented logical gate attributes).
+
+    Parameters
+    ----------
+    num_layouts
+        Number of layouts to generate.
+    distance
+        The code distance.
+
+    Returns
+    -------
+    layouts
+        List of layouts.
+    """
+    if not isinstance(num_layouts, int):
+        raise TypeError(
+            f"'num_layouts' must be an int, but {type(num_layouts)} was given."
+        )
+
+    layouts: list[Layout] = []
+    num_data = distance**2
+    num_anc = num_data - 1
+    for k in range(num_layouts):
+        layout = rot_surface_code(
+            distance=distance,
+            logical_qubit_label=f"L{k}",
+            init_point=(0, (2 * distance + 2) * k),
+            init_data_qubit_id=1 + k * num_data,
+            init_zanc_qubit_id=1 + k * num_anc // 2,
+            init_xanc_qubit_id=1 + k * num_anc // 2,
+            init_ind=k * (num_data + num_anc),
+            init_logical_ind=k,
+        )
+        layouts.append(layout)
+
+    # set up the parameters for all the logical gates
+    for k, layout in enumerate(layouts):
+        set_x(layout)
+        set_z(layout)
+        set_idle(layout)
+        for other_layout in layouts:
+            if layout == other_layout:
+                continue
+            set_trans_cnot(layout, other_layout)
+            set_trans_cnot_mid_cycle_css(layout, other_layout)
+
+    return layouts
 
 
 def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]:
@@ -343,7 +410,7 @@ def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]
             f"'num_layouts' must be an int, but {type(num_layouts)} was given."
         )
 
-    layouts = []
+    layouts: list[Layout] = []
     num_data = (distance + 1) * distance
     num_anc = num_data - 1
     for k in range(num_layouts):
@@ -362,7 +429,7 @@ def rot_surface_code_rectangles(num_layouts: int, distance: int) -> list[Layout]
 
     # set up the parameters for all the logical gates
     for k, layout in enumerate(layouts):
-        set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        set_fold_trans_s(layout, data_qubit=f"D{1 + k * num_data}")
         set_x(layout)
         set_z(layout)
         set_idle(layout)
@@ -384,6 +451,7 @@ def rot_surface_stability_rectangle(
     init_zanc_qubit_id: int = 1,
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """
     Generates a rotated surface layout for stability experiments.
@@ -415,6 +483,10 @@ def rot_surface_stability_rectangle(
         By default ``1``, so the label is ``"X1"``.
     init_ind
         Minimum index that is going to be associated to a qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north_east"``, ``"north_west"``, ``"south_east"``, and ``"south_west"``.
 
     Returns
     -------
@@ -459,11 +531,6 @@ def rot_surface_stability_rectangle(
     code = "rotated_surface_stability"
     description = ""
 
-    int_order = dict(
-        x_type=["north_east", "north_west", "south_east", "south_west"],
-        z_type=["north_east", "south_east", "north_west", "south_west"],
-    )
-
     col_size = 2 * width
     row_size = 2 * height
     data_indexer = partial(
@@ -474,8 +541,8 @@ def rot_surface_stability_rectangle(
     pos_shifts = (1, -1)
     nbr_shifts = tuple(product(pos_shifts, repeat=2))
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     # change initial point because by default the code places the "D1" qubit
@@ -568,7 +635,7 @@ def rot_surface_stability_rectangle(
 
     set_missing_neighbours_to_none(neighbor_data)
 
-    anc_redundant_stab_type = []
+    anc_redundant_stab_type: list[str] = []
     for qubit_info in layout_data:
         qubit = qubit_info["qubit"]
         qubit_info["neighbors"] = neighbor_data[qubit]
@@ -581,7 +648,7 @@ def rot_surface_stability_rectangle(
         code=code,
         observables={observable: anc_redundant_stab_type},
         description=description,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     layout_setup["layout"] = layout_data
 

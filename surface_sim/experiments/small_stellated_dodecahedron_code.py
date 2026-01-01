@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from copy import deepcopy
 
 from stim import Circuit
@@ -23,13 +22,13 @@ from ..circuit_blocks.decorators import (
     LogOpCallable,
 )
 from . import templates
-from .arbitrary_experiment import experiment_from_schedule
+from .arbitrary_experiment import experiment_from_schedule, Schedule
 
 
 def memory_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.memory_experiment``."""
@@ -48,7 +47,7 @@ def repeated_s_like_experiment(
     num_s_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -122,7 +121,7 @@ def repeated_s_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -147,7 +146,7 @@ def repeated_h_like_experiment(
     num_h_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -221,7 +220,7 @@ def repeated_h_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -246,7 +245,7 @@ def repeated_swap_r_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -321,7 +320,7 @@ def repeated_swap_r_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -346,7 +345,7 @@ def repeated_swap_s_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -421,7 +420,7 @@ def repeated_swap_s_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -446,7 +445,7 @@ def repeated_swap_a_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -520,7 +519,7 @@ def repeated_swap_a_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -545,7 +544,7 @@ def repeated_swap_b_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -619,7 +618,7 @@ def repeated_swap_b_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]
@@ -644,7 +643,7 @@ def repeated_swap_c_like_experiment(
     num_swap_gates: int,
     num_rounds_per_gate: int,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     data_init: dict[str, int] | None = None,
     rot_basis: bool = False,
     anc_reset: bool = True,
@@ -718,7 +717,7 @@ def repeated_swap_c_like_experiment(
         gate_to_iterator = deepcopy(gate_to_iterator)
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
-    schedule = [
+    schedule: Schedule = [
         [(gate_to_iterator[f"R{b}"], layout)],
         [(gate_to_iterator["TICK"], layout)],
     ]

@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -17,7 +17,7 @@ from .util import (
     log_meas_z_iterator,
     log_meas_x_iterator,
 )
-from .util import qec_round_iterator as general_qec_round_iterator
+from .util import general_qec_round_iterator_cnots as general_qec_round_iterator
 
 __all__ = [
     "qubit_coords",
@@ -57,7 +57,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -83,6 +83,10 @@ def qec_round(
     -----
     This implementation follows the interaction order specified in the layout.
     This implementation uses CNOTs, and resets and measurements in the X basis.
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -96,6 +100,11 @@ def qec_round(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -108,7 +117,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -152,7 +161,7 @@ def log_fold_trans_s(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_s_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical S-like gate.
     See the corresponding setting function for more information.
@@ -214,7 +223,7 @@ def log_fold_trans_h(model: Model, layout: Layout, detectors: Detectors) -> Circ
 
 
 @sq_gate
-def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_h_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical H-like gate.
     See the corresponding setting function for more information.
@@ -279,7 +288,7 @@ def log_fold_trans_swap_r(
 
 
 @sq_gate
-def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_r_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_r` gate.
@@ -346,7 +355,7 @@ def log_fold_trans_swap_s(
 
 
 @sq_gate
-def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_s_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_s` gate.
@@ -413,7 +422,7 @@ def log_fold_trans_swap_a(
 
 
 @sq_gate
-def log_fold_trans_swap_a_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_a_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_a` gate.
@@ -471,7 +480,7 @@ def log_fold_trans_swap_b(
 
 
 @sq_gate
-def log_fold_trans_swap_b_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_b_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_b` gate.
@@ -529,7 +538,7 @@ def log_fold_trans_swap_c(
 
 
 @sq_gate
-def log_fold_trans_swap_c_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def log_fold_trans_swap_c_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields the stim circuits corresponding to a transversal logical SWAP-like gate,
     in particular the :math:`\\sigma_c` gate.
@@ -609,7 +618,7 @@ def init_qubits_iterator(
     layout: Layout,
     data_init: dict[str, int],
     rot_basis: bool = False,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization
     of the given model.
@@ -643,7 +652,7 @@ def init_qubits_iterator(
 
 
 @qubit_init_z
-def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |0>
     state of the given model.
@@ -662,7 +671,7 @@ def init_qubits_z0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_z
-def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_z1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |1>
     state of the given model.
@@ -685,7 +694,7 @@ def init_qubits_z1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x0_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |+>
     state of the given model.
@@ -704,7 +713,7 @@ def init_qubits_x0_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
 
 
 @qubit_init_x
-def init_qubits_x1_iterator(model: Model, layout: Layout) -> Iterator[Circuit]:
+def init_qubits_x1_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
     """
     Yields stim circuits corresponding to a logical initialization in the |->
     state of the given model.

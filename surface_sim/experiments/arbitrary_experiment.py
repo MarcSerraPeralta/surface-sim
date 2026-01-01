@@ -1,16 +1,18 @@
-from collections.abc import Sequence, Iterable
+from collections.abc import Collection, Iterable, Sequence
+from typing import TypeVar
 
 import stim
 
-from ..util.circuit_operations import merge_logical_operations
+from ..util.circuit_operations import merge_logical_operations, QEC_OP_TYPES
 from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
 from ..circuit_blocks.util import qubit_coords, idle_iterator
 from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation
 
+T = TypeVar("T")
 Instructions = list[tuple[LogOpCallable] | LogicalOperation]
-Schedule = list[Instructions]
+Schedule = list[list[LogicalOperation]]
 
 
 def schedule_from_circuit(
@@ -43,9 +45,8 @@ def schedule_from_circuit(
     -----
     The format of the schedule is the following. Each element of the list
     is an operation to be applied to the qubits:
-    - ``tuple[LogOpCallable]`` performs a QEC round to all layouts
-    - ``tuple[LogOpCallable, Layout]`` performs a single-qubit operation
-    - ``tuple[LogOpCallable, Layout, Layout]`` performs a two-qubit gate.
+    - ``tuple[LogOpCallable, Layout]`` performs a (logical) single-layout operation
+    - ``tuple[LogOpCallable, Layout, Layout]`` performs a (logical) two-qubit gate.
 
     For example, the following circuit
 
@@ -83,7 +84,7 @@ def schedule_from_circuit(
             f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
         )
     circuit = circuit.flattened()
-    if not isinstance(layouts, Sequence):
+    if not isinstance(layouts, Collection):
         raise TypeError(f"'layouts' must be a list, but {type(layouts)} was given.")
     if circuit.num_qubits > len(layouts):
         raise ValueError("There are more qubits in the circuit than in 'layouts'.")
@@ -95,7 +96,7 @@ def schedule_from_circuit(
         )
     if any(not isinstance(f, LogOpCallable) for f in gate_to_iterator.values()):
         raise TypeError("All values of 'gate_to_iterator' must be LogOpCallable.")
-    if gate_to_iterator["TICK"].log_op_type != "qec_round":
+    if set(["qec_round"]).intersection(gate_to_iterator["TICK"].log_op_type) == set():
         raise TypeError("'TICK' must correspond to a QEC round.")
 
     unique_names = set(i.name for i in circuit)
@@ -104,16 +105,156 @@ def schedule_from_circuit(
             "Not all operations in 'circuit' are present in 'gate_to_iterator'."
         )
 
-    instructions = []
+    instructions: Instructions = []
     for instr in circuit:
         if instr.name == "TICK":
             instructions.append((gate_to_iterator["TICK"],))
             continue
 
         func_iter = gate_to_iterator[instr.name]
-        targets = [t.value for t in instr.targets_copy()]
+        targets: list[int] = [t.value for t in instr.targets_copy()]
 
-        if func_iter.log_op_type == "tq_unitary_gate":
+        if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
+            for i, j in _grouper(targets, 2):
+                instructions.append((func_iter, layouts[i], layouts[j]))
+        else:
+            for i in targets:
+                instructions.append((func_iter, layouts[i]))
+
+    schedule = schedule_from_instructions(instructions)
+
+    return schedule
+
+
+def schedule_from_mid_cycle_circuit(
+    circuit: stim.Circuit,
+    layouts: list[Layout],
+    gate_to_iterator: dict[str, LogOpCallable],
+    tick_iterators: Sequence[LogOpCallable],
+) -> Schedule:
+    """
+    Returns the equivalent schedule from a stim circuit for
+    contains mid cycle gates and/or codes.
+
+    Parameters
+    ----------
+    circuit
+        Stim circuit.
+    layouts
+        List of layouts whose index match the qubit index in ``circuit``.
+        This function only works for layouts that only have one logical qubit.
+    gate_to_iterator
+        Dictionary mapping the names of stim circuit instructions used in ``circuit``
+        to the functions that generate the equivalent logical circuit.
+        The value for ``TICK`` will be ommited as they should be specified in
+        ``tick_iterators``.
+    tick_iterators
+        Sequence of (half) QEC round iterators that are going to be used in cyclic
+        order when encountering ``TICK`` instructions. Each iterator is applied
+        to all the active layouts.
+
+    Returns
+    -------
+    schedule
+        List of operations to be applied to a single qubit or pair of qubits.
+        See Notes for more information about the format.
+
+    Notes
+    -----
+    The format of the schedule is the following. Each element of the list
+    is an operation to be applied to the qubits:
+    - ``tuple[LogOpCallable, Layout]`` performs a (logical) single-layout operation
+    - ``tuple[LogOpCallable, Layout, Layout]`` performs a (logical) two-qubit gate.
+
+    For example, the following circuit
+
+    .. code:
+        R 0 1
+        TICK
+        CNOT 0 1
+        TICK
+        M 0 1
+
+    with ``tick_iterators = [to_mid_cycle_iterator, to_end_cycle_iterator]`` is translated to
+
+    .. code:
+        [
+            [
+                (reset_z_iterator, layout_0),
+                (reset_z_iterator, layout_1),
+            ],
+            [
+                (to_mid_cycle_iterator, layout_0),
+                (to_mid_cycle_iterator, layout_1),
+            ],
+            [
+                (log_trans_cnot_iterator, layout_0, layout_1),
+            ],
+            [
+                (to_end_cycle_iterator, layout_0),
+                (to_end_cycle_iterator, layout_1),
+            ],
+            [
+                (measurement_z_iterator, layout_0),
+                (measurement_z_iterator, layout_1),
+            ],
+        ]
+
+    """
+    if not isinstance(circuit, stim.Circuit):
+        raise TypeError(
+            f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
+        )
+    circuit = circuit.flattened()
+    if not isinstance(layouts, Collection):
+        raise TypeError(f"'layouts' must be a list, but {type(layouts)} was given.")
+    if circuit.num_qubits > len(layouts):
+        raise ValueError("There are more qubits in the circuit than in 'layouts'.")
+    if any(not isinstance(l, Layout) for l in layouts):
+        raise TypeError("All elements in 'layouts' must be a Layout.")
+    if not isinstance(gate_to_iterator, dict):
+        raise TypeError(
+            f"'gate_to_iterator' must be a dict, but {type(gate_to_iterator)} was given."
+        )
+    if any(not isinstance(f, LogOpCallable) for f in gate_to_iterator.values()):
+        raise TypeError("All values of 'gate_to_iterator' must be LogOpCallable.")
+    if not isinstance(tick_iterators, Sequence):
+        raise TypeError(
+            f"'tick_iterators' must be a Sequence, but {type(tick_iterators)} was given."
+        )
+    if any(not isinstance(f, LogOpCallable) for f in tick_iterators):
+        raise TypeError("All elements of 'tick_iterators' must be LogOpCallable.")
+    if any(
+        set(["to_mid_cycle_circuit", "to_end_cycle_circuit"]).intersection(
+            i.log_op_type
+        )
+        == set()
+        for i in tick_iterators
+    ):
+        raise TypeError(
+            "All elements of 'tick_iterators' must be either "
+            "a 'to_mid_cycle_circuit' or 'to_end_cycle_circuit' LogOpCallable type."
+        )
+
+    unique_names = set(i.name for i in circuit)
+    unique_names.discard("TICK")
+    if unique_names > set(gate_to_iterator):
+        raise ValueError(
+            "Not all operations in 'circuit' are present in 'gate_to_iterator'."
+        )
+
+    instructions: Instructions = []
+    num_ticks: int = 0
+    for instr in circuit:
+        if instr.name == "TICK":
+            instructions.append((tick_iterators[num_ticks % len(tick_iterators)],))
+            num_ticks += 1
+            continue
+
+        func_iter = gate_to_iterator[instr.name]
+        targets: list[int] = [t.value for t in instr.targets_copy()]
+
+        if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
                 instructions.append((func_iter, layouts[i], layouts[j]))
         else:
@@ -126,9 +267,10 @@ def schedule_from_circuit(
 
 
 def schedule_from_instructions(instructions: Instructions) -> Schedule:
-    """Builds a schedule from a list of instructions.
+    """
+    Builds a schedule from a list of instructions.
     In each block, layouts only participate in a single operation and
-    QEC rounds are only performed to active layouts. Addling is automatically
+    QEC-like rounds are only performed to active layouts. Addling is automatically
     added to layouts not participating in a logical operation.
 
     Parameters
@@ -143,14 +285,18 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
         List of blocks from the schedule. Each block contains a set of logical
         operations for the active layouts. Each layout only performs a single
         logical operation in each block. If a layout is not performing any
-        logical operation while others are (and it is not a QEC round), then
-        ``idle_iterator`` is inserted with this layout. QEC rounds and logical
+        logical operation while others are (and it is not a QEC-like round), then
+        ``idle_iterator`` is inserted with this layout. QEC-like rounds and logical
         operations cannot be mixed together.
 
     Notes
     -----
+    The term QEC-like rounds refers to any ``LogOpCallable`` that is in
+    ``surface_sim.util.circuit_operations.QEC_OP_TYPES``.
+
     Adding ``idle_iterator`` is needed to have ``Model.incoming_noise``
     for a layout that is idling.
+
     As an example, the code
 
     .. code:
@@ -183,11 +329,11 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
             ],
         ]
     """
-    if not isinstance(instructions, Sequence):
+    if not isinstance(instructions, Collection):
         raise TypeError(
             f"'instructions' must be a sequence, but {type(instructions)} was given."
         )
-    if any(not isinstance(op, Sequence) for op in instructions):
+    if any(not isinstance(op, Collection) for op in instructions):
         raise TypeError("Elements of 'instructions' must be sequences.")
     for op in instructions:
         if not isinstance(op[0], LogOpCallable):
@@ -195,11 +341,15 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
         if any(not isinstance(l, Layout) for l in op[1:]):
             raise TypeError("Elements in 'instructions[i][1:]' must be Layouts.")
 
-    blocks = []
-    curr_block = []
-    counter = {}
+    blocks: list[list[LogicalOperation]] = []
+    curr_block: list[LogicalOperation] = []
+    counter: dict[Layout, int] = {}
 
-    def flush(blocks, curr_block, counter):
+    def flush(
+        blocks: list[list[LogicalOperation]],
+        curr_block: list[LogicalOperation],
+        counter: dict[Layout, int],
+    ):
         # if necessary, add idling.
         # only add idling if at least one layout is performing an operation.
         # the situation where no layout is performing anything can happen when
@@ -218,7 +368,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
     for operation in instructions:
         op = operation[0]
-        if op.log_op_type == "qec_round":
+        if set(QEC_OP_TYPES).intersection(op.log_op_type):
             # flush all logical operations and
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
             # if there are no active layouts, raise error as it is not possible
@@ -233,7 +383,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
         # activate layouts. If not the check for layouts in current operation are
         # active does not work for resets (because the layout is inactive previously).
-        if op.log_op_type == "qubit_init":
+        if set(["qubit_init"]).intersection(op.log_op_type):
             layouts = operation[1:]
             if any(l in counter for l in layouts):
                 raise ValueError(
@@ -256,10 +406,10 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
             blocks, curr_block, counter = flush(blocks, curr_block, counter)
 
         curr_block.append(operation)
-        if op.log_op_type == "measurement":
+        if set(["measurement"]).intersection(op.log_op_type):
             for l in layouts:
                 counter.pop(l)
-        elif op.log_op_type in ["sq_unitary_gate", "tq_unitary_gate"]:
+        elif set(["sq_unitary_gate", "tq_unitary_gate"]).intersection(op.log_op_type):
             for l in layouts:
                 counter[l] += 1
         else:
@@ -273,7 +423,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
 def get_layouts_from_schedule(schedule: Schedule) -> list[Layout]:
     """Returns a list of all layouts present in the given schedule."""
-    layouts = []
+    layouts: list[Layout] = []
     for block in schedule:
         for op in block:
             if len(op) > 1:
@@ -286,7 +436,7 @@ def experiment_from_schedule(
     model: Model,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -348,6 +498,6 @@ def experiment_from_schedule(
     return experiment
 
 
-def _grouper(iterable: Iterable, n: int):
+def _grouper(iterable: Iterable[T], n: int) -> Iterable[tuple[T, ...]]:
     args = [iter(iterable)] * n
     return zip(*args, strict=True)

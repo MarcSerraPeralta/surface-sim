@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit, qec_circuit_with_x_meas, qec_circuit_with_z_meas
+from .decorators import qec_circuit, logical_measurement_x, logical_measurement_z
 
 # methods to have in this script
 from .util import qubit_coords, idle_iterator
@@ -56,7 +56,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -83,6 +83,10 @@ def qec_round(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -96,6 +100,11 @@ def qec_round(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -108,7 +117,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -154,7 +163,7 @@ def qec_round_iterator(
     rot_qubits = set(anc_qubits)
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[0]))
     rot_qubits.update(layout.get_neighbors(x_stabs, direction=directions[1]))
-    rot_qubits_xzzx = set()
+    rot_qubits_xzzx: set[str] = set()
     for direction in ("north_west", "south_east"):
         stab_qubits = layout.get_qubits(role="anc", stab_type="z_type")
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
@@ -166,19 +175,15 @@ def qec_round_iterator(
     yield model.tick()
 
     # b
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits: list[str] = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][0]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # c
@@ -186,35 +191,27 @@ def qec_round_iterator(
     yield model.tick()
 
     # d
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][1]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # e
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][2]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # f
@@ -222,19 +219,15 @@ def qec_round_iterator(
     yield model.tick()
 
     # g
-    cz_circuit = Circuit()
-    interacted_qubits = set()
+    int_qubits = []
     for stab_type in stab_types:
         stab_qubits = layout.get_qubits(role="anc", stab_type=stab_type)
         ord_dir = int_order[stab_type][3]
         int_pairs = layout.get_neighbors(stab_qubits, direction=ord_dir, as_pairs=True)
         int_qubits = list(chain.from_iterable(int_pairs))
-        interacted_qubits.update(int_qubits)
 
-        cz_circuit += model.cphase(int_qubits)
-
-    idle_qubits = qubits - set(interacted_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    idle_qubits = qubits - set(int_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # h
@@ -263,7 +256,7 @@ def qec_round_pipelined(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -290,6 +283,10 @@ def qec_round_pipelined(
     This implementation follows:
 
     https://doi.org/10.1103/PhysRevApplied.8.034021
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_pipelined_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -303,6 +300,11 @@ def qec_round_pipelined(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -315,7 +317,7 @@ def qec_round_pipelined_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -332,7 +334,7 @@ def qec_round_pipelined_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
 
     data_qubits = layout.data_qubits
@@ -388,7 +390,7 @@ def qec_round_google_with_log_meas(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
     rot_basis: bool = False,
 ) -> Circuit:
     """
@@ -419,6 +421,10 @@ def qec_round_google_with_log_meas(
     The circuits are based on the following paper by Google AI:
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_google_with_log_meas_iterator(
@@ -433,6 +439,11 @@ def qec_round_google_with_log_meas(
         anc_detectors = anc_qubits
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
+
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
 
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset=True, anc_qubits=anc_detectors
@@ -462,19 +473,21 @@ def qec_round_google_with_log_meas(
     return circuit
 
 
-@qec_circuit_with_x_meas
+@logical_measurement_x
+@qec_circuit
 def qec_round_google_with_log_x_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     return qec_round_google_with_log_meas_iterator(
         model, layout, rot_basis=True, anc_reset=anc_reset
     )
 
 
-@qec_circuit_with_z_meas
+@logical_measurement_z
+@qec_circuit
 def qec_round_google_with_log_z_meas_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     return qec_round_google_with_log_meas_iterator(
         model, layout, rot_basis=False, anc_reset=anc_reset
     )
@@ -485,7 +498,7 @@ def qec_round_google_with_log_meas_iterator(
     layout: Layout,
     rot_basis: bool = False,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to a QEC round
     that includes the logical measurement
@@ -511,7 +524,7 @@ def qec_round_google_with_log_meas_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
     if not anc_reset:
         raise ValueError("'anc_reset' must be True for this iterator.")
@@ -530,7 +543,7 @@ def qec_round_google_with_log_meas_iterator(
     yield model.hadamard(anc_qubits) + model.idle(data_qubits)
     yield model.tick()
 
-    rot_qubits = set()
+    rot_qubits: set[str] = set()
     for direction in ("north_west", "south_east"):
         neighbors = layout.get_neighbors(stab_qubits, direction=direction)
         rot_qubits.update(neighbors)
@@ -545,7 +558,7 @@ def qec_round_google_with_log_meas_iterator(
 
 def coherent_qec_part_google_iterator(
     model: Model, layout: Layout
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to the steps "a" to "h" from the QEC round
     described in Google's paper for the given model.
@@ -622,7 +635,7 @@ def qec_round_google(
     model: Model,
     layout: Layout,
     detectors: Detectors,
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -646,6 +659,10 @@ def qec_round_google(
     The circuits are based on the following paper by Google AI:
     https://doi.org/10.1038/s41586-022-05434-1
     https://doi.org/10.48550/arXiv.2207.06431
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_google_iterator(model=model, layout=layout), start=Circuit()
@@ -658,6 +675,11 @@ def qec_round_google(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset=True, anc_qubits=anc_detectors
     )
@@ -668,7 +690,7 @@ def qec_round_google(
 @qec_circuit
 def qec_round_google_iterator(
     model: Model, layout: Layout, anc_reset: bool = True
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit corresponding to a QEC round
     of the given model.
@@ -688,7 +710,7 @@ def qec_round_google_iterator(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            "The given layout is not a rotated surface code, " f"but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}"
         )
     if not anc_reset:
         raise ValueError("'anc_reset' must be True for this iterator.")

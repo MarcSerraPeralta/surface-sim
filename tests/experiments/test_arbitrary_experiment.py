@@ -1,7 +1,7 @@
 import pytest
 import stim
 
-from surface_sim.setup import CircuitNoiseSetup
+from surface_sim.setups import CircuitNoiseSetup
 from surface_sim.models import NoiselessModel, CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule

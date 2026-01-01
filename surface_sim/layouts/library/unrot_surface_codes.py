@@ -1,8 +1,9 @@
+from collections.abc import Mapping, Sequence
 from collections import defaultdict
 from functools import partial
 from itertools import count
 
-from ..layout import Layout
+from ..layout import Layout, QubitDict
 from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.unrot_surface_code_css import (
     set_fold_trans_s,
@@ -11,6 +12,12 @@ from ...log_gates.unrot_surface_code_css import (
     set_x,
     set_z,
     set_idle,
+)
+
+
+DEFAULT_INTERACTION_ORDER = dict(
+    x_type=["north", "west", "east", "south"],
+    z_type=["north", "east", "west", "south"],
 )
 
 
@@ -84,6 +91,7 @@ def unrot_surface_code_rectangle(
     init_xanc_qubit_id: int = 1,
     init_ind: int = 0,
     init_logical_ind: int = 0,
+    interaction_order: Mapping[str, Sequence[str]] = DEFAULT_INTERACTION_ORDER,
 ) -> Layout:
     """Generates a rotated surface code layout.
 
@@ -111,6 +119,10 @@ def unrot_surface_code_rectangle(
         Minimum index that is going to be associated to a qubit.
     init_logical_ind
         Minimum index that is going to be associated to a logical qubit.
+    interaction_order
+        Dictionary specifying the interaction order for the ``x_type`` and
+        ``z_type`` stabilizers. The possible interaction directions are:
+        ``"north"``, ``"west"``, ``"south"``, and ``"east"``.
 
     Returns
     -------
@@ -152,13 +164,10 @@ def unrot_surface_code_rectangle(
     code = "unrotated_surface_code"
     description = ""
 
-    int_order = dict(
-        x_type=["north", "west", "east", "south"],
-        z_type=["north", "east", "west", "south"],
-    )
-
-    log_z = [f"D{i+init_data_qubit_id}" for i in range(distance_z)]
-    log_x = [f"D{i*(2*distance_z - 1)+init_data_qubit_id}" for i in range(distance_x)]
+    log_z = [f"D{i + init_data_qubit_id}" for i in range(distance_z)]
+    log_x = [
+        f"D{i * (2 * distance_z - 1) + init_data_qubit_id}" for i in range(distance_x)
+    ]
     logical_qubits = {
         logical_qubit_label: dict(log_x=log_x, log_z=log_z, ind=init_logical_ind)
     }
@@ -170,7 +179,7 @@ def unrot_surface_code_rectangle(
         description=description,
         distance_x=distance_x,
         distance_z=distance_z,
-        interaction_order=int_order,
+        interaction_order=interaction_order,
     )
     if distance_x == distance_z:
         layout_setup["distance"] = distance_z
@@ -184,8 +193,8 @@ def unrot_surface_code_rectangle(
 
     nbr_shifts = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
-    layout_data = []
-    neighbor_data = defaultdict(dict)
+    layout_data: list[QubitDict] = []
+    neighbor_data: defaultdict[str, dict[str, str | None]] = defaultdict(dict)
     ind = init_ind
 
     x_index = count(start=init_xanc_qubit_id)
@@ -327,7 +336,7 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
             f"'num_layouts' must be an int, but {type(num_layouts)} was given."
         )
 
-    layouts = []
+    layouts: list[Layout] = []
     num_data = 2 * distance * (distance - 1) + 1
     num_anc = num_data - 1
     for k in range(num_layouts):
@@ -345,8 +354,8 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
 
     # set up the parameters for all the logical gates
     for k, layout in enumerate(layouts):
-        set_fold_trans_h(layout, data_qubit=f"D{1 + k*num_data}")
-        set_fold_trans_s(layout, data_qubit=f"D{1 + k*num_data}")
+        set_fold_trans_h(layout, data_qubit=f"D{1 + k * num_data}")
+        set_fold_trans_s(layout, data_qubit=f"D{1 + k * num_data}")
         set_x(layout)
         set_z(layout)
         set_idle(layout)

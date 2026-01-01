@@ -2,6 +2,7 @@
 
 ![example workflow](https://github.com/MarcSerraPeralta/surface-sim/actions/workflows/ci_pipeline.yaml/badge.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Documentation Status](https://readthedocs.org/projects/surface-sim/badge/?version=latest)](https://surface-sim.readthedocs.io/en/latest/?badge=latest)
 ![PyPI](https://img.shields.io/pypi/v/surface-sim?label=pypi%20package)
 
 
@@ -11,7 +12,7 @@ including circuit-level noise.
 It uses a code layout that helps with qubit labeling, indexing and connectivity. 
 It also defines the detectors automatically for any sequence of logical gates.
 
-For more information see the documentation in `docs/`. 
+For more information see [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
 
 ## Installation
 
@@ -33,7 +34,7 @@ pip install surface-sim/
 ```
 from surface_sim.layouts import rot_surface_code
 from surface_sim.models import CircuitNoiseModel
-from surface_sim.setup import CircuitNoiseSetup
+from surface_sim.setups import CircuitNoiseSetup
 from surface_sim import Detectors
 from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
@@ -67,7 +68,7 @@ stim_circuit = memory_experiment(
 ```
 import stim
 
-from surface_sim.setup import CircuitNoiseSetup
+from surface_sim.setups import CircuitNoiseSetup
 from surface_sim.models import CircuitNoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
@@ -104,4 +105,4 @@ stim_circuit = experiment_from_schedule(
 )
 ```
 
-For more information and examples about `surface-sim`, please read the `docs/`.
+For more information and examples about `surface-sim`, please read [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).

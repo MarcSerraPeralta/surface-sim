@@ -1,4 +1,6 @@
+from collections.abc import Collection
 from copy import deepcopy
+
 from stim import Circuit
 
 from ..layouts.layout import Layout
@@ -18,7 +20,7 @@ def memory_experiment(
     detectors: Detectors,
     num_rounds: int,
     data_init: dict[str, int] | list[int],
-    anc_detectors: list[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
     rot_basis: bool = False,
     gauge_detectors: bool = True,
 ) -> Circuit:

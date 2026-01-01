@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Generator
 from stim import Circuit
 
 from .arbitrary_experiment import experiment_from_schedule
@@ -16,12 +16,13 @@ from . import templates
 from ..layouts import Layout
 from ..models import Model
 from ..detectors import Detectors
+from .arbitrary_experiment import Schedule
 
 
 def memory_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.memory_experiment``."""
@@ -80,12 +81,12 @@ def memory_experiment_google(
         reset = qubit_init_x if rot_basis else qubit_init_z
 
         @reset
-        def custom_reset_iterator(model: Model, layout: Layout):
+        def custom_reset_iterator(model: Model, layout: Layout) -> Generator[Circuit]:
             return init_qubits_iterator(
                 model, layout, data_init=data_init, rot_basis=rot_basis
             )
 
-    schedule = [[(custom_reset_iterator, layout)]]
+    schedule: Schedule = [[(custom_reset_iterator, layout)]]
     for _ in range(num_rounds - 1):
         schedule.append([(qec_round_google_iterator, layout)])
     if rot_basis:
@@ -103,7 +104,7 @@ def memory_experiment_google(
 def stability_experiment(
     *args,
     gate_to_iterator: dict[str, LogOpCallable] = gate_to_iterator,
-    init_qubits_iterator: Callable | None = init_qubits_iterator,
+    init_qubits_iterator: LogOpCallable | None = init_qubits_iterator,
     **kargs,
 ) -> Circuit:
     """For information, see ``surface_sim.experiments.templates.stability_experiment``."""

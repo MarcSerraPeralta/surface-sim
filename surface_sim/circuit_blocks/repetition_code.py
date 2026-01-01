@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit
@@ -27,7 +27,7 @@ from .util import (
     init_qubits_x0_iterator,
     init_qubits_x1_iterator,
 )
-from .rot_surface_code_css import qec_round_iterator as qec_round_iterator_sc
+from .util import qec_round_iterator as qec_round_iterator_sc
 
 __all__ = [
     "qubit_coords",
@@ -57,7 +57,7 @@ def qec_round(
     layout: Layout,
     detectors: Detectors,
     anc_reset: bool = True,
-    anc_detectors: Sequence[str] | None = None,
+    anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
     Returns stim circuit corresponding to a QEC round
@@ -89,6 +89,10 @@ def qec_round(
 
     shallowest interaction order for the rotated surface code where ancillas interact
     with the data qubit on the left and right in just two two-qubit-gate layers.
+
+    It activates all the ancillas in ``detectors`` to always build the detectors.
+    As this function should not be used when building encoded circuits with
+    the iterating functions, it does not matter if the detectors are activated or not.
     """
     circuit = sum(
         qec_round_iterator(model=model, layout=layout, anc_reset=anc_reset),
@@ -102,6 +106,11 @@ def qec_round(
     if set(anc_detectors) > set(anc_qubits):
         raise ValueError("Elements in 'anc_detectors' are not ancilla qubits.")
 
+    # activate detectors so that "Detectors.build_from_anc" always populates
+    # the stim detector definitions.
+    inactive_dets = set(anc_detectors).difference(detectors.detectors)
+    detectors.activate_detectors(inactive_dets)
+
     circuit += detectors.build_from_anc(
         model.meas_target, anc_reset, anc_qubits=anc_detectors
     )
@@ -114,7 +123,7 @@ def qec_round_iterator(
     model: Model,
     layout: Layout,
     anc_reset: bool = True,
-) -> Iterator[Circuit]:
+) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to a QEC round
     of the given model without the detectors.
@@ -182,29 +191,25 @@ def qec_round_iterator(
     yield model.tick()
 
     # b
-    cz_circuit = Circuit()
-    int_pairs = []
+    int_pairs: list[tuple[str, str]] = []
     for ord_dir in int_order["steps"][0]:
-        int_pairs += layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
+        int_pairs.extend(
+            layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
+        )
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    cz_circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # c
-    cz_circuit = Circuit()
     int_pairs = []
     for ord_dir in int_order["steps"][1]:
         int_pairs += layout.get_neighbors(anc_qubits, direction=ord_dir, as_pairs=True)
     int_qubits = list(chain.from_iterable(int_pairs))
 
-    cz_circuit += model.cphase(int_qubits)
-
     idle_qubits = qubits - set(int_qubits)
-    yield cz_circuit + model.idle(idle_qubits)
+    yield model.cphase(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
 
     # d

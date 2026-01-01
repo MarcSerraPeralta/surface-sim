@@ -7,7 +7,11 @@ from . import (
     arbitrary_experiment,
     repetition_code,
 )
-from .arbitrary_experiment import schedule_from_circuit, experiment_from_schedule
+from .arbitrary_experiment import (
+    schedule_from_circuit,
+    schedule_from_mid_cycle_circuit,
+    experiment_from_schedule,
+)
 
 
 __all__ = [
@@ -19,5 +23,6 @@ __all__ = [
     "arbitrary_experiment",
     "repetition_code",
     "schedule_from_circuit",
+    "schedule_from_mid_cycle_circuit",
     "experiment_from_schedule",
 ]

@@ -23,12 +23,28 @@ def test_memory_experiments():
             exp.unrot_surface_code_css.memory_experiment,
         ),
         (
+            unrot_surface_codes(1, 3)[0],
+            lambda *args, **kargs: exp.unrot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator=cb.unrot_surface_code_css.gate_to_iterator_cnots,
+                **kargs,
+            ),
+        ),
+        (
             rot_surface_code_rectangles(1, 3)[0],
             exp.rot_surface_code_css.memory_experiment,
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],
             exp.rot_surface_code_xzzx.memory_experiment,
+        ),
+        (
+            rot_surface_code_rectangles(1, 3)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_cnots,
+                **kargs,
+            ),
         ),
         (
             rot_surface_code_rectangles(1, 3)[0],

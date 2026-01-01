@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 import numpy as np
 import galois
 
@@ -146,9 +144,7 @@ def check_code_definition(layout: Layout) -> None:
     return
 
 
-def overwrite_interaction_order(
-    layout: Layout, schedule: dict[str, Sequence[str]]
-) -> None:
+def overwrite_interaction_order(layout: Layout, schedule: dict[str, list[str]]) -> None:
     """
     Overwrites (in place) any existing schedule in a layout with the specified one.
 
@@ -171,7 +167,7 @@ def overwrite_interaction_order(
         raise ValueError(
             "The keys in 'schedule' must correspond to all the ancillas in 'layout'."
         )
-    if any(not isinstance(s, Sequence) for s in schedule.values()):
+    if any(not isinstance(s, list) for s in schedule.values()):
         raise TypeError("The values in 'schedule' must be sequences.")
     if len(set(len(s) for s in schedule.values())) != 1:
         raise ValueError("The values in 'schedule' must have the same lenght.")

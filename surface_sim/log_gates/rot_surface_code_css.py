@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..layouts.layout import Layout
+from ..layouts.operations import check_overlap_layouts
 from .util import set_x, set_z, set_idle, set_trans_cnot
 
 __all__ = [
@@ -61,7 +62,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
     gate_label = f"log_fold_trans_s_{layout.logical_qubits[0]}"
 
     # get the jump coordinates
-    neighbors = layout.param("neighbors", data_qubit)
+    neighbors: dict[str, str] = layout.param("neighbors", data_qubit)
     dir_x, anc_qubit_x = [(d, q) for d, q in neighbors.items() if q in stab_x][0]
     dir_z, anc_qubit_z = [(d, q) for d, q in neighbors.items() if q in stab_z][0]
     data_qubit_h = layout.get_neighbors(anc_qubit_x, direction=dir_z)[0]
@@ -70,14 +71,16 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
         layout.param("coords", data_qubit)
     )
     jump_v = np.array([jump_h[1], -jump_h[0]])  # perpendicular vector
-    data_qubit_coords = np.array(layout.param("coords", data_qubit))
+    data_qubit_coords = np.array(layout.param("coords", data_qubit), dtype=float)
 
     # get the CZs from the data qubit positions
     coords_to_label_dict = {
         tuple(attr["coords"]): node for node, attr in layout.graph.nodes.items()
     }
 
-    def coords_to_label(c):
+    def coords_to_label(
+        c: tuple[int | float, ...] | np.typing.NDArray[np.float64],
+    ) -> None | str:
         c = tuple(c)
         if c not in coords_to_label_dict:
             return None
@@ -86,7 +89,7 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
 
     top_column = deepcopy(data_qubit_coords)
     curr_level = 0
-    cz_gates = {}
+    cz_gates: dict[str, str] = {}
     while True:
         if coords_to_label(top_column) is None:
             break
@@ -145,15 +148,14 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             anc_to_new_stab[anc_x] = [anc_x]
             continue
 
-        z_stab = set()
+        z_stab: set[str] = set()
         for d in stab:
             if s_gates[d] == "I":
                 z_stab.symmetric_difference_update([cz_gates[d]])
             else:
                 z_stab.symmetric_difference_update([d, cz_gates[d]])
 
-        z_stab = tuple(sorted(z_stab))
-        anc_z = zstab_to_anc[z_stab]
+        anc_z = zstab_to_anc[tuple(sorted(z_stab))]
         anc_to_new_stab[anc_x] = [anc_x, anc_z]
         anc_to_new_stab[anc_z] = [anc_z]
 
@@ -166,6 +168,95 @@ def set_fold_trans_s(layout: Layout, data_qubit: str) -> None:
             {
                 "new_stab_gen": anc_to_new_stab[anc_qubit],
                 "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
+            },
+        )
+
+    return
+
+
+def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
+    """Adds the required attributes (in place) for the layout to run the
+    transversal CNOT gate for the rotated surface code in the mid cycle state,
+    which corresponds to a CSS unrotated surface code.
+
+    Parameters
+    ----------
+    layout_c
+        The layout for the control of the CNOT for which to add the attributes.
+    layout_t
+        The layout for the target of the CNOT for which to add the attributes.
+
+    Notes
+    -----
+    This mid-cycle transversal gate is intended for the QEC cycle the uses CNOTs,
+    thus this transversal gate is implemented using CNOTs.
+    """
+    if (layout_c.code != "rotated_surface_code") or (
+        layout_t.code != "rotated_surface_code"
+    ):
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but layouts for {layout_t.code} and {layout_c.code} were given."
+        )
+    if (layout_c.distance_x != layout_t.distance_x) or (
+        layout_c.distance_z != layout_t.distance_z
+    ):
+        raise ValueError("This function requires two surface codes of the same size.")
+    check_overlap_layouts(layout_c, layout_t)
+
+    gate_label = f"log_trans_cnot_mid_cycle_css_{layout_c.logical_qubits[0]}_{layout_t.logical_qubits[0]}"
+
+    qubit_coords_c = layout_c.qubit_coords
+    qubit_coords_t = layout_t.qubit_coords
+    bottom_left_qubit_c = sorted(
+        qubit_coords_c.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
+    )
+    bottom_left_qubit_t = sorted(
+        qubit_coords_t.items(), key=lambda x: 999_999_999 * x[1][0] + x[1][1]
+    )
+    mapping_t_to_c = {}
+    mapping_c_to_t = {}
+    for (qc, _), (qt, _) in zip(bottom_left_qubit_c, bottom_left_qubit_t):
+        mapping_t_to_c[qt] = qc
+        mapping_c_to_t[qc] = qt
+
+    # Store the logical information for the data qubits
+    for qubit in layout_c.data_qubits:
+        layout_c.set_param(gate_label, qubit, {"cnot": mapping_c_to_t[qubit]})
+    for qubit in layout_t.data_qubits:
+        layout_t.set_param(gate_label, qubit, {"cnot": mapping_t_to_c[qubit]})
+
+    # Compute the new stabilizer generators based on the CNOT connections
+    anc_to_new_stab = {}
+    for anc in layout_c.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc]
+    for anc in layout_c.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc, mapping_c_to_t[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="z_type"):
+        anc_to_new_stab[anc] = [anc, mapping_t_to_c[anc]]
+    for anc in layout_t.get_qubits(role="anc", stab_type="x_type"):
+        anc_to_new_stab[anc] = [anc]
+
+    # Store new stabilizer generators to the ancilla qubits
+    # CNOT^\dagger = CNOT
+    for anc in layout_c.anc_qubits:
+        layout_c.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+                "cnot": mapping_c_to_t[anc],
+            },
+        )
+    for anc in layout_t.anc_qubits:
+        layout_t.set_param(
+            gate_label,
+            anc,
+            {
+                "new_stab_gen": anc_to_new_stab[anc],
+                "new_stab_gen_inv": anc_to_new_stab[anc],
+                "cnot": mapping_t_to_c[anc],
             },
         )
 

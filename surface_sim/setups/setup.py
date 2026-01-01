@@ -1,5 +1,5 @@
 from __future__ import annotations
-from collections.abc import Sequence
+from collections.abc import Collection
 from typing import TypedDict
 from copy import deepcopy
 from pathlib import Path
@@ -10,10 +10,10 @@ Param = float | int | bool | str | None
 
 
 class SetupDict(TypedDict):
-    setup: Sequence[dict[str, object]]
+    setup: Collection[dict[str, Param]]
 
 
-ANNOTATIONS = ["tick", "qubit_coords"]
+ANNOTATIONS = {"tick": "TICK", "qubit_coords": "QUBIT_COORDS"}
 SQ_GATES = {
     "idle": "I",
     "x_gate": "X",
@@ -66,14 +66,16 @@ SQ_RESETS = {
     "reset_z": "R",  # stim changes the name
 }
 
-PARENTS = {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
-PARENTS |= {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
-PARENTS |= {f"{n}_error_prob": "sq_error_prob" for n in SQ_RESETS}
-PARENTS |= {f"{n}_error_prob": "sq_error_prob" for n in SQ_MEASUREMENTS}
+PARENTS = (
+    {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
+    | {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
+    | {f"{n}_error_prob": "sq_error_prob" for n in SQ_RESETS}
+    | {f"{n}_error_prob": "sq_error_prob" for n in SQ_MEASUREMENTS}
+)
 
 
 class Setup:
-    PARENTS = PARENTS.copy()
+    PARENTS: dict[str, str] = PARENTS.copy()
 
     def __init__(self, setup: SetupDict) -> None:
         """Initialises the ``Setup`` class.
@@ -87,15 +89,15 @@ class Setup:
             It can also include ``"name"``, ``"description"`` and
             ``"gate_durations"`` keys with the corresponding information.
         """
-        self._qubit_params = dict()
-        self._global_params = dict()
-        self._var_params = dict()
-        self.uniform = False
+        self._qubit_params: dict[str | tuple[str, ...], dict[str, Param]] = dict()
+        self._global_params: dict[str, Param] = dict()
+        self._var_params: dict[str, Param] = dict()
+        self.uniform: bool = False
 
-        _setup = deepcopy(setup)
-        self.name = _setup.pop("name", None)
-        self.description = _setup.pop("description", None)
-        self._gate_durations = _setup.pop("gate_durations", {})
+        _setup: SetupDict = deepcopy(setup)
+        self.name: str | None = _setup.pop("name", None)
+        self.description: str | None = _setup.pop("description", None)
+        self._gate_durations: dict[str, float | int] = _setup.pop("gate_durations", {})
         self._load_setup(_setup)
         if self._qubit_params == {}:
             self.uniform = True
@@ -152,7 +154,7 @@ class Setup:
             The initialised ``surface_sim.setup.Setup`` object based on the yaml.
         """
         with open(filename, "r") as file:
-            setup = yaml.safe_load(file)
+            setup: SetupDict = yaml.safe_load(file)
             return cls(setup)
 
     def to_dict(self) -> SetupDict:
@@ -163,7 +165,7 @@ class Setup:
         setup["description"] = self.description
         setup["gate_durations"] = self._gate_durations
 
-        qubit_params = []
+        qubit_params: list[dict[str, Param]] = []
         if self._global_params:
             qubit_params.append(self._global_params)
 
@@ -173,7 +175,7 @@ class Setup:
             if num_qubits == 1:
                 params_copy["qubit"] = qubits[0]
             elif num_qubits == 2:
-                params_copy["qubits"] = list(qubits)
+                params_copy["qubits"] = tuple(qubits)
             qubit_params.append(params_copy)
 
         setup["setup"] = qubit_params
@@ -259,7 +261,7 @@ class Setup:
             )
         if isinstance(qubits, str):
             qubits = (qubits,)
-        if (not isinstance(qubits, Sequence)) or (
+        if (not isinstance(qubits, Collection)) or (
             any(not isinstance(q, str) for q in qubits)
         ):
             raise TypeError(
@@ -277,7 +279,7 @@ class Setup:
             self._qubit_params[qubits][param] = param_val
         return
 
-    def param(self, param: str, qubits: str | tuple[str, ...] = tuple()) -> Param:
+    def param(self, param: str, qubits: str | Collection[str] = tuple()) -> Param:
         """Returns the value of the given parameter for the specified qubit(s).
         For example, getting the CZ error probability requires
         ``qubits = tuple[str, str]``.
@@ -298,7 +300,7 @@ class Setup:
             raise TypeError(f"'param' must be a str, but {type(param)} was given.")
         if isinstance(qubits, str):
             qubits = (qubits,)
-        if (not isinstance(qubits, Sequence)) or (
+        if (not isinstance(qubits, Collection)) or (
             any(not isinstance(q, str) for q in qubits)
         ):
             raise TypeError(
@@ -323,7 +325,7 @@ class Setup:
             )
         raise KeyError(f"Global parameter {param} not defined")
 
-    def _eval_param_val(self, val):
+    def _eval_param_val(self, val: Param) -> Param:
         # Parameter values can refer to another parameter (i.e. a variable parameter)
         if not isinstance(val, str):
             return val
@@ -372,7 +374,7 @@ class Setup:
 
 
 def _get_var_params(string: str) -> list[str]:
-    params = []
+    params: list[str] = []
     for s in string.split("{")[1:]:
         if "}" not in s:
             raise ValueError(

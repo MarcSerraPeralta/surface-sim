@@ -25,6 +25,7 @@ def test_merge_operation_layers():
         stim.Circuit("X 2\nS 2"),
     ]
     circuit = merge_operation_layers(*blocks)
+
     expected_circuit = stim.Circuit(
         """
         X 0 1 2
@@ -35,7 +36,32 @@ def test_merge_operation_layers():
 
     blocks = [stim.Circuit("X 0\nS 0\nX 0\nS 0")]
     circuit = merge_operation_layers(*blocks)
+
     assert circuit == blocks[0]
+
+    blocks = [
+        stim.Circuit("X_ERROR(0.1) 0 1\nM 0 1\nI 8 9"),
+        stim.Circuit("X_ERROR(0.1) 2 3\nM 2 3\nI 6 7"),
+    ]
+    circuit = merge_operation_layers(*blocks)
+
+    expected_circuit = stim.Circuit(
+        """
+        X_ERROR(0.1) 0 1 2 3
+        M 0 1 2 3
+        I 8 9 6 7
+        """
+    )
+    assert circuit == expected_circuit
+
+    blocks = [
+        stim.Circuit("X_ERROR(0.1) 0 1\nM 0 1\nX_ERROR(0.1) 2 3\nM 2 3"),
+        stim.Circuit("X_ERROR(0.1) 4 5\nM 4 5\nX_ERROR(0.1) 6 7\nM 6 7"),
+    ]
+    circuit = merge_operation_layers(*blocks)
+
+    expected_circuit = sum(blocks, start=stim.Circuit())
+    assert circuit == expected_circuit
 
     return
 
