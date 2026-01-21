@@ -1,7 +1,6 @@
 import os
 import pathlib
 
-
 DIR_EXCEPTIONS = [
     "__pycache__",
     "circuit_blocks",  # functions already tested in surface_sim.experiments

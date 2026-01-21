@@ -5,8 +5,7 @@ from surface_sim.models import CircuitNoiseModel
 
 
 def test_add_noise_to_circuit():
-    noiseless_circuit = stim.Circuit(
-        """
+    noiseless_circuit = stim.Circuit("""
         R 0 1
         QUBIT_COORDS(9, 1) 0
         H 0
@@ -20,16 +19,14 @@ def test_add_noise_to_circuit():
         I 0 
         MY 1
         OBSERVABLE_INCLUDE(1) rec[-1]
-        """
-    )
+        """)
 
     noise_model = CircuitNoiseModel({"a": 0, "b": 1})
     noise_model.setup.set_var_param("prob", 0.6)
 
     noisy_circuit = add_noise_to_circuit(noiseless_circuit, noise_model)
 
-    expected_circuit = stim.Circuit(
-        """
+    expected_circuit = stim.Circuit("""
         R 0 1
         X_ERROR(0.6) 0 1
         QUBIT_COORDS(9, 1) 0
@@ -51,8 +48,7 @@ def test_add_noise_to_circuit():
         X_ERROR(0.6) 1
         MY 1
         OBSERVABLE_INCLUDE(1) rec[-1]
-        """
-    )
+        """)
 
     assert noisy_circuit == expected_circuit
 

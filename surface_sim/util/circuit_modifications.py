@@ -3,7 +3,6 @@ import stim
 from ..models.model import Model
 from ..setups.setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
 
-
 STIM_TO_MODEL = {
     v: k for k, v in (SQ_GATES | SQ_MEASUREMENTS | SQ_RESETS | TQ_GATES).items()
 }

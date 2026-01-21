@@ -14,7 +14,6 @@ from ...log_gates.unrot_surface_code_css import (
     set_idle,
 )
 
-
 DEFAULT_INTERACTION_ORDER = dict(
     x_type=["north", "west", "east", "south"],
     z_type=["north", "east", "west", "south"],

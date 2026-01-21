@@ -41,8 +41,7 @@ def test_readme_example_arbitrary_circuit():
     from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
     from surface_sim.layouts import unrot_surface_codes
 
-    circuit = stim.Circuit(
-        """
+    circuit = stim.Circuit("""
         R 0 1
         TICK
         CNOT 0 1
@@ -55,8 +54,7 @@ def test_readme_example_arbitrary_circuit():
         TICK
         M 0
         MX 1
-        """
-    )
+        """)
 
     layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
     model = CircuitNoiseModel.from_layouts(*layouts)

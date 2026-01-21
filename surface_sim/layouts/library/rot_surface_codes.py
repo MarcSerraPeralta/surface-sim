@@ -14,7 +14,6 @@ from ...log_gates.rot_surface_code_css import (
     set_trans_cnot_mid_cycle_css,
 )
 
-
 DEFAULT_INTERACTION_ORDER = dict(
     z_type=["north_west", "north_east", "south_west", "south_east"],
     x_type=["north_west", "south_west", "north_east", "south_east"],

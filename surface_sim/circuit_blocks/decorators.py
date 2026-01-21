@@ -11,7 +11,6 @@ import stim
 from ..models import Model
 from ..layouts import Layout
 
-
 LogOpFunction = (
     Callable[[Model, Layout], Generator[stim.Circuit]]
     | Callable[[Model, Layout, Layout], Generator[stim.Circuit]]
