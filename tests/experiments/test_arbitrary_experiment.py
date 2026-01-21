@@ -12,13 +12,15 @@ from surface_sim.circuit_blocks.decorators import noiseless
 
 def test_schedule_from_circuit():
     layouts = unrot_surface_codes(4, distance=3)
-    circuit = stim.Circuit("""
+    circuit = stim.Circuit(
+        """
         R 0 1 2
         TICK
         X 0
         TICK
         CX 0 1
-        """)
+        """
+    )
 
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 
@@ -140,7 +142,8 @@ def test_schedule_from_instructions():
 def test_experiment_from_schedule():
     layouts = unrot_surface_codes(3, distance=3)
 
-    circuit = stim.Circuit("""
+    circuit = stim.Circuit(
+        """
         R 0 1
         TICK
         X 1
@@ -149,7 +152,8 @@ def test_experiment_from_schedule():
         M 0
         I 1
         TICK
-        """)
+        """
+    )
     model = NoiselessModel.from_layouts(*layouts)
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
@@ -182,7 +186,8 @@ def test_experiment_from_schedule():
 def test_experiment_from_schedule_no_gauge_detectors():
     layouts = unrot_surface_codes(3, distance=3)
 
-    circuit = stim.Circuit("""
+    circuit = stim.Circuit(
+        """
         R 0 1
         TICK
         X 1
@@ -191,7 +196,8 @@ def test_experiment_from_schedule_no_gauge_detectors():
         M 0
         I 1
         TICK
-        """)
+        """
+    )
     model = NoiselessModel.from_layouts(*layouts)
     detectors = Detectors.from_layouts("pre-gate", *layouts, include_gauge_dets=False)
 
@@ -219,7 +225,8 @@ def test_module_2_operations_in_detectors():
     model.setup.set_var_param("prob", 1e-3)
     detectors = Detectors.from_layouts("pre-gate", *layouts)
 
-    circuit = stim.Circuit("""
+    circuit = stim.Circuit(
+        """
         RX 0 1
         TICK
         CX 1 0
@@ -235,7 +242,8 @@ def test_module_2_operations_in_detectors():
         CX 1 0
         TICK
         MX 0 1
-    """)
+    """
+    )
     schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
         schedule,

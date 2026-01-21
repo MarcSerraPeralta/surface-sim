@@ -26,10 +26,12 @@ def test_merge_operation_layers():
     ]
     circuit = merge_operation_layers(*blocks)
 
-    expected_circuit = stim.Circuit("""
+    expected_circuit = stim.Circuit(
+        """
         X 0 1 2
         S 0 1 2
-        """)
+        """
+    )
     assert circuit == expected_circuit
 
     blocks = [stim.Circuit("X 0\nS 0\nX 0\nS 0")]
@@ -43,11 +45,13 @@ def test_merge_operation_layers():
     ]
     circuit = merge_operation_layers(*blocks)
 
-    expected_circuit = stim.Circuit("""
+    expected_circuit = stim.Circuit(
+        """
         X_ERROR(0.1) 0 1 2 3
         M 0 1 2 3
         I 8 9 6 7
-        """)
+        """
+    )
     assert circuit == expected_circuit
 
     blocks = [
@@ -63,42 +67,52 @@ def test_merge_operation_layers():
 
 
 def test_merge_circuits():
-    circuit_1 = stim.Circuit("""
+    circuit_1 = stim.Circuit(
+        """
         X 0
         TICK
         H 0
-        """)
-    circuit_2 = stim.Circuit("""
+        """
+    )
+    circuit_2 = stim.Circuit(
+        """
         X 1
         TICK
         H 1
-        """)
+        """
+    )
 
     merged_circuit = merge_circuits(circuit_1, circuit_2)
 
-    expected_circuit = stim.Circuit("""
+    expected_circuit = stim.Circuit(
+        """
         X 0 1
         TICK
         H 0 1
-        """)
+        """
+    )
 
     assert merged_circuit == expected_circuit
 
-    circuit_1 = stim.Circuit("""
+    circuit_1 = stim.Circuit(
+        """
         X 0
         TICK
         H 0
         TICK
-        """)
+        """
+    )
 
     with pytest.raises(ValueError):
         _ = merge_circuits(circuit_1, circuit_2)
 
-    circuit_1 = stim.Circuit("""
+    circuit_1 = stim.Circuit(
+        """
         M 0
         TICK
         X 1
-        """)
+        """
+    )
 
     with pytest.raises(ValueError):
         _ = merge_circuits(circuit_1, circuit_2)

@@ -13,7 +13,8 @@ PROB = 1e-3
 NOISE_MODEL = CircuitNoiseModel
 FRAME = "pre-gate"
 
-CIRCUIT = stim.Circuit("""
+CIRCUIT = stim.Circuit(
+    """
     R 0 1
     TICK
     CNOT 0 1
@@ -31,7 +32,8 @@ CIRCUIT = stim.Circuit("""
     CNOT 0 1
     TICK
     M 0 1
-    """)
+    """
+)
 
 layouts = unrot_surface_codes(CIRCUIT.num_qubits, distance=DISTANCE)
 
