@@ -35,7 +35,7 @@ QEC_DETS_OP_TYPES = ["qec_round", "to_end_cycle_circuit"]
 QEC_RESET_OP_TYPES = ["qec_round", "to_mid_cycle_circuit"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 MEAS_OP_TYPES = ["measurement"]
-RESET_OP_TYPES = ["qubit_init, qubit_encoding"]
+RESET_OP_TYPES = ["qubit_init", "qubit_encoding"]
 VALID_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
 
 
