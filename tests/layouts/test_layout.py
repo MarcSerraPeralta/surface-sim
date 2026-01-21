@@ -97,7 +97,7 @@ def test_layout_get_information():
     assert layout.get_max_ind() == 2
     assert layout.get_min_ind() == 0
 
-    assert layout.get_labels_from_inds([2]) == ("X1",)
+    assert layout.get_label_from_ind(2) == "X1"
 
     assert layout.data_qubits == ("D1", "D2")
     assert layout.num_data_qubits == 2

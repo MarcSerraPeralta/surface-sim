@@ -58,6 +58,7 @@ class Layout:
     - ``get_neighbors``
     - ``get_coords``
     - ``get_support``
+    - ``get_label_from_ind``
     - ``get_labels_from_inds``
     - ``qubits``
     - ``data_qubits``
@@ -572,6 +573,10 @@ class Layout:
     def get_support(self, qubits: Collection[str]) -> dict[str, tuple[str, ...]]:
         """Returns a dictionary mapping the qubits to their support."""
         return {q: self.get_neighbors([q]) for q in qubits}
+
+    def get_label_from_ind(self, ind: int) -> str:
+        """Returns the qubit label for the given qubit index."""
+        return self._qubit_ind_to_label[ind]
 
     def get_labels_from_inds(self, inds: Collection[int]) -> tuple[str, ...]:
         """Returns list of qubit labels for the given qubit indicies."""
