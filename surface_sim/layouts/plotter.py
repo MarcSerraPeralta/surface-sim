@@ -10,7 +10,6 @@ from matplotlib.text import Text
 
 from .layout import Layout
 
-
 Coordinates = tuple[float | int, float | int]
 CoordRange = tuple[float | int, float | int]
 

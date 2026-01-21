@@ -247,14 +247,14 @@ def init_qubits_iterator(
     yield model.reset(data_qubits) + model.idle(anc_qubits)
     yield model.tick()
 
-    init_circ = Circuit()
     exc_qubits = set([q for q, s in data_init.items() if s and (q in data_qubits)])
     if exc_qubits:
+        init_circ = Circuit()
         init_circ += model.x_gate(exc_qubits)
 
-    idle_qubits = qubits - exc_qubits
-    yield init_circ + model.idle(idle_qubits)
-    yield model.tick()
+        idle_qubits = qubits - exc_qubits
+        yield init_circ + model.idle(idle_qubits)
+        yield model.tick()
 
     if rot_basis:
         yield model.hadamard(data_qubits) + model.idle(anc_qubits)

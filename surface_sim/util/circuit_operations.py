@@ -15,7 +15,6 @@ from ..circuit_blocks.decorators import (
     to_mid_cycle_circuit,
 )
 
-
 MEAS_INSTR = [
     "M",
     "MR",

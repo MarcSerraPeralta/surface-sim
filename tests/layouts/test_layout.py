@@ -2,7 +2,6 @@ import xarray as xr
 
 from surface_sim import Layout
 
-
 LAYOUT_DICT = {
     "name": "Rotated dx-1 dz-2 surface code layout.",
     "code": "rotated_surface_code",
