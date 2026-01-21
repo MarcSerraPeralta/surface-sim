@@ -35,7 +35,7 @@ QEC_DETS_OP_TYPES = ["qec_round", "to_end_cycle_circuit"]
 QEC_RESET_OP_TYPES = ["qec_round", "to_mid_cycle_circuit"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 MEAS_OP_TYPES = ["measurement"]
-RESET_OP_TYPES = ["qubit_init"]
+RESET_OP_TYPES = ["qubit_init, qubit_encoding"]
 VALID_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
 
 
@@ -420,8 +420,15 @@ def merge_logical_operations(
             # give information about gauge detectors to Detectors so that Detectors.include_gauge_detectors
             # is the one specifying if gauge detectors are included or not.
             # e.g. if reset in X basis, the Z stabilizers are gauge detectors
-            stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
-            gauge_dets = op_iterators[k][1].get_qubits(role="anc", stab_type=stab_type)
+            # for the case of encoding, there are no gauge stabilizers
+            if op_iterators[k][0].rot_basis is not None:
+                stab_type = "z_type" if op_iterators[k][0].rot_basis else "x_type"
+                gauge_dets = op_iterators[k][1].get_qubits(
+                    role="anc", stab_type=stab_type
+                )
+            else:
+                gauge_dets: tuple[str, ...] = tuple()
+
             detectors.activate_detectors(
                 op_iterators[k][1].anc_qubits, gauge_dets=gauge_dets
             )
