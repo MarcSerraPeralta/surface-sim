@@ -357,9 +357,9 @@ def encoding_qubits_d3_iterator_cnots(
         0
     ]
     for x_anc in layout.get_qubits(role="anc", stab_type="x_type"):
-        if len(layout.get_support(x_anc)) != 2:
+        if len(layout.get_neighbors([x_anc])) != 2:
             continue
-        q_corner, q_middle = layout.get_support(x_anc)
+        q_corner, q_middle = layout.get_neighbors([x_anc])
         if len(layout.get_neighbors([q_corner])) != 2:
             q_corner, q_middle = q_middle, q_corner
         if "tr" in map:
@@ -369,9 +369,9 @@ def encoding_qubits_d3_iterator_cnots(
             map["tr"] = q_corner
             map["tm"] = q_middle
     for z_anc in layout.get_qubits(role="anc", stab_type="z_type"):
-        if len(layout.get_support(z_anc)) != 2:
+        if len(layout.get_neighbors([z_anc])) != 2:
             continue
-        q_corner, q_middle = layout.get_support(z_anc)
+        q_corner, q_middle = layout.get_neighbors([z_anc])
         if len(layout.get_neighbors([q_corner])) != 2:
             q_corner, q_middle = q_middle, q_corner
         if "tl" in map:
@@ -427,6 +427,36 @@ def encoding_qubits_d3_iterator_cnots(
 
 
 @qubit_encoding
+def encoding_qubits_x0_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +X eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from encoding_qubits_d3_iterator_cnots(
+        model=model, layout=layout, physical_reset_op="reset_x"
+    )
+
+
+@qubit_encoding
 def encoding_qubits_y0_d3_iterator_cnots(
     model: Model,
     layout: Layout,
@@ -453,6 +483,36 @@ def encoding_qubits_y0_d3_iterator_cnots(
     """
     yield from encoding_qubits_d3_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_y"
+    )
+
+
+@qubit_encoding
+def encoding_qubits_z0_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Z eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from encoding_qubits_d3_iterator_cnots(
+        model=model, layout=layout, physical_reset_op="reset_z"
     )
 
 
