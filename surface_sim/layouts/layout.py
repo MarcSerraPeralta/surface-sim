@@ -497,22 +497,26 @@ class Layout:
     def get_neighbors(
         self,
         qubits: Collection[str],
-        **conds,
+        *,
+        as_pairs: Literal[False] = False,
+        **conds: object,
     ) -> tuple[str, ...]: ...
 
     @overload
     def get_neighbors(
         self,
         qubits: Collection[str],
+        *,
         as_pairs: Literal[True],
-        **conds,
+        **conds: object,
     ) -> tuple[tuple[str, str], ...]: ...
 
     def get_neighbors(
         self,
         qubits: Collection[str],
+        *,
         as_pairs: bool = False,
-        **conds,
+        **conds: object,
     ) -> tuple[str, ...] | tuple[tuple[str, str], ...]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
