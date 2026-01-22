@@ -6,7 +6,7 @@ from stim import Circuit
 from ..layouts.layout import Layout
 from ..models import Model
 from ..detectors import Detectors
-from .decorators import qec_circuit, tq_gate
+from .decorators import qec_circuit, tq_gate, qubit_encoding
 
 # methods to have in this script
 from .util import (
@@ -79,8 +79,7 @@ def qec_round(
     anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
-    Returns stim circuit corresponding to a QEC round
-    of the given model.
+    Returns stim circuit corresponding to a QEC round of the given model.
 
     Parameters
     ----------
@@ -140,8 +139,7 @@ def qec_round_pipelined(
     anc_detectors: Collection[str] | None = None,
 ) -> Circuit:
     """
-    Returns stim circuit corresponding to a QEC round
-    of the given model.
+    Returns stim circuit corresponding to a QEC round of the given model.
 
     Parameters
     ----------
@@ -279,8 +277,6 @@ def log_trans_cnot_mid_cycle_css_iterator(
         Code layout for the control of the logical CNOT.
     layout_t
         Code layout for the target of the logical CNOT.
-    detectors
-        Detector definitions to use.
 
     Notes
     -----
@@ -315,6 +311,209 @@ def log_trans_cnot_mid_cycle_css_iterator(
     idle_qubits = qubits - set(int_qubits)
     yield model.cnot(int_qubits) + model.idle(idle_qubits)
     yield model.tick()
+
+
+def encoding_qubits_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    physical_reset_op: str,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    to a distance-3 rotated surface code of the given model without the detectors.
+    Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout.code}"
+        )
+    if layout.distance != 3:
+        raise TypeError(
+            f"The given layout must have distance=3, but distance={layout.distance} was given."
+        )
+
+    # map layout qubits to the Figure 1 from the reference
+    # mm = middle-middle, tr = top right, mr = middle-right...
+    map: dict[str, str] = {}
+    map["mm"] = [q for q in layout.data_qubits if len(layout.get_neighbors([q])) == 4][
+        0
+    ]
+    for x_anc in layout.get_qubits(role="anc", stab_type="x_type"):
+        if len(layout.get_neighbors([x_anc])) != 2:
+            continue
+        q_corner, q_middle = layout.get_neighbors([x_anc])
+        if len(layout.get_neighbors([q_corner])) != 2:
+            q_corner, q_middle = q_middle, q_corner
+        if "tr" in map:
+            map["bl"] = q_corner
+            map["bm"] = q_middle
+        else:
+            map["tr"] = q_corner
+            map["tm"] = q_middle
+    for z_anc in layout.get_qubits(role="anc", stab_type="z_type"):
+        if len(layout.get_neighbors([z_anc])) != 2:
+            continue
+        q_corner, q_middle = layout.get_neighbors([z_anc])
+        if len(layout.get_neighbors([q_corner])) != 2:
+            q_corner, q_middle = q_middle, q_corner
+        if "tl" in map:
+            map["br"] = q_corner
+            map["mr"] = q_middle
+        else:
+            map["tl"] = q_corner
+            map["ml"] = q_middle
+
+    # step 1
+    circ = Circuit()
+    circ += model.reset_z([map["tl"], map["tr"], map["bl"], map["br"]])
+    circ += model.reset_x([map["tm"], map["ml"], map["mr"], map["bm"]])
+    circ += model.__getattribute__(physical_reset_op)([map["mm"]])
+    yield circ + model.idle(layout.anc_qubits)
+    yield model.tick()
+
+    # step 2
+    circ = Circuit()
+    circ += model.cnot(
+        [map["tm"], map["tr"], map["mr"], map["mm"], map["bm"], map["bl"]]
+    )
+    circ += model.idle([map["tl"], map["ml"], map["br"], *layout.anc_qubits])
+    yield circ
+    yield model.tick()
+
+    # step 3
+    circ = Circuit()
+    circ += model.cnot(
+        [map["ml"], map["tl"], map["mm"], map["tm"], map["mr"], map["br"]]
+    )
+    circ += model.idle([map["tr"], map["bl"], map["bm"], *layout.anc_qubits])
+    yield circ
+    yield model.tick()
+
+    # step 4
+    circ = Circuit()
+    circ += model.cnot(
+        [map["tl"], map["tm"], map["ml"], map["mm"], map["mr"], map["tr"]]
+    )
+    circ += model.idle([map["bl"], map["bm"], map["br"], *layout.anc_qubits])
+    yield circ
+    yield model.tick()
+
+    # step 5
+    circ = Circuit()
+    circ += model.cnot([map["ml"], map["bl"], map["mm"], map["bm"]])
+    circ += model.idle(
+        [map["tl"], map["tm"], map["tr"], map["mr"], map["br"], *layout.anc_qubits]
+    )
+    yield circ
+    yield model.tick()
+
+
+@qubit_encoding
+def encoding_qubits_x0_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +X eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from encoding_qubits_d3_iterator_cnots(
+        model=model, layout=layout, physical_reset_op="reset_x"
+    )
+
+
+@qubit_encoding
+def encoding_qubits_y0_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Y eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from encoding_qubits_d3_iterator_cnots(
+        model=model, layout=layout, physical_reset_op="reset_y"
+    )
+
+
+@qubit_encoding
+def encoding_qubits_z0_d3_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Z eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from encoding_qubits_d3_iterator_cnots(
+        model=model, layout=layout, physical_reset_op="reset_z"
+    )
 
 
 gate_to_iterator = {

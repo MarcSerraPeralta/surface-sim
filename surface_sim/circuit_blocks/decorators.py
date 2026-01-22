@@ -92,6 +92,13 @@ def qubit_init_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     return func
 
 
+def qubit_encoding(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    func.log_op_type += ["qubit_encoding"]
+    return func
+
+
 def logical_measurement_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)

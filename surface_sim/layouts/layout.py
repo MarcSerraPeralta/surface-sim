@@ -497,22 +497,22 @@ class Layout:
     def get_neighbors(
         self,
         qubits: Collection[str],
-        direction: str | None = None,
+        **conds,
     ) -> tuple[str, ...]: ...
 
     @overload
     def get_neighbors(
         self,
         qubits: Collection[str],
-        direction: str | None,
         as_pairs: Literal[True],
+        **conds,
     ) -> tuple[tuple[str, str], ...]: ...
 
     def get_neighbors(
         self,
         qubits: Collection[str],
-        direction: str | None = None,
         as_pairs: bool = False,
+        **conds,
     ) -> tuple[str, ...] | tuple[tuple[str, str], ...]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
@@ -521,9 +521,8 @@ class Layout:
         ----------
         qubits
             The qubit labels, whose neighbors are being considered.
-
-        direction
-            The direction along which to consider the neigbors along.
+        **conds
+            Conditions that the neighbors need to satisfy.
 
         Returns
         -------
@@ -535,7 +534,7 @@ class Layout:
         The order that the qubits appear in is defined during the initialization
         of the layout and remains fixed.
 
-        The conditions conds are the keyward arguments that specify the value (``object``)
+        The conditions ``conds`` are the keyward arguments that specify the value (``object``)
         that each parameter label (``str``) needs to take.
         """
         edge_view = self.graph.out_edges(qubits, data=True)
@@ -543,7 +542,12 @@ class Layout:
         start_nodes: list[str] = []
         end_nodes: list[str] = []
         for start_node, end_node, attrs in edge_view:
-            if direction is None or attrs["direction"] == direction:
+            if not conds:
+                start_nodes.append(start_node)
+                end_nodes.append(end_node)
+                continue
+
+            if valid_attrs(attrs, **conds):
                 start_nodes.append(start_node)
                 end_nodes.append(end_node)
 
