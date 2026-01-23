@@ -317,7 +317,7 @@ def log_trans_cnot_mid_cycle_css_iterator(
     yield model.tick()
 
 
-def encoding_qubits_d3_iterator_cnots(
+def encoding_qubits_odd_d_iterator_cnots(
     model: Model,
     layout: Layout,
     physical_reset_op: str,
@@ -353,6 +353,7 @@ def encoding_qubits_d3_iterator_cnots(
         raise TypeError(
             f"The given layout does not have odd distance, but distance {layout.distance}."
         )
+
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
     l: dict[tuple[int, int], str] = {}
@@ -412,6 +413,131 @@ def encoding_qubits_d3_iterator_cnots(
     yield model.tick()
 
     # grow code to maximum size
+    for d in range(3, layout.distance, 2):
+        yield from grow_code_odd_d_iterator_cnots(
+            model=model, layout=layout, init_distance=d
+        )
+
+
+def grow_code_odd_d_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    init_distance: int,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an circuit growing
+    an odd-distance ``d`` rotated surface code to a ``d+2`` one of the given model
+    without the detectors. Note that this circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 2 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout.code}."
+        )
+    if layout.distance % 2 == 0:
+        raise TypeError(
+            f"The given layout does not have odd distance, but distance {layout.distance}."
+        )
+    if init_distance % 2 == 0:
+        raise TypeError(f"'init_distance' must be odd, but {init_distance} was given.")
+    if init_distance >= layout.distance:
+        raise TypeError(
+            f"'init_distance' ({init_distance}) must be strictly larger than "
+            f"the code distance ({layout.distance})."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    l: dict[tuple[int, int], str] = {}
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+
+    inner_ring = (init_distance - 1) // 2
+    outer_ring = inner_ring + 1
+    length = init_distance + 1
+    qubits = set(layout.data_qubits)
+
+    # step 1
+    reset_x: list[str] = []
+    reset_z: list[str] = []
+    for i in [0, 2]:
+        reset_z.append(l[(outer_ring, 0 + i * length)])
+        reset_z.append(l[(outer_ring, length - 1 + i * length)])
+        reset_x += [l[(outer_ring, p + i * length)] for p in range(1, length - 2, 2)]
+        reset_z += [l[(outer_ring, p + i * length)] for p in range(2, length - 1, 2)]
+    for i in [1, 3]:
+        reset_x.append(l[(outer_ring, 0 + i * length)])
+        reset_x.append(l[(outer_ring, length - 1 + i * length)])
+        reset_z += [l[(outer_ring, p + i * length)] for p in range(1, length - 2, 2)]
+        reset_x += [l[(outer_ring, p + i * length)] for p in range(2, length - 1, 2)]
+    idling = qubits - set(reset_x) - set(reset_z)
+
+    yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    yield model.tick()
+
+    # step 2
+    cnots: list[str] = []
+    for i in range(4):
+        odd = [l[(outer_ring, p + i * length)] for p in range(1, length - 2, 2)]
+        even = [l[(outer_ring, p + i * length)] for p in range(2, length - 1, 2)]
+        if i % 2 == 1:
+            odd, even = even, odd
+        cnots += list(chain.from_iterable(zip(odd, even)))
+
+        last = l[(outer_ring, length - 1 + i * length)]
+        inner = l[(inner_ring, (length - 2 + i * (length - 2)) % (4 * length - 8))]
+        if i % 2 == 1:
+            last, inner = inner, last
+        cnots += [inner, last]
+    idling = qubits - set(cnots)
+
+    yield model.cnot(cnots) + model.idle(idling)
+    yield model.tick()
+
+    # step 3
+    cnots = []
+    for i in range(4):
+        first = l[(outer_ring, 0 + length * i)]
+        last = l[(outer_ring, (length - 1 + length * ((i - 1) % 4)))]
+        if i % 2 == 1:
+            first, last = last, first
+        cnots += [last, first]
+
+        outer = [l[(outer_ring, p + i * length)] for p in range(1, length - 1)]
+        inner = [l[(inner_ring, p + i * (length - 2))] for p in range(0, length - 2)]
+        print(inner)
+        print(outer)
+        if i % 2 == 1:
+            outer, inner = inner, outer
+        cnots += list(chain.from_iterable(zip(inner, outer)))
+    idling = qubits - set(cnots)
+
+    yield model.cnot(cnots) + model.idle(idling)
+    yield model.tick()
 
 
 @qubit_encoding
@@ -439,7 +565,7 @@ def encoding_qubits_x0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_d3_iterator_cnots(
+    yield from encoding_qubits_odd_d_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_x"
     )
 
@@ -469,7 +595,7 @@ def encoding_qubits_y0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_d3_iterator_cnots(
+    yield from encoding_qubits_odd_d_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_y"
     )
 
@@ -499,7 +625,7 @@ def encoding_qubits_z0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_d3_iterator_cnots(
+    yield from encoding_qubits_odd_d_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_z"
     )
 

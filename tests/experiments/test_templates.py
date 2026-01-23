@@ -175,6 +175,20 @@ def test_memory_experiments_encoding():
                     **cb.rot_surface_code_css.gate_to_iterator_cnots,
                     "RX": cb.rot_surface_code_css.encoding_qubits_x0_d3_iterator_cnots,
                     "RZ": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            rot_surface_codes(1, 5)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.rot_surface_code_css.gate_to_iterator_cnots,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_d3_iterator_cnots,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
                 },
                 **kargs,
             ),
