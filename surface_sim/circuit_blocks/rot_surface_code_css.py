@@ -1,4 +1,4 @@
-from collections.abc import Generator, Collection, Callable
+from collections.abc import Generator, Collection
 from itertools import chain
 
 from stim import Circuit

@@ -168,14 +168,14 @@ def test_memory_experiments():
 def test_memory_experiments_encoding():
     TESTS = [
         (
-            rot_surface_codes(1, 3)[0],
+            rot_surface_codes(1, 6)[0],
             lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
                 *args,
                 gate_to_iterator={
                     **cb.rot_surface_code_css.gate_to_iterator_cnots,
-                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_d3_iterator_cnots,
-                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
-                    "R": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_cnots,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
                 },
                 **kargs,
             ),
@@ -186,9 +186,9 @@ def test_memory_experiments_encoding():
                 *args,
                 gate_to_iterator={
                     **cb.rot_surface_code_css.gate_to_iterator_cnots,
-                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_d3_iterator_cnots,
-                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
-                    "R": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_cnots,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
                 },
                 **kargs,
             ),
