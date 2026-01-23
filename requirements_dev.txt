@@ -16,7 +16,6 @@ beautifulsoup4==4.13.4
     # via pydata-sphinx-theme
 black==24.8.0
     # via
-    #   pytest-black
     #   surface-sim (pyproject.toml)
 build==1.2.1
     # via pip-tools
@@ -138,11 +137,8 @@ pyproject-hooks==1.1.0
     #   pip-tools
 pytest==8.3.2
     # via
-    #   pytest-black
     #   pytest-flake8
     #   surface-sim (pyproject.toml)
-pytest-black==0.3.12
-    # via surface-sim (pyproject.toml)
 pytest-flake8==1.2.2
     # via surface-sim (pyproject.toml)
 python-dateutil==2.9.0.post0
@@ -191,8 +187,6 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 stim==1.15.0
     # via surface-sim (pyproject.toml)
-toml==0.10.2
-    # via pytest-black
 tomli==2.2.1
     # via
     #   black
