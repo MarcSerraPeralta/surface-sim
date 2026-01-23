@@ -1,4 +1,4 @@
-from collections.abc import Generator, Collection
+from collections.abc import Generator, Collection, Callable
 from itertools import chain
 
 from stim import Circuit
@@ -317,6 +317,311 @@ def log_trans_cnot_mid_cycle_css_iterator(
     yield model.tick()
 
 
+def encoding_qubits_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    physical_reset_op: str,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    to a rotated surface code of the given model without the detectors.
+    Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    if layout.distance % 2 == 1:
+        yield from encoding_qubits_odd_d_iterator_cnots(
+            model=model, layout=layout, physical_reset_op=physical_reset_op
+        )
+    else:
+        yield from encoding_qubits_even_d_iterator_cnots(
+            model=model, layout=layout, physical_reset_op=physical_reset_op
+        )
+
+
+def encoding_qubits_even_d_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    physical_reset_op: str,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    to a even-distance rotated surface code of the given model without the detectors.
+    Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout.code}."
+        )
+    if layout.distance % 2 != 0:
+        raise TypeError(
+            f"The given layout does not have even distance, but distance {layout.distance}."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    l: dict[tuple[int, int], str] = {}
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+
+    # first build d=2 rotated surface code.
+    # the CNOTs and resets depend wether the weight-2 stabilizers are Z-type or X-type.
+    z_anc = layout.get_neighbors([l[(0, 0)]], stab_type="z_type")[0]
+    reversed = len(layout.get_neighbors([z_anc])) != 2
+
+    # step 1
+    circ = Circuit()
+    reset_z, reset_x = [l[(0, 2)], l[(0, 3)]], [l[(0, 1)]]
+    if reversed:
+        reset_z, reset_x = reset_x, reset_z
+    circ += model.reset_z(reset_z)
+    circ += model.reset_x(reset_x)
+    circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
+    yield circ + model.idle(layout.anc_qubits)
+    yield model.tick()
+
+    # step 2
+    pair1 = l[(0, 0)], l[(0, 3)]
+    pair2 = l[(0, 1)], l[(0, 2)]
+    if reversed:
+        pair1 = pair1[::-1]
+        pair2 = pair2[::-1]
+    circ = Circuit()
+    circ += model.cnot([*pair1, *pair2])
+    circ += model.idle(layout.anc_qubits)
+    yield circ
+    yield model.tick()
+
+    # step 3
+    pair1 = l[(0, 1)], l[(0, 0)]
+    pair2 = l[(0, 2)], l[(0, 3)]
+    if reversed:
+        pair1 = pair1[::-1]
+        pair2 = pair2[::-1]
+    circ = Circuit()
+    circ += model.cnot([*pair1, *pair2])
+    circ += model.idle(layout.anc_qubits)
+    yield circ
+    yield model.tick()
+
+    # grow code to maximum size
+    for d in range(2, layout.distance, 2):
+        yield from grow_code_even_d_iterator_cnots(
+            model=model, layout=layout, init_distance=d
+        )
+
+
+def grow_code_even_d_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    init_distance: int,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an circuit growing
+    an even-distance ``d`` rotated surface code to a ``d+2`` one of the given model
+    without the detectors. Note that this circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 2 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    if layout.code != "rotated_surface_code":
+        raise TypeError(
+            f"The given layout is not a rotated surface code, but a {layout.code}."
+        )
+    if layout.distance % 2 != 0:
+        raise TypeError(
+            f"The given layout does not have even distance, but distance {layout.distance}."
+        )
+    if init_distance % 2 != 0:
+        raise TypeError(f"'init_distance' must be even, but {init_distance} was given.")
+    if init_distance >= layout.distance:
+        raise TypeError(
+            f"'init_distance' ({init_distance}) must be strictly larger than "
+            f"the code distance ({layout.distance})."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    l: dict[tuple[int, int], str] = {}
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+
+    inner_ring = (init_distance - 1) // 2
+    outer_ring = inner_ring + 1
+    length = init_distance + 1
+    qubits = set(layout.data_qubits)
+
+    # the CNOTs and resets depend wether the weight-2 stabilizers are Z-type or X-type.
+    z_anc = layout.get_neighbors([l[(0, 0)]], stab_type="z_type")[0]
+    reversed = len(layout.get_neighbors([z_anc])) != 2
+
+    # step 1
+    reset_x: list[str] = []
+    reset_z: list[str] = [l[(outer_ring, 0 + i * length)] for i in range(4)]
+    for i in [1, 3]:
+        reset_x.append(l[(outer_ring, 1 + i * length)])
+        reset_x.append(l[(outer_ring, length - 1 + i * length)])
+
+    reset_z += [l[(outer_ring, p + 0 * length)] for p in range(1, length - 1, 2)]
+    reset_x += [l[(outer_ring, p + 0 * length)] for p in range(2, length, 2)]
+
+    reset_x += [l[(outer_ring, p + 2 * length)] for p in range(1, length - 1, 2)]
+    reset_z += [l[(outer_ring, p + 2 * length)] for p in range(2, length, 2)]
+
+    reset_x += [l[(outer_ring, p + 1 * length)] for p in range(2, length - 2, 2)]
+    reset_z += [l[(outer_ring, p + 1 * length)] for p in range(3, length - 1, 2)]
+
+    reset_z += [l[(outer_ring, p + 3 * length)] for p in range(2, length - 2, 2)]
+    reset_x += [l[(outer_ring, p + 3 * length)] for p in range(3, length - 1, 2)]
+
+    if reversed:
+        reset_x, reset_z = reset_z, reset_x
+    idling = qubits - set(reset_x) - set(reset_z)
+
+    yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    yield model.tick()
+
+    # step 2
+    cnots: list[str] = []
+
+    odd = [l[(outer_ring, p + 0 * length)] for p in range(1, length - 1, 2)]
+    even = [l[(outer_ring, p + 0 * length)] for p in range(2, length, 2)]
+    if reversed:
+        odd, even = even, odd
+    cnots += list(chain.from_iterable(zip(even, odd)))
+
+    odd = [l[(outer_ring, p + 2 * length)] for p in range(1, length - 1, 2)]
+    even = [l[(outer_ring, p + 2 * length)] for p in range(2, length, 2)]
+    if reversed:
+        odd, even = even, odd
+    cnots += list(chain.from_iterable(zip(odd, even)))
+
+    even = [l[(outer_ring, p + 1 * length)] for p in range(2, length - 2, 2)]
+    odd = [l[(outer_ring, p + 1 * length)] for p in range(3, length - 1, 2)]
+    if reversed:
+        odd, even = even, odd
+    cnots += list(chain.from_iterable(zip(even, odd)))
+
+    outer = [l[(outer_ring, 1 + 1 * length)], l[(outer_ring, length - 1 + 1 * length)]]
+    inner = [
+        l[(inner_ring, 0 + 1 * (length - 2))],
+        l[(inner_ring, 0 + 2 * (length - 2))],
+    ]
+    if reversed:
+        inner, outer = outer, inner
+    cnots += list(chain.from_iterable(zip(outer, inner)))
+
+    even = [l[(outer_ring, p + 3 * length)] for p in range(2, length - 2, 2)]
+    odd = [l[(outer_ring, p + 3 * length)] for p in range(3, length - 1, 2)]
+    if reversed:
+        odd, even = even, odd
+    cnots += list(chain.from_iterable(zip(odd, even)))
+
+    outer = [l[(outer_ring, 1 + 3 * length)], l[(outer_ring, length - 1 + 3 * length)]]
+    inner = [l[(inner_ring, 0 + 3 * (length - 2))], l[(inner_ring, 0)]]
+    if reversed:
+        inner, outer = outer, inner
+    cnots += list(chain.from_iterable(zip(outer, inner)))
+
+    yield model.cnot(cnots) + model.idle(idling)
+    yield model.tick()
+
+    # step 3
+    cnots = []
+    for i in [0, 2]:
+        first = l[(outer_ring, 0 + length * i)]
+        last = l[(outer_ring, (length - 1 + length * ((i - 1) % 4)))]
+        if reversed:
+            first, last = last, first
+        cnots += [last, first]
+
+        outer = [l[(outer_ring, p + i * length)] for p in range(1, length)]
+        inner = [l[(inner_ring, p + i * (length - 2))] for p in range(length - 2)]
+        inner.append(l[(inner_ring, 0 + (i + 1) * (length - 2))])
+        if reversed:
+            inner, outer = outer, inner
+        cnots += list(chain.from_iterable(zip(inner, outer)))
+
+    for i in [1, 3]:
+        first = l[(outer_ring, 0 + length * i)]
+        second = l[(outer_ring, 1 + length * i)]
+        if reversed:
+            first, second = second, first
+        cnots += [second, first]
+
+        outer = [l[(outer_ring, p + i * length)] for p in range(2, length - 1)]
+        inner = [l[(inner_ring, p + i * (length - 2))] for p in range(1, length - 2)]
+        if reversed:
+            inner, outer = outer, inner
+        cnots += list(chain.from_iterable(zip(outer, inner)))
+
+    yield model.cnot(cnots) + model.idle(idling)
+    yield model.tick()
+
+
 def encoding_qubits_odd_d_iterator_cnots(
     model: Model,
     layout: Layout,
@@ -529,8 +834,6 @@ def grow_code_odd_d_iterator_cnots(
 
         outer = [l[(outer_ring, p + i * length)] for p in range(1, length - 1)]
         inner = [l[(inner_ring, p + i * (length - 2))] for p in range(0, length - 2)]
-        print(inner)
-        print(outer)
         if i % 2 == 1:
             outer, inner = inner, outer
         cnots += list(chain.from_iterable(zip(inner, outer)))
@@ -541,7 +844,7 @@ def grow_code_odd_d_iterator_cnots(
 
 
 @qubit_encoding
-def encoding_qubits_x0_d3_iterator_cnots(
+def encoding_qubits_x0_iterator_cnots(
     model: Model,
     layout: Layout,
 ) -> Generator[Circuit]:
@@ -565,13 +868,13 @@ def encoding_qubits_x0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_odd_d_iterator_cnots(
+    yield from encoding_qubits_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_x"
     )
 
 
 @qubit_encoding
-def encoding_qubits_y0_d3_iterator_cnots(
+def encoding_qubits_y0_iterator_cnots(
     model: Model,
     layout: Layout,
 ) -> Generator[Circuit]:
@@ -595,13 +898,13 @@ def encoding_qubits_y0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_odd_d_iterator_cnots(
+    yield from encoding_qubits_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_y"
     )
 
 
 @qubit_encoding
-def encoding_qubits_z0_d3_iterator_cnots(
+def encoding_qubits_z0_iterator_cnots(
     model: Model,
     layout: Layout,
 ) -> Generator[Circuit]:
@@ -625,7 +928,7 @@ def encoding_qubits_z0_d3_iterator_cnots(
         arXiv preprint arXiv:2509.09779 (2025).
 
     """
-    yield from encoding_qubits_odd_d_iterator_cnots(
+    yield from encoding_qubits_iterator_cnots(
         model=model, layout=layout, physical_reset_op="reset_z"
     )
 

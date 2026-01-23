@@ -324,7 +324,18 @@ def set_encoding(layout: Layout) -> None:
             other_coord = np.array(layout.get_coords([q])[0])
             distance.append(((coord - other_coord) ** 2).sum())
         corners = [q for _, q in sorted(zip(distance, corners))]
-        corners = [corners[0], corners[1], corners[3], corners[2]]
+        # enforce that the (0, 1) goes along the direction where there is no
+        # weight-2 stabilizer between (0, 0) and (0, 1)
+        c1, c2, c3, c4 = corners
+        ancs = layout.get_neighbors([c1])
+        anc = ancs[0] if len(layout.get_neighbors([ancs[0]])) == 2 else ancs[1]
+        c1_neigh = [q for q in layout.get_neighbors([anc]) if q != c1][0]
+        dir_neigh = np.array(layout.get_coords([c1_neigh])[0]) - coord
+        dir_c2 = np.array(layout.get_coords([c2])[0]) - coord
+        if not np.isclose(dir_neigh * dir_c2, 0).all():
+            # if they are not perpendicular, then change
+            c2, c3 = c3, c2
+        corners = [c1, c2, c4, c3]
 
     # get directions for moving horizontally and vertically
     top_left_coord = np.array(layout.get_coords([corners[0]])[0])
