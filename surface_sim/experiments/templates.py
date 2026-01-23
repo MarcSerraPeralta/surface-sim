@@ -75,6 +75,11 @@ def memory_experiment(
             raise TypeError(
                 "As 'data_init' is not None, 'init_qubits_iterator' must not be None."
             )
+        if "qubit_init" not in gate_to_iterator[f"R{b}"].log_op_type:
+            raise TypeError(
+                "Option 'data_init' is only available for logical init operations of type 'qubit_init', "
+                f"but type '{gate_to_iterator[f'R{b}'].log_op_type}' was given."
+            )
 
         reset = qubit_init_x if rot_basis else qubit_init_z
 

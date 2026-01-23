@@ -324,7 +324,7 @@ def encoding_qubits_d3_iterator_cnots(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    to a distance-3 rotated surface code of the given model without the detectors.
+    to a odd-distance rotated surface code of the given model without the detectors.
     Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -332,10 +332,10 @@ def encoding_qubits_d3_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
-        to a distance-3 rotated surface code.
+        to a rotated surface code.
 
     Notes
     -----
@@ -347,87 +347,71 @@ def encoding_qubits_d3_iterator_cnots(
     """
     if layout.code != "rotated_surface_code":
         raise TypeError(
-            f"The given layout is not a rotated surface code, but a {layout.code}"
+            f"The given layout is not a rotated surface code, but a {layout.code}."
         )
-    if layout.distance != 3:
+    if layout.distance % 2 == 0:
         raise TypeError(
-            f"The given layout must have distance=3, but distance={layout.distance} was given."
+            f"The given layout does not have odd distance, but distance {layout.distance}."
         )
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
 
-    # map layout qubits to the Figure 1 from the reference
-    # mm = middle-middle, tr = top right, mr = middle-right...
-    map: dict[str, str] = {}
-    map["mm"] = [q for q in layout.data_qubits if len(layout.get_neighbors([q])) == 4][
-        0
-    ]
-    for x_anc in layout.get_qubits(role="anc", stab_type="x_type"):
-        if len(layout.get_neighbors([x_anc])) != 2:
-            continue
-        q_corner, q_middle = layout.get_neighbors([x_anc])
-        if len(layout.get_neighbors([q_corner])) != 2:
-            q_corner, q_middle = q_middle, q_corner
-        if "tr" in map:
-            map["bl"] = q_corner
-            map["bm"] = q_middle
-        else:
-            map["tr"] = q_corner
-            map["tm"] = q_middle
-    for z_anc in layout.get_qubits(role="anc", stab_type="z_type"):
-        if len(layout.get_neighbors([z_anc])) != 2:
-            continue
-        q_corner, q_middle = layout.get_neighbors([z_anc])
-        if len(layout.get_neighbors([q_corner])) != 2:
-            q_corner, q_middle = q_middle, q_corner
-        if "tl" in map:
-            map["br"] = q_corner
-            map["mr"] = q_middle
-        else:
-            map["tl"] = q_corner
-            map["ml"] = q_middle
+    l: dict[tuple[int, int], str] = {}
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
 
+    # first build d=3 rotated surface code
     # step 1
     circ = Circuit()
-    circ += model.reset_z([map["tl"], map["tr"], map["bl"], map["br"]])
-    circ += model.reset_x([map["tm"], map["ml"], map["mr"], map["bm"]])
-    circ += model.__getattribute__(physical_reset_op)([map["mm"]])
+    circ += model.reset_z([l[(1, 0)], l[(1, 2)], l[(1, 6)], l[(1, 4)]])
+    circ += model.reset_x([l[(1, 1)], l[(1, 7)], l[(1, 3)], l[(1, 5)]])
+    circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
     yield circ + model.idle(layout.anc_qubits)
     yield model.tick()
 
     # step 2
     circ = Circuit()
     circ += model.cnot(
-        [map["tm"], map["tr"], map["mr"], map["mm"], map["bm"], map["bl"]]
+        [l[(1, 1)], l[(1, 2)], l[(1, 3)], l[(0, 0)], l[(1, 5)], l[(1, 6)]]
     )
-    circ += model.idle([map["tl"], map["ml"], map["br"], *layout.anc_qubits])
+    circ += model.idle([l[(1, 0)], l[(1, 7)], l[(1, 4)], *layout.anc_qubits])
     yield circ
     yield model.tick()
 
     # step 3
     circ = Circuit()
     circ += model.cnot(
-        [map["ml"], map["tl"], map["mm"], map["tm"], map["mr"], map["br"]]
+        [l[(1, 7)], l[(1, 0)], l[(0, 0)], l[(1, 1)], l[(1, 3)], l[(1, 4)]]
     )
-    circ += model.idle([map["tr"], map["bl"], map["bm"], *layout.anc_qubits])
+    circ += model.idle([l[(1, 2)], l[(1, 6)], l[(1, 5)], *layout.anc_qubits])
     yield circ
     yield model.tick()
 
     # step 4
     circ = Circuit()
     circ += model.cnot(
-        [map["tl"], map["tm"], map["ml"], map["mm"], map["mr"], map["tr"]]
+        [l[(1, 0)], l[(1, 1)], l[(1, 7)], l[(0, 0)], l[(1, 3)], l[(1, 2)]]
     )
-    circ += model.idle([map["bl"], map["bm"], map["br"], *layout.anc_qubits])
+    circ += model.idle([l[(1, 6)], l[(1, 5)], l[(1, 4)], *layout.anc_qubits])
     yield circ
     yield model.tick()
 
     # step 5
     circ = Circuit()
-    circ += model.cnot([map["ml"], map["bl"], map["mm"], map["bm"]])
+    circ += model.cnot([l[(1, 7)], l[(1, 6)], l[(0, 0)], l[(1, 5)]])
     circ += model.idle(
-        [map["tl"], map["tm"], map["tr"], map["mr"], map["br"], *layout.anc_qubits]
+        [l[(1, 0)], l[(1, 1)], l[(1, 2)], l[(1, 3)], l[(1, 4)], *layout.anc_qubits]
     )
     yield circ
     yield model.tick()
+
+    # grow code to maximum size
 
 
 @qubit_encoding

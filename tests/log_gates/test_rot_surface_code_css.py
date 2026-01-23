@@ -169,4 +169,22 @@ def test_set_encoding():
         (1, 2),
     ]
 
+    layout = rot_surface_code(3)
+    set_encoding(layout)
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    data_qubits = sorted(layout.data_qubits)
+    labels = [layout.param(gate_label, d)["label"] for d in data_qubits]
+    assert labels == [
+        (1, 2),
+        (1, 1),
+        (1, 0),
+        (1, 3),
+        (0, 0),
+        (1, 7),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+    ]
+
     return

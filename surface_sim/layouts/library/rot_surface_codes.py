@@ -12,6 +12,7 @@ from ...log_gates.rot_surface_code_css import (
     set_idle,
     set_trans_cnot,
     set_trans_cnot_mid_cycle_css,
+    set_encoding,
 )
 
 DEFAULT_INTERACTION_ORDER = dict(
@@ -376,6 +377,7 @@ def rot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
         set_x(layout)
         set_z(layout)
         set_idle(layout)
+        set_encoding(layout)
         for other_layout in layouts:
             if layout == other_layout:
                 continue
