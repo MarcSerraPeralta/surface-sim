@@ -497,22 +497,26 @@ class Layout:
     def get_neighbors(
         self,
         qubits: Collection[str],
-        **conds,
+        *,
+        as_pairs: Literal[False] = False,
+        **conds: object,
     ) -> tuple[str, ...]: ...
 
     @overload
     def get_neighbors(
         self,
         qubits: Collection[str],
+        *,
         as_pairs: Literal[True],
-        **conds,
+        **conds: object,
     ) -> tuple[tuple[str, str], ...]: ...
 
     def get_neighbors(
         self,
         qubits: Collection[str],
+        *,
         as_pairs: bool = False,
-        **conds,
+        **conds: object,
     ) -> tuple[str, ...] | tuple[tuple[str, str], ...]:
         """Returns the list of qubit labels, neighboring specific qubits
         that meet a set of conditions.
@@ -522,7 +526,8 @@ class Layout:
         qubits
             The qubit labels, whose neighbors are being considered.
         **conds
-            Conditions that the neighbors need to satisfy.
+            Conditions that the neighbors and/or the connections (or edges)
+            need to satisfy.
 
         Returns
         -------
@@ -534,8 +539,8 @@ class Layout:
         The order that the qubits appear in is defined during the initialization
         of the layout and remains fixed.
 
-        The conditions ``conds`` are the keyward arguments that specify the value (``object``)
-        that each parameter label (``str``) needs to take.
+        The conditions ``conds`` are the keyward arguments that specify the value
+        (``object``) that each parameter label (``str``) needs to take.
         """
         edge_view = self.graph.out_edges(qubits, data=True)
 
@@ -547,7 +552,10 @@ class Layout:
                 end_nodes.append(end_node)
                 continue
 
-            if valid_attrs(attrs, **conds):
+            # conditions can be for the edge and/or the end_node.
+            if valid_attrs(attrs, **conds) or valid_attrs(
+                self.graph.nodes[end_node], **conds
+            ):
                 start_nodes.append(start_node)
                 end_nodes.append(end_node)
 
@@ -807,7 +815,7 @@ def valid_attrs(attrs: dict[str, object], **conditions: object) -> bool:
         Whether the attributes meet a set of conditions.
     """
     for key, val in conditions.items():
-        attr_val = attrs[key]
+        attr_val = attrs.get(key)
         if attr_val is None or attr_val != val:
             return False
     return True

@@ -3,7 +3,11 @@ from typing import TypeVar
 
 import stim
 
-from ..util.circuit_operations import merge_logical_operations, QEC_OP_TYPES
+from ..util.circuit_operations import (
+    merge_logical_operations,
+    QEC_OP_TYPES,
+    RESET_OP_TYPES,
+)
 from ..layouts.layout import Layout
 from ..models.model import Model
 from ..detectors.detectors import Detectors
@@ -383,7 +387,7 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
 
         # activate layouts. If not the check for layouts in current operation are
         # active does not work for resets (because the layout is inactive previously).
-        if set(["qubit_init"]).intersection(op.log_op_type):
+        if set(RESET_OP_TYPES).intersection(op.log_op_type):
             layouts = operation[1:]
             if any(l in counter for l in layouts):
                 raise ValueError(

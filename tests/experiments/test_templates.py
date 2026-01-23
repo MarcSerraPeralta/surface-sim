@@ -3,7 +3,7 @@ import stim
 
 from surface_sim.layouts import (
     unrot_surface_codes,
-    rot_surface_code,
+    rot_surface_codes,
     rot_surface_code_rectangles,
     rot_surface_stability_rectangle,
     ssd_code,
@@ -60,18 +60,6 @@ def test_memory_experiments():
             lambda *args, **kargs: exp.rot_surface_code_xzzx.memory_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_xzzx.gate_to_iterator_pipelined,
-                **kargs,
-            ),
-        ),
-        (
-            rot_surface_code(3),
-            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
-                *args,
-                gate_to_iterator={
-                    **cb.rot_surface_code_css.gate_to_iterator_cnots,
-                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_d3_iterator_cnots,
-                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_d3_iterator_cnots,
-                },
                 **kargs,
             ),
         ),
@@ -134,8 +122,120 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            anc_detectors=["X1"],
             data_init={q: 0 for q in layout.data_qubits},
+            anc_detectors=["X1"],
+            rot_basis=True,
+        )
+
+        num_anc = len(layout.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+        assert circuit.num_detectors == 3 * num_anc + num_anc_x
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == 3 + 1
+
+        # without gauge detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=False
+        )
+        circuit = memory_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            data_init={q: 0 for q in layout.data_qubits},
+            num_rounds=3,
+            rot_basis=True,
+        )
+
+        num_anc = len(layout.anc_qubits)
+        num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
+        assert circuit.num_detectors == 3 * num_anc + num_anc_x
+
+        non_zero_dets = []
+        for instr in circuit.flattened():
+            if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
+                non_zero_dets.append(instr)
+
+        assert len(non_zero_dets) == num_anc_x + 2 * num_anc + num_anc_x
+
+    return
+
+
+def test_memory_experiments_encoding():
+    TESTS = [
+        (
+            rot_surface_codes(1, 6)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.rot_surface_code_css.gate_to_iterator_cnots,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_cnots,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            rot_surface_codes(1, 5)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.rot_surface_code_css.gate_to_iterator_cnots,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_cnots,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
+                },
+                **kargs,
+            ),
+        ),
+    ]
+
+    for layout, memory_experiment in TESTS:
+        model = NoiselessModel(layout.qubit_inds)
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", anc_coords=layout.anc_coords
+        )
+
+        # standard experiment in both basis
+        for rot_basis in [True, False]:
+            circuit = memory_experiment(
+                model=model,
+                layout=layout,
+                detectors=detectors,
+                num_rounds=5,
+                rot_basis=rot_basis,
+            )
+
+            assert isinstance(circuit, stim.Circuit)
+
+            # check that the detectors and logicals fulfill their
+            # conditions by building the stim diagram
+            dem = circuit.detector_error_model(allow_gauge_detectors=False)
+
+            num_coords = 0
+            anc_coords = {k: list(map(float, v)) for k, v in layout.anc_coords.items()}
+            for dem_instr in dem:
+                if dem_instr.type == "detector":
+                    assert dem_instr.args_copy()[:-1] in anc_coords.values()
+                    num_coords += 1
+
+            assert num_coords == dem.num_detectors
+
+        # build for some specific detectors
+        detectors = Detectors(
+            layout.anc_qubits, frame="post-gate", include_gauge_dets=True
+        )
+        circuit = memory_experiment(
+            model=model,
+            layout=layout,
+            detectors=detectors,
+            num_rounds=3,
+            anc_detectors=["X1"],
             rot_basis=True,
         )
 
@@ -159,7 +259,6 @@ def test_memory_experiments():
             layout=layout,
             detectors=detectors,
             num_rounds=3,
-            data_init={q: 0 for q in layout.data_qubits},
             rot_basis=True,
         )
 
@@ -172,7 +271,7 @@ def test_memory_experiments():
             if instr.name == "DETECTOR" and len(instr.targets_copy()) != 0:
                 non_zero_dets.append(instr)
 
-        assert len(non_zero_dets) == num_anc_x + 2 * num_anc + num_anc_x
+        assert len(non_zero_dets) == 3 * num_anc + num_anc_x
 
     return
 

@@ -1,6 +1,7 @@
 from surface_sim.log_gates.rot_surface_code_css import (
     set_fold_trans_s,
     set_trans_cnot_mid_cycle_css,
+    set_encoding,
 )
 from surface_sim.layouts import rot_surface_code_rectangle, rot_surface_code
 from surface_sim.detectors import get_new_stab_dict_from_layout
@@ -139,4 +140,51 @@ def test_set_fold_trans_s():
             assert len(new_stabs[x]) == 1
         else:
             assert len(new_stabs[x]) == 2
+    return
+
+
+def test_set_encoding():
+    layout = rot_surface_code(4)
+    set_encoding(layout)
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    data_qubits = sorted(layout.data_qubits)
+    labels = [layout.param(gate_label, d)["label"] for d in data_qubits]
+    assert labels == [
+        (1, 0),
+        (0, 1),
+        (0, 2),
+        (1, 7),
+        (1, 3),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+        (1, 11),
+        (1, 10),
+        (1, 9),
+        (1, 1),
+        (0, 0),
+        (0, 3),
+        (1, 8),
+        (1, 2),
+    ]
+
+    layout = rot_surface_code(3)
+    set_encoding(layout)
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    data_qubits = sorted(layout.data_qubits)
+    labels = [layout.param(gate_label, d)["label"] for d in data_qubits]
+    assert labels == [
+        (1, 2),
+        (1, 1),
+        (1, 0),
+        (1, 3),
+        (0, 0),
+        (1, 7),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+    ]
+
     return

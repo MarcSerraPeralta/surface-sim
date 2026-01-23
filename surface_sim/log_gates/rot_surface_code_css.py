@@ -12,6 +12,7 @@ __all__ = [
     "set_idle",
     "set_fold_trans_s",
     "set_trans_cnot",
+    "set_encoding",
 ]
 
 
@@ -259,5 +260,122 @@ def set_trans_cnot_mid_cycle_css(layout_c: Layout, layout_t: Layout) -> None:
                 "cnot": mapping_t_to_c[anc],
             },
         )
+
+    return
+
+
+def set_encoding(layout: Layout) -> None:
+    """
+    Adds the required attributes (in place) for the layout to run the encoding
+    circuits for the rotated surface code.
+
+    This implementation assumes that the qubits are placed in a square 2D grid,
+    and that the (spatial) separation between qubits is more than ``1e-6``.
+
+    Parameters
+    ----------
+    layout
+        The (square) layout in which to add the attributes.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    The information about the encoding circuit is stored in the layout
+    as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.
+    """
+    if layout.code != "rotated_surface_code":
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but a layout for the code {layout.code} was given."
+        )
+    if layout.distance_x != layout.distance_z:
+        raise ValueError(
+            "This function is for square surface codes, "
+            f"but d_x={layout.distance_x} and d_z={layout.distance_z} were given."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    # identify data qubits in the 4 corners of the surface code
+    corners: list[str] = []
+    for data_qubit in layout.data_qubits:
+        if len(layout.get_neighbors([data_qubit])) != 2:
+            continue
+        corners.append(data_qubit)
+
+    # order the corner qubits following:
+    # top left, top right, bottom right, bottom left
+    if layout.distance_x % 2 == 1:
+        z_corners: list[str] = []
+        for data_qubit in corners:
+            z_anc = layout.get_neighbors([data_qubit], stab_type="z_type")[0]
+            if len(layout.get_neighbors([z_anc])) == 2:
+                z_corners.append(data_qubit)
+        x_corners = [q for q in corners if q not in z_corners]
+        corners = [z_corners[0], x_corners[0], z_corners[1], x_corners[1]]
+    else:
+        distance: list[float] = []
+        coord = np.array(layout.get_coords([corners[0]])[0])
+        for q in corners:
+            other_coord = np.array(layout.get_coords([q])[0])
+            distance.append(((coord - other_coord) ** 2).sum())
+        corners = [q for _, q in sorted(zip(distance, corners))]
+        # enforce that the (0, 1) goes along the direction where there is no
+        # weight-2 stabilizer between (0, 0) and (0, 1)
+        c1, c2, c3, c4 = corners
+        ancs = layout.get_neighbors([c1])
+        anc = ancs[0] if len(layout.get_neighbors([ancs[0]])) == 2 else ancs[1]
+        c1_neigh = [q for q in layout.get_neighbors([anc]) if q != c1][0]
+        dir_neigh = np.array(layout.get_coords([c1_neigh])[0]) - coord
+        dir_c2 = np.array(layout.get_coords([c2])[0]) - coord
+        if not np.isclose(dir_neigh * dir_c2, 0).all():
+            # if they are not perpendicular, then change
+            c2, c3 = c3, c2
+        corners = [c1, c2, c4, c3]
+
+    # get directions for moving horizontally and vertically
+    top_left_coord = np.array(layout.get_coords([corners[0]])[0])
+    top_right_coord = np.array(layout.get_coords([corners[1]])[0])
+    bottom_right_coord = np.array(layout.get_coords([corners[2]])[0])
+    dir_h = (top_right_coord - top_left_coord) / (layout.distance_x - 1)
+    dir_v = (bottom_right_coord - top_right_coord) / (layout.distance_x - 1)
+
+    # create mapping from coordinates to data qubit labels
+    coord_to_label: dict[tuple[int, ...], str] = {}
+    for q, coord in layout.data_coords.items():
+        _coord = tuple((np.array(coord) * 1e6).astype(int))
+        coord_to_label[_coord] = q
+
+    # extract generalized labels by going around in "outer" rings
+    max_rings = (layout.distance_x + 1) // 2
+    directions = (dir_h, dir_v, -dir_h, -dir_v)
+    glabels: dict[str, tuple[int, int]] = {}
+    for r in range(max_rings):
+        curr_coord = top_left_coord + r * (dir_h + dir_v)
+
+        _curr_coord = tuple((np.array(curr_coord) * 1e6).astype(int))
+        curr_label = coord_to_label[_curr_coord]
+        glabels[curr_label] = (max_rings - 1 - r, 0)
+
+        # the most inner ring of odd-distance surface codes contains only
+        # a single qubit, not a multiple of 4, thus must be treated differently.
+        if (r == max_rings - 1) and (layout.distance_x % 2 == 1):
+            continue
+
+        for curr_index in range(1, 4 * (layout.distance_x - 1 - 2 * r)):
+            dir = directions[(curr_index - 1) // (layout.distance_x - 1 - 2 * r)]
+            curr_coord += dir
+
+            _curr_coord = tuple((np.array(curr_coord) * 1e6).astype(int))
+            curr_label = coord_to_label[_curr_coord]
+            glabels[curr_label] = (max_rings - 1 - r, curr_index)
+
+    # store generalized labels
+    for data_qubit in layout.data_qubits:
+        layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
 
     return
