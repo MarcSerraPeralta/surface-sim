@@ -1,21 +1,21 @@
-from collections.abc import Generator, Collection
+from collections.abc import Collection, Generator
 from itertools import chain
 
 from stim import Circuit
 
+from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors, get_new_stab_dict_from_layout
 from .decorators import (
-    qubit_init_z,
-    qubit_init_x,
-    sq_gate,
-    tq_gate,
-    logical_measurement_z,
     logical_measurement_x,
+    logical_measurement_z,
     qec_circuit,
-    to_mid_cycle_circuit,
+    qubit_init_x,
+    qubit_init_z,
+    sq_gate,
     to_end_cycle_circuit,
+    to_mid_cycle_circuit,
+    tq_gate,
 )
 
 

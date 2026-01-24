@@ -1,39 +1,39 @@
-from collections.abc import Generator, Collection
+from collections.abc import Collection, Generator
 from itertools import chain
 
 from stim import Circuit
 
+from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
-from .decorators import qec_circuit, tq_gate, qubit_encoding
+from .decorators import qec_circuit, qubit_encoding, tq_gate
 
 # methods to have in this script
 from .util import (
-    qubit_coords,
     idle_iterator,
+    init_qubits,
+    init_qubits_iterator,
+    init_qubits_x0_iterator,
+    init_qubits_x1_iterator,
+    init_qubits_z0_iterator,
+    init_qubits_z1_iterator,
+    log_fold_trans_s,
+    log_fold_trans_s_iterator,
     log_meas,
     log_meas_iterator,
-    log_meas_z_iterator,
     log_meas_x_iterator,
+    log_meas_z_iterator,
+    log_trans_cnot,
+    log_trans_cnot_iterator,
     log_x,
     log_x_iterator,
     log_z,
     log_z_iterator,
-    init_qubits,
-    init_qubits_iterator,
-    init_qubits_z0_iterator,
-    init_qubits_z1_iterator,
-    init_qubits_x0_iterator,
-    init_qubits_x1_iterator,
-    log_fold_trans_s,
-    log_fold_trans_s_iterator,
-    log_trans_cnot,
-    log_trans_cnot_iterator,
     qec_round_iterator,
     qec_round_iterator_cnots,
-    to_mid_cycle_iterator_cnots,
+    qubit_coords,
     to_end_cycle_iterator_cnots,
+    to_mid_cycle_iterator_cnots,
 )
 
 __all__ = [

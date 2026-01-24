@@ -1,31 +1,31 @@
-from collections.abc import Generator, Collection
+from collections.abc import Collection, Generator
 from itertools import chain
 
 from stim import Circuit
 
+from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
 from .decorators import qec_circuit
 
 # methods to have in this script
 from .util import (
-    qubit_coords,
     idle_iterator,
+    init_qubits,
+    init_qubits_iterator,
+    init_qubits_x0_iterator,
+    init_qubits_x1_iterator,
+    init_qubits_z0_iterator,
+    init_qubits_z1_iterator,
     log_meas,
     log_meas_iterator,
-    log_meas_z_iterator,
     log_meas_x_iterator,
+    log_meas_z_iterator,
     log_x,
     log_x_iterator,
     log_z,
     log_z_iterator,
-    init_qubits,
-    init_qubits_iterator,
-    init_qubits_z0_iterator,
-    init_qubits_z1_iterator,
-    init_qubits_x0_iterator,
-    init_qubits_x1_iterator,
+    qubit_coords,
 )
 from .util import qec_round_iterator as qec_round_iterator_sc
 

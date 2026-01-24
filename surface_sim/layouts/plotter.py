@@ -1,11 +1,11 @@
+import re
 from collections.abc import Iterable
 from copy import deepcopy
-import re
 
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.patches import Circle, Polygon, Wedge
 from matplotlib.lines import Line2D
+from matplotlib.patches import Circle, Polygon, Wedge
 from matplotlib.text import Text
 
 from .layout import Layout

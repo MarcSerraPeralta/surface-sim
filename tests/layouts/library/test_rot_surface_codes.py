@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 
 from surface_sim import Layout
 from surface_sim.layouts import (
+    plot,
     rot_surface_code,
-    rot_surface_codes,
     rot_surface_code_rectangle,
     rot_surface_code_rectangles,
+    rot_surface_codes,
     rot_surface_stability_rectangle,
 )
-from surface_sim.layouts import plot
 
 
 def test_rot_surface_code(show_figures):

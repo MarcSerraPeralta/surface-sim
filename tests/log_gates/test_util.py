@@ -1,6 +1,6 @@
-from surface_sim.log_gates.util import set_x, set_z, set_idle, set_trans_cnot
-from surface_sim.layouts import unrot_surface_code, rot_surface_code
 from surface_sim.detectors import get_new_stab_dict_from_layout
+from surface_sim.layouts import rot_surface_code, unrot_surface_code
+from surface_sim.log_gates.util import set_idle, set_trans_cnot, set_x, set_z
 
 
 def test_set_x():
@@ -93,7 +93,7 @@ def test_set_trans_cnot():
         x_stabs = layout_c.get_qubits(role="anc", stab_type="x_type")
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
             new_stab_x = [layout_c.param(gate_label, x_stab)[key] for x_stab in x_stabs]
-            assert new_stab_x == [[i, f"X{int(i[1:])+1000-1}"] for i in x_stabs]
+            assert new_stab_x == [[i, f"X{int(i[1:]) + 1000 - 1}"] for i in x_stabs]
 
         x_stabs = layout_t.get_qubits(role="anc", stab_type="x_type")
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
@@ -103,7 +103,7 @@ def test_set_trans_cnot():
         z_stabs = layout_t.get_qubits(role="anc", stab_type="z_type")
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
             new_stab_z = [layout_t.param(gate_label, z_stab)[key] for z_stab in z_stabs]
-            assert new_stab_z == [[i, f"Z{int(i[1:])-1000+1}"] for i in z_stabs]
+            assert new_stab_z == [[i, f"Z{int(i[1:]) - 1000 + 1}"] for i in z_stabs]
 
         z_stabs = layout_c.get_qubits(role="anc", stab_type="z_type")
         for key in ["new_stab_gen", "new_stab_gen_inv"]:
@@ -112,7 +112,7 @@ def test_set_trans_cnot():
 
         data_qubits = layout_c.data_qubits
         cz_gates = [layout_c.param(gate_label, d)["cz"] for d in data_qubits]
-        assert cz_gates == [f"D{int(i[1:])+1000-1}" for i in data_qubits]
+        assert cz_gates == [f"D{int(i[1:]) + 1000 - 1}" for i in data_qubits]
         idle_gates = [layout_c.param(gate_label, d)["local"] for d in data_qubits]
         assert idle_gates == ["I" for _ in data_qubits]
 

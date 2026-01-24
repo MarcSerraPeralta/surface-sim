@@ -1,8 +1,8 @@
-from surface_sim.layouts.operations import check_code_definition
 from surface_sim.layouts import ssd_code
 from surface_sim.layouts.library.small_stellated_dodecahedron_code import (
     INTERACTION_ORDERS,
 )
+from surface_sim.layouts.operations import check_code_definition
 
 
 def test_ssd_code():

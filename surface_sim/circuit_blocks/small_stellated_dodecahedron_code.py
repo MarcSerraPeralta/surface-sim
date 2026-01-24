@@ -1,23 +1,23 @@
-from collections.abc import Generator, Collection
+from collections.abc import Collection, Generator
 from itertools import chain
 
 from stim import Circuit
 
+from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors, get_new_stab_dict_from_layout
-from .decorators import qec_circuit, sq_gate, qubit_init_x, qubit_init_z
+from .decorators import qec_circuit, qubit_init_x, qubit_init_z, sq_gate
+from .util import general_qec_round_iterator_cnots as general_qec_round_iterator
 
 # methods to have in this script
 from .util import (
-    qubit_coords,
     idle_iterator,
     log_meas,
     log_meas_iterator,
-    log_meas_z_iterator,
     log_meas_x_iterator,
+    log_meas_z_iterator,
+    qubit_coords,
 )
-from .util import general_qec_round_iterator_cnots as general_qec_round_iterator
 
 __all__ = [
     "qubit_coords",

@@ -1,23 +1,24 @@
 from __future__ import annotations
-from typing_extensions import override
+
 from collections.abc import Collection
 
-from stim import CircuitInstruction, Circuit
+from stim import Circuit, CircuitInstruction
+from typing_extensions import override
 
+from ..layouts import Layout
 from ..setups import (
-    Setup,
-    CircuitNoiseSetup,
     SD6,
     SI1000,
     BiasedCircuitNoiseSetup,
+    CircuitNoiseSetup,
     IncomingNoiseSetup,
-    PhenomenologicalNoiseSetup,
-    MeasurementNoiseSetup,
     IncResMeasNoiseSetup,
+    MeasurementNoiseSetup,
+    PhenomenologicalNoiseSetup,
+    Setup,
 )
-from ..layouts import Layout
+from ..setups.setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
 from .model import Model
-from ..setups.setup import SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from .util import biased_prefactors, grouper, idle_error_probs
 
 NOT_MEAS = SQ_GATES | TQ_GATES | SQ_RESETS

@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 
 from surface_sim import Layout
 from surface_sim.layouts import (
+    plot,
     repetition_code,
     repetition_stability,
 )
-from surface_sim.layouts import plot
 
 
 def test_repetition_code_x_type(show_figures):

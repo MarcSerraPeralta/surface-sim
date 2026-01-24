@@ -1,13 +1,13 @@
 import pytest
 import stim
 
-from surface_sim.models import NoiselessModel, CircuitNoiseModel
 from surface_sim import Detectors
-from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
-from surface_sim.experiments.arbitrary_experiment import schedule_from_instructions
-from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
-from surface_sim.layouts import unrot_surface_codes
 from surface_sim.circuit_blocks.decorators import noiseless
+from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
+from surface_sim.experiments import experiment_from_schedule, schedule_from_circuit
+from surface_sim.experiments.arbitrary_experiment import schedule_from_instructions
+from surface_sim.layouts import unrot_surface_codes
+from surface_sim.models import CircuitNoiseModel, NoiselessModel
 
 
 def test_schedule_from_circuit():

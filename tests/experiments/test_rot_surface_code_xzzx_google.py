@@ -1,10 +1,9 @@
 import stim
 
-from surface_sim.layouts import rot_surface_code
-
-from surface_sim.experiments.rot_surface_code_xzzx_google import memory_experiment
-from surface_sim.models import NoiselessModel
 from surface_sim import Detectors
+from surface_sim.experiments.rot_surface_code_xzzx_google import memory_experiment
+from surface_sim.layouts import rot_surface_code
+from surface_sim.models import NoiselessModel
 
 
 def test_memory_experiment():

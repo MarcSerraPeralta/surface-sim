@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 
 from surface_sim import Layout
 from surface_sim.layouts import (
+    plot,
     unrot_surface_code,
     unrot_surface_code_rectangle,
     unrot_surface_codes,
 )
-from surface_sim.layouts import plot
 
 
 def test_unrot_surface_code(show_figures):

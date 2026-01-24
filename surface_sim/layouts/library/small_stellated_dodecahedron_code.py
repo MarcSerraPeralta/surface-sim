@@ -1,17 +1,17 @@
 from collections.abc import Collection
 from copy import deepcopy
 
-from ..layout import Layout
 from ...log_gates.small_stellated_dodecahedron_code import (
-    set_fold_trans_s,
     set_fold_trans_h,
-    set_fold_trans_swap_r,
-    set_fold_trans_swap_s,
+    set_fold_trans_s,
     set_fold_trans_swap_a,
     set_fold_trans_swap_b,
     set_fold_trans_swap_c,
+    set_fold_trans_swap_r,
+    set_fold_trans_swap_s,
     set_idle,
 )
+from ..layout import Layout
 
 
 def ssd_code(

@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 
-from surface_sim.layouts import rot_surface_code, rot_surface_code_rectangles
-from surface_sim.layouts import plot
+from surface_sim.layouts import plot, rot_surface_code, rot_surface_code_rectangles
 
 
 def test_plot(show_figures):

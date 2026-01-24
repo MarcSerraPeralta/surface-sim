@@ -3,15 +3,15 @@ from copy import deepcopy
 
 from stim import Circuit
 
-from ..layouts.layout import Layout
 from ..circuit_blocks.rot_surface_code_xzzx import (
     init_qubits,
-    qec_round_google_with_log_meas,
     qec_round_google,
+    qec_round_google_with_log_meas,
     qubit_coords,
 )
-from ..models import Model
 from ..detectors import Detectors
+from ..layouts.layout import Layout
+from ..models import Model
 
 
 def memory_experiment(

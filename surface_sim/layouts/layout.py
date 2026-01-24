@@ -1,10 +1,10 @@
 from __future__ import annotations
-from collections.abc import Collection
-from typing import TypedDict, overload, Literal
 
+from collections.abc import Collection
 from copy import deepcopy
 from os import path
 from pathlib import Path
+from typing import Literal, TypedDict, overload
 
 import networkx as nx
 import numpy as np

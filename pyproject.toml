@@ -35,7 +35,11 @@ namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project.optional-dependencies]
 dev = ["pip-tools",
-       "black",
-       "pytest", "flake8", "flake8-print", "pytest-flake8",
+       "pytest",
+       "ruff",
        "gprof2dot",
        "sphinx", "sphinx-rtd-theme", "numpydoc", "pydata_sphinx_theme", "sphinx_design"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E741", "E731", "E501"]

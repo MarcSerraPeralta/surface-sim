@@ -8,8 +8,8 @@ from collections.abc import Callable, Generator
 
 import stim
 
-from ..models import Model
 from ..layouts import Layout
+from ..models import Model
 
 LogOpFunction = (
     Callable[[Model, Layout], Generator[stim.Circuit]]

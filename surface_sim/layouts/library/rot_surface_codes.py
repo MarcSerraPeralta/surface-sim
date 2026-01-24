@@ -1,19 +1,19 @@
-from collections.abc import Sequence, Mapping
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from functools import partial
 from itertools import count, product
 
-from ..layout import Layout, QubitDict
-from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.rot_surface_code_css import (
+    set_encoding,
     set_fold_trans_s,
-    set_x,
-    set_z,
     set_idle,
     set_trans_cnot,
     set_trans_cnot_mid_cycle_css,
-    set_encoding,
+    set_x,
+    set_z,
 )
+from ..layout import Layout, QubitDict
+from .util import check_distance, invert_shift, is_valid, set_missing_neighbours_to_none
 
 DEFAULT_INTERACTION_ORDER = dict(
     z_type=["north_west", "north_east", "south_west", "south_east"],
@@ -128,7 +128,7 @@ def rot_surface_code_rectangle(
     if (len(init_point) != 2) or any(
         not isinstance(p, (float, int)) for p in init_point
     ):
-        raise TypeError(f"'init_point' must have two elements that are floats or ints.")
+        raise TypeError("'init_point' must have two elements that are floats or ints.")
     if not isinstance(logical_qubit_label, str):
         raise TypeError(
             "'logical_qubit_label' must be a string, "
@@ -507,7 +507,7 @@ def rot_surface_stability_rectangle(
     if (len(init_point) != 2) or any(
         not isinstance(p, (float, int)) for p in init_point
     ):
-        raise TypeError(f"'init_point' must have two elements that are floats or ints.")
+        raise TypeError("'init_point' must have two elements that are floats or ints.")
     if not isinstance(observable, str):
         raise TypeError(
             f"'observable' must be a string, but {type(observable)} was given."

@@ -1,10 +1,10 @@
+from surface_sim.detectors import get_new_stab_dict_from_layout
+from surface_sim.layouts import rot_surface_code, rot_surface_code_rectangle
 from surface_sim.log_gates.rot_surface_code_css import (
+    set_encoding,
     set_fold_trans_s,
     set_trans_cnot_mid_cycle_css,
-    set_encoding,
 )
-from surface_sim.layouts import rot_surface_code_rectangle, rot_surface_code
-from surface_sim.detectors import get_new_stab_dict_from_layout
 
 
 def test_set_trans_cnot_mid_cycle_css():

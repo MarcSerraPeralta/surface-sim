@@ -1,20 +1,19 @@
 import pytest
 import stim
 
+import surface_sim.circuit_blocks as cb
+import surface_sim.experiments as exp
+from surface_sim import Detectors
 from surface_sim.layouts import (
-    unrot_surface_codes,
-    rot_surface_codes,
-    rot_surface_code_rectangles,
-    rot_surface_stability_rectangle,
-    ssd_code,
     repetition_code,
     repetition_stability,
+    rot_surface_code_rectangles,
+    rot_surface_codes,
+    rot_surface_stability_rectangle,
+    ssd_code,
+    unrot_surface_codes,
 )
-
-import surface_sim.experiments as exp
-import surface_sim.circuit_blocks as cb
 from surface_sim.models import NoiselessModel
-from surface_sim import Detectors
 
 
 def test_memory_experiments():
@@ -739,7 +738,8 @@ def test_repeated_s_injection_experiment():
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            lambda *args, **kargs: exp.rot_surface_code_css.repeated_s_injection_experiment(
+            lambda *args,
+            **kargs: exp.rot_surface_code_css.repeated_s_injection_experiment(
                 *args,
                 gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
                 **kargs,

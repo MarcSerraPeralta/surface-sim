@@ -2,27 +2,27 @@ from copy import deepcopy
 
 from stim import Circuit
 
-from ..models.model import Model
-from ..layouts.layout import Layout
-from ..detectors.detectors import Detectors
+from ..circuit_blocks.decorators import (
+    LogOpCallable,
+    qubit_init_x,
+    qubit_init_z,
+)
 from ..circuit_blocks.small_stellated_dodecahedron_code import (
     gate_to_iterator,
     init_qubits_iterator,
-    log_fold_trans_s_iterator,
     log_fold_trans_h_iterator,
-    log_fold_trans_swap_r_iterator,
-    log_fold_trans_swap_s_iterator,
+    log_fold_trans_s_iterator,
     log_fold_trans_swap_a_iterator,
     log_fold_trans_swap_b_iterator,
     log_fold_trans_swap_c_iterator,
+    log_fold_trans_swap_r_iterator,
+    log_fold_trans_swap_s_iterator,
 )
-from ..circuit_blocks.decorators import (
-    qubit_init_z,
-    qubit_init_x,
-    LogOpCallable,
-)
+from ..detectors.detectors import Detectors
+from ..layouts.layout import Layout
+from ..models.model import Model
 from . import templates
-from .arbitrary_experiment import experiment_from_schedule, Schedule
+from .arbitrary_experiment import Schedule, experiment_from_schedule
 
 
 def memory_experiment(
