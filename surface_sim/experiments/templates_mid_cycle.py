@@ -325,7 +325,7 @@ def stability_experiment(
         raise TypeError(
             f"'detectors' must be a Detectors, but {type(detectors)} was given."
         )
-    if detectors.include_gauge_dets == True:
+    if detectors.include_gauge_dets:
         raise ValueError(
             "In stability experiments, detectors.include_gauge_dets must be False."
         )

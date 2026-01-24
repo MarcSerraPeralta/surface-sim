@@ -71,7 +71,7 @@ class Model:
     def _get_default_setup(self) -> Setup:
         if self.DEFAULT_SETUP is None:
             raise ValueError(
-                f"This model does not have a default setup, so it must be specified."
+                "This model does not have a default setup, so it must be specified."
             )
         return self.DEFAULT_SETUP
 

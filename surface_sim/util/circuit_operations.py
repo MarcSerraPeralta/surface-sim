@@ -264,7 +264,7 @@ def merge_logical_operations(
         Circuit from merging the given circuits.
     """
     if any(set(op[0].log_op_type) > set(VALID_OP_TYPES) for op in op_iterators):
-        raise TypeError(f"'op_iterators' must be valid operation types.")
+        raise TypeError("'op_iterators' must be valid operation types.")
     qec_dets_ops = [
         set(QEC_DETS_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
     ]

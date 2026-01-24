@@ -137,7 +137,7 @@ def unrot_surface_code_rectangle(
     if (len(init_point) != 2) or any(
         not isinstance(p, (float, int)) for p in init_point
     ):
-        raise TypeError(f"'init_point' must have two elements that are floats or ints.")
+        raise TypeError("'init_point' must have two elements that are floats or ints.")
     if not isinstance(logical_qubit_label, str):
         raise TypeError(
             "'logical_qubit_label' must be a string, "
