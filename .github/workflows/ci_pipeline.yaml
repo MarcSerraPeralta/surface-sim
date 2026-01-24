@@ -38,5 +38,5 @@ jobs:
         run: ruff check --output-format=github .
           
       - name: execute pytest
-        run: pytest test/
+        run: pytest tests/
 
