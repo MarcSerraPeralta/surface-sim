@@ -105,9 +105,9 @@ class Detectors:
         """Resets all the current generators and number of rounds in order
         to create a different circuit.
         """
-        self.detectors: dict[str, set[str]] = (
-            {}
-        )  # {anc_label: propagation = set of ancilla labels}
+        self.detectors: dict[
+            str, set[str]
+        ] = {}  # {anc_label: propagation = set of ancilla labels}
         self.num_rounds: dict[str, int] = {a: 0 for a in self.anc_qubit_labels}
         self.total_num_rounds: int = 0
         self.update_dict_list: list[dict[str, set[str]]] = []
