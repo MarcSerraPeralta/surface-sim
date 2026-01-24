@@ -1,10 +1,10 @@
 import numpy as np
 
-from surface_sim.layouts import rot_surface_code
-from surface_sim.util import sample_memory_experiment
-from surface_sim.models import NoiselessModel
-from surface_sim.experiments.rot_surface_code_xzzx import memory_experiment
 from surface_sim import Detectors
+from surface_sim.experiments.rot_surface_code_xzzx import memory_experiment
+from surface_sim.layouts import rot_surface_code
+from surface_sim.models import NoiselessModel
+from surface_sim.util import sample_memory_experiment
 
 
 def test_sample_memory_experiment():

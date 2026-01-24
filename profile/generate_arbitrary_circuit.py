@@ -1,11 +1,11 @@
 import stim
-
 from surface_sim.setup import CircuitNoiseSetup
-from surface_sim.models import CircuitNoiseModel
+
 from surface_sim import Detectors
-from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
+from surface_sim.experiments import experiment_from_schedule, schedule_from_circuit
 from surface_sim.layouts import unrot_surface_codes
+from surface_sim.models import CircuitNoiseModel
 
 # INPUTS
 DISTANCE = 41

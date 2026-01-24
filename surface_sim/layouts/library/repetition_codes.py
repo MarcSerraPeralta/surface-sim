@@ -1,15 +1,15 @@
-from collections.abc import Mapping, Sequence
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from functools import partial
 from itertools import count, product
 
 from ..layout import Layout, QubitDict
 from .rot_surface_codes import (
-    rot_surface_stability_rectangle,
     get_data_index,
+    rot_surface_stability_rectangle,
     shift_direction,
 )
-from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
+from .util import check_distance, invert_shift, is_valid, set_missing_neighbours_to_none
 
 
 def repetition_code(

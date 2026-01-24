@@ -1,12 +1,13 @@
 from copy import deepcopy
+
 import pytest
 
+from surface_sim.layouts import rot_surface_code
 from surface_sim.layouts.operations import (
-    check_overlap_layouts,
     check_code_definition,
+    check_overlap_layouts,
     overwrite_interaction_order,
 )
-from surface_sim.layouts import rot_surface_code
 
 
 def test_check_non_overlapping_layouts():

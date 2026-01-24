@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from collections.abc import Callable, Collection, Mapping
-from typing import TypeVar
 from copy import deepcopy
+from typing import TypeVar
+
 import stim
 
 from ..layouts.layout import Layout

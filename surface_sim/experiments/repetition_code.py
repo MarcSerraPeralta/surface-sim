@@ -1,7 +1,7 @@
 from stim import Circuit
 
-from ..circuit_blocks.repetition_code import gate_to_iterator, init_qubits_iterator
 from ..circuit_blocks.decorators import LogOpCallable
+from ..circuit_blocks.repetition_code import gate_to_iterator, init_qubits_iterator
 from . import templates
 
 

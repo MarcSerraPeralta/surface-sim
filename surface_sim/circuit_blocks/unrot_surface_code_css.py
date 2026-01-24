@@ -2,36 +2,36 @@ from collections.abc import Collection
 
 from stim import Circuit
 
+from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
 
 # methods to have in this script
 from .util import (
-    qubit_coords,
     idle_iterator,
+    init_qubits,
+    init_qubits_iterator,
+    init_qubits_x0_iterator,
+    init_qubits_x1_iterator,
+    init_qubits_z0_iterator,
+    init_qubits_z1_iterator,
+    log_fold_trans_h,
+    log_fold_trans_h_iterator,
+    log_fold_trans_s,
+    log_fold_trans_s_iterator,
     log_meas,
     log_meas_iterator,
-    log_meas_z_iterator,
     log_meas_x_iterator,
+    log_meas_z_iterator,
+    log_trans_cnot,
+    log_trans_cnot_iterator,
     log_x,
     log_x_iterator,
     log_z,
     log_z_iterator,
-    init_qubits,
-    init_qubits_iterator,
-    init_qubits_z0_iterator,
-    init_qubits_z1_iterator,
-    init_qubits_x0_iterator,
-    init_qubits_x1_iterator,
-    log_fold_trans_s,
-    log_fold_trans_s_iterator,
-    log_fold_trans_h,
-    log_fold_trans_h_iterator,
-    log_trans_cnot,
-    log_trans_cnot_iterator,
     qec_round_iterator,
     qec_round_iterator_cnots,
+    qubit_coords,
 )
 
 __all__ = [

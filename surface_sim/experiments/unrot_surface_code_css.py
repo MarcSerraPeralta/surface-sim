@@ -1,10 +1,10 @@
 from stim import Circuit
 
+from ..circuit_blocks.decorators import LogOpCallable
 from ..circuit_blocks.unrot_surface_code_css import (
     gate_to_iterator,
     init_qubits_iterator,
 )
-from ..circuit_blocks.decorators import LogOpCallable
 from . import templates
 
 

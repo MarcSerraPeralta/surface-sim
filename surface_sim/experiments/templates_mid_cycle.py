@@ -1,18 +1,19 @@
 from collections.abc import Collection, Sequence
 from copy import deepcopy
+
 from stim import Circuit, CircuitInstruction, GateTarget
 
+from ..circuit_blocks.decorators import (
+    LogOpCallable,
+    qubit_init_x,
+    qubit_init_z,
+)
+from ..detectors import Detectors
+from ..layouts.layout import Layout
+from ..models import Model
 from .arbitrary_experiment import (
     experiment_from_schedule,
     schedule_from_mid_cycle_circuit,
-)
-from ..layouts.layout import Layout
-from ..models import Model
-from ..detectors import Detectors
-from ..circuit_blocks.decorators import (
-    qubit_init_z,
-    qubit_init_x,
-    LogOpCallable,
 )
 
 

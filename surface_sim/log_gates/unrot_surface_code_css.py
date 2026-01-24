@@ -1,9 +1,10 @@
 from collections.abc import Callable
+
 import numpy as np
 import numpy.typing as npt
 
 from ..layouts.layout import Layout
-from .util import set_x, set_z, set_idle, set_trans_cnot
+from .util import set_idle, set_trans_cnot, set_x, set_z
 
 __all__ = [
     "set_x",

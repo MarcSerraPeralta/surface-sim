@@ -1,6 +1,6 @@
-from surface_sim.log_gates.util import set_x, set_z, set_idle, set_trans_cnot
-from surface_sim.layouts import unrot_surface_code, rot_surface_code
 from surface_sim.detectors import get_new_stab_dict_from_layout
+from surface_sim.layouts import rot_surface_code, unrot_surface_code
+from surface_sim.log_gates.util import set_idle, set_trans_cnot, set_x, set_z
 
 
 def test_set_x():

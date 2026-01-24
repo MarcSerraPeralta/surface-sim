@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from collections.abc import Collection
-from typing import TypedDict
 from copy import deepcopy
 from pathlib import Path
+from typing import TypedDict
 
 import yaml
 

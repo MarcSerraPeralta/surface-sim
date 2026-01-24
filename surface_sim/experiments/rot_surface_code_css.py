@@ -2,13 +2,13 @@ from collections.abc import Sequence
 
 from stim import Circuit
 
+from ..circuit_blocks.decorators import LogOpCallable
 from ..circuit_blocks.rot_surface_code_css import (
     gate_to_iterator,
     gate_to_iterator_mid_cycle_cnots,
-    tick_iterators_mid_cycle_cnots,
     init_qubits_iterator,
+    tick_iterators_mid_cycle_cnots,
 )
-from ..circuit_blocks.decorators import LogOpCallable
 from . import templates, templates_mid_cycle
 
 

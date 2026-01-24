@@ -4,7 +4,7 @@ import numpy as np
 
 from ..layouts.layout import Layout
 from ..layouts.operations import check_overlap_layouts
-from .util import set_x, set_z, set_idle, set_trans_cnot
+from .util import set_idle, set_trans_cnot, set_x, set_z
 
 __all__ = [
     "set_x",

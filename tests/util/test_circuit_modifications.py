@@ -1,7 +1,7 @@
 import stim
 
-from surface_sim.util import add_noise_to_circuit
 from surface_sim.models import CircuitNoiseModel
+from surface_sim.util import add_noise_to_circuit
 
 
 def test_add_noise_to_circuit():

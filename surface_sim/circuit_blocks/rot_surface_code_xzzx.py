@@ -1,29 +1,29 @@
-from collections.abc import Generator, Collection
+from collections.abc import Collection, Generator
 from itertools import chain
 
 from stim import Circuit
 
+from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
-from .decorators import qec_circuit, logical_measurement_x, logical_measurement_z
+from .decorators import logical_measurement_x, logical_measurement_z, qec_circuit
 
 # methods to have in this script
-from .util import qubit_coords, idle_iterator
-from .util import log_x_xzzx as log_x
-from .util import log_x_xzzx_iterator as log_x_iterator
-from .util import log_z_xzzx as log_z
-from .util import log_z_xzzx_iterator as log_z_iterator
-from .util import log_meas_xzzx as log_meas
-from .util import log_meas_xzzx_iterator as log_meas_iterator
-from .util import log_meas_z_xzzx_iterator as log_meas_z_iterator
-from .util import log_meas_x_xzzx_iterator as log_meas_x_iterator
+from .util import idle_iterator, qubit_coords
+from .util import init_qubits_x0_xzzx_iterator as init_qubits_x0_iterator
+from .util import init_qubits_x1_xzzx_iterator as init_qubits_x1_iterator
 from .util import init_qubits_xzzx as init_qubits
 from .util import init_qubits_xzzx_iterator as init_qubits_iterator
 from .util import init_qubits_z0_xzzx_iterator as init_qubits_z0_iterator
 from .util import init_qubits_z1_xzzx_iterator as init_qubits_z1_iterator
-from .util import init_qubits_x0_xzzx_iterator as init_qubits_x0_iterator
-from .util import init_qubits_x1_xzzx_iterator as init_qubits_x1_iterator
+from .util import log_meas_x_xzzx_iterator as log_meas_x_iterator
+from .util import log_meas_xzzx as log_meas
+from .util import log_meas_xzzx_iterator as log_meas_iterator
+from .util import log_meas_z_xzzx_iterator as log_meas_z_iterator
+from .util import log_x_xzzx as log_x
+from .util import log_x_xzzx_iterator as log_x_iterator
+from .util import log_z_xzzx as log_z
+from .util import log_z_xzzx_iterator as log_z_iterator
 
 __all__ = [
     "qubit_coords",

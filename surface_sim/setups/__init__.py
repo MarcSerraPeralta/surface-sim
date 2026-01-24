@@ -1,14 +1,14 @@
-from .setup import Setup, SQ_GATES, SQ_RESETS, SQ_MEASUREMENTS, TQ_GATES
 from .library import (
-    CircuitNoiseSetup,
-    SI1000,
     SD6,
+    SI1000,
     BiasedCircuitNoiseSetup,
+    CircuitNoiseSetup,
     IncomingNoiseSetup,
-    PhenomenologicalNoiseSetup,
-    MeasurementNoiseSetup,
     IncResMeasNoiseSetup,
+    MeasurementNoiseSetup,
+    PhenomenologicalNoiseSetup,
 )
+from .setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES, Setup
 
 __all__ = [
     "Setup",

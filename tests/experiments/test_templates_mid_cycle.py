@@ -1,14 +1,13 @@
 import pytest
 import stim
 
+import surface_sim.experiments as exp
+from surface_sim import Detectors
 from surface_sim.layouts import (
     rot_surface_codes,
     rot_surface_stability_rectangle,
 )
-
-import surface_sim.experiments as exp
 from surface_sim.models import NoiselessModel
-from surface_sim import Detectors
 
 
 def test_memory_experiments():

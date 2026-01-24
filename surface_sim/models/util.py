@@ -1,11 +1,10 @@
 from collections.abc import Iterable, Iterator
-from typing import TypeVar
-
 from itertools import product
+from math import exp
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
-from math import exp
 
 T = TypeVar("T")
 

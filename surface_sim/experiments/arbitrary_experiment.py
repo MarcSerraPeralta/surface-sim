@@ -3,16 +3,16 @@ from typing import TypeVar
 
 import stim
 
-from ..util.circuit_operations import (
-    merge_logical_operations,
-    QEC_OP_TYPES,
-    RESET_OP_TYPES,
-)
+from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable
+from ..circuit_blocks.util import idle_iterator, qubit_coords
+from ..detectors.detectors import Detectors
 from ..layouts.layout import Layout
 from ..models.model import Model
-from ..detectors.detectors import Detectors
-from ..circuit_blocks.util import qubit_coords, idle_iterator
-from ..circuit_blocks.decorators import LogOpCallable, LogicalOperation
+from ..util.circuit_operations import (
+    QEC_OP_TYPES,
+    RESET_OP_TYPES,
+    merge_logical_operations,
+)
 
 T = TypeVar("T")
 Instructions = list[tuple[LogOpCallable] | LogicalOperation]

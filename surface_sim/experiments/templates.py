@@ -1,17 +1,18 @@
 from collections.abc import Collection
 from copy import deepcopy
+
 from stim import Circuit, CircuitInstruction, GateTarget
 
-from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
+from ..circuit_blocks.decorators import (
+    LogOpCallable,
+    qubit_init_x,
+    qubit_init_z,
+)
+from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..detectors import Detectors
-from ..circuit_blocks.decorators import (
-    qubit_init_z,
-    qubit_init_x,
-    LogOpCallable,
-)
 from ..util.observables import remove_nondeterministic_observables
+from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
 
 
 def memory_experiment(

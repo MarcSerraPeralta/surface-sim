@@ -1,18 +1,18 @@
-from collections.abc import Mapping, Sequence
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from functools import partial
 from itertools import count
 
-from ..layout import Layout, QubitDict
-from .util import is_valid, invert_shift, check_distance, set_missing_neighbours_to_none
 from ...log_gates.unrot_surface_code_css import (
-    set_fold_trans_s,
     set_fold_trans_h,
+    set_fold_trans_s,
+    set_idle,
     set_trans_cnot,
     set_x,
     set_z,
-    set_idle,
 )
+from ..layout import Layout, QubitDict
+from .util import check_distance, invert_shift, is_valid, set_missing_neighbours_to_none
 
 DEFAULT_INTERACTION_ORDER = dict(
     x_type=["north", "west", "east", "south"],

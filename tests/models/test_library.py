@@ -3,21 +3,21 @@ from stim import Circuit, target_rec
 
 from surface_sim import Setup
 from surface_sim.models import (
-    NoiselessModel,
-    T1T2NoiseModel,
+    BiasedCircuitNoiseModel,
     CircuitNoiseModel,
-    IncomingNoiseModel,
     IncomingDepolNoiseModel,
-    PhenomenologicalNoiseModel,
-    PhenomenologicalDepolNoiseModel,
+    IncomingNoiseModel,
     IncResMeasNoiseModel,
     MeasurementNoiseModel,
-    SI1000NoiseModel,
-    BiasedCircuitNoiseModel,
     MovableQubitsCircuitNoiseModel,
+    NoiselessModel,
+    PhenomenologicalDepolNoiseModel,
+    PhenomenologicalNoiseModel,
     SD6NoiseModel,
+    SI1000NoiseModel,
+    T1T2NoiseModel,
 )
-from surface_sim.setups import SQ_GATES, SQ_RESETS, SQ_MEASUREMENTS, TQ_GATES
+from surface_sim.setups import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
 
 SETUP = {
     "gate_durations": {n: 1 for n in (SQ_GATES | TQ_GATES).values()}

@@ -1,21 +1,21 @@
 import pytest
 import stim
 
+from surface_sim import Detectors
+from surface_sim.circuit_blocks.unrot_surface_code_css import (
+    init_qubits_z0_iterator,
+    log_meas_x_iterator,
+    log_meas_z_iterator,
+    log_x_iterator,
+    qec_round_iterator,
+)
+from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_codes
+from surface_sim.models import NoiselessModel
 from surface_sim.util.circuit_operations import (
-    merge_operation_layers,
     merge_circuits,
     merge_logical_operations,
+    merge_operation_layers,
 )
-from surface_sim.circuit_blocks.unrot_surface_code_css import (
-    qec_round_iterator,
-    init_qubits_z0_iterator,
-    log_meas_z_iterator,
-    log_meas_x_iterator,
-    log_x_iterator,
-)
-from surface_sim.models import NoiselessModel
-from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_codes
-from surface_sim import Detectors
 
 
 def test_merge_operation_layers():

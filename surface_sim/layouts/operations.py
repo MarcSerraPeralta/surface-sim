@@ -1,5 +1,5 @@
-import numpy as np
 import galois
+import numpy as np
 
 from .layout import Layout
 

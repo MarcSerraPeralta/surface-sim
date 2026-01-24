@@ -1,14 +1,14 @@
+from surface_sim.detectors import get_new_stab_dict_from_layout
+from surface_sim.layouts import ssd_code
 from surface_sim.log_gates.small_stellated_dodecahedron_code import (
-    set_fold_trans_s,
     set_fold_trans_h,
-    set_fold_trans_swap_r,
-    set_fold_trans_swap_s,
+    set_fold_trans_s,
     set_fold_trans_swap_a,
     set_fold_trans_swap_b,
     set_fold_trans_swap_c,
+    set_fold_trans_swap_r,
+    set_fold_trans_swap_s,
 )
-from surface_sim.layouts import ssd_code
-from surface_sim.detectors import get_new_stab_dict_from_layout
 
 
 def test_set_fold_trans_s():

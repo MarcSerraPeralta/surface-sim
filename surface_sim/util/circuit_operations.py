@@ -3,17 +3,17 @@ from itertools import chain
 
 import stim
 
-from ..layouts.layout import Layout
-from ..detectors import Detectors, get_new_stab_dict_from_layout
-from ..models import Model
 from ..circuit_blocks.decorators import (
-    LogOpCallable,
     LogicalOperation,
-    qec_circuit,
+    LogOpCallable,
     logical_measurement_x,
     logical_measurement_z,
+    qec_circuit,
     to_mid_cycle_circuit,
 )
+from ..detectors import Detectors, get_new_stab_dict_from_layout
+from ..layouts.layout import Layout
+from ..models import Model
 
 MEAS_INSTR = [
     "M",

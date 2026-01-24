@@ -1,14 +1,14 @@
 from __future__ import annotations
-from typing_extensions import override
-from collections.abc import Collection
 
+from collections.abc import Collection
 from copy import deepcopy
 
-from stim import CircuitInstruction, target_rec, GateTarget, Circuit
+from stim import Circuit, CircuitInstruction, GateTarget, target_rec
+from typing_extensions import override
 
-from ..setups import Setup
-from ..setups.setup import ANNOTATIONS, SQ_GATES, TQ_GATES, SQ_MEASUREMENTS, SQ_RESETS
 from ..layouts import Layout
+from ..setups import Setup
+from ..setups.setup import ANNOTATIONS, SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
 
 
 class Model:

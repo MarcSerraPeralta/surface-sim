@@ -2,12 +2,12 @@
 
 __version__ = "0.10.0"
 
-from . import experiments, models, util, circuit_blocks, layouts, log_gates, setups
-from .setups import Setup
-from .models import Model
+from . import circuit_blocks, experiments, layouts, log_gates, models, setups, util
+from .circuit_blocks.decorators import noiseless
 from .detectors import Detectors
 from .layouts import Layout
-from .circuit_blocks.decorators import noiseless
+from .models import Model
+from .setups import Setup
 
 __all__ = [
     "models",
