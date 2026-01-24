@@ -31,9 +31,12 @@ jobs:
           pip install --only-binary=numba --only-binary=llmvlite -r requirements_dev.txt
           pip install .[dev] --no-deps
 
-      - name: check black formatting
-        run: black . --check
+      - name: check formatting
+        run: ruff format --check .
+
+      - name: check linting
+        run: ruff check --output-format=github .
           
       - name: execute pytest
-        run: pytest 
+        run: pytest test/
 
