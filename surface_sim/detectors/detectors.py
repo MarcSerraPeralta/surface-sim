@@ -84,8 +84,8 @@ class Detectors:
     @classmethod
     def from_layouts(
         cls: type[Detectors],
-        frame: str,
         *layouts: Layout,
+        frame: str = "pre-gate",
         include_gauge_dets: bool = False,
     ) -> "Detectors":
         """Creates a ``Detectors`` object using the information from the layouts.
