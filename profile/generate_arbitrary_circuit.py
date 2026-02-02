@@ -1,5 +1,4 @@
 import stim
-from surface_sim.setup import CircuitNoiseSetup
 
 from surface_sim import Detectors
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
@@ -37,10 +36,9 @@ CIRCUIT = stim.Circuit(
 
 layouts = unrot_surface_codes(CIRCUIT.num_qubits, distance=DISTANCE)
 
-setup = CircuitNoiseSetup()
-setup.set_var_param("prob", PROB)
-model = NOISE_MODEL.from_layouts(setup, *layouts)
-detectors = Detectors.from_layouts(FRAME, *layouts)
+model = NOISE_MODEL.from_layouts(*layouts)
+model.setup.set_var_param("prob", PROB)
+detectors = Detectors.from_layouts(*layouts, frame=FRAME)
 
 schedule = schedule_from_circuit(CIRCUIT, layouts, gate_to_iterator)
 experiment = experiment_from_schedule(
