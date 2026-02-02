@@ -113,7 +113,7 @@ def test_repeated_cnot_experiments():
     for layouts, repeated_cnot_experiment in TESTS:
         layout_c, layout_t = layouts
         model = NoiselessModel.from_layouts(*layouts)
-        detectors = Detectors.from_layouts("post-gate", *layouts)
+        detectors = Detectors.from_layouts(*layouts, frame="post-gate")
 
         # standard experiment in both basis
         for rot_basis in [True, False]:
@@ -151,7 +151,7 @@ def test_repeated_cnot_experiments():
 
         # build for some specific detectors
         detectors = Detectors.from_layouts(
-            "post-gate", *layouts, include_gauge_dets=True
+            *layouts, frame="post-gate", include_gauge_dets=True
         )
         circuit = repeated_cnot_experiment(
             model=model,
@@ -181,7 +181,7 @@ def test_repeated_cnot_experiments():
 
         # without gauge detectors
         detectors = Detectors.from_layouts(
-            "post-gate", *layouts, include_gauge_dets=False
+            *layouts, frame="post-gate", include_gauge_dets=False
         )
         circuit = repeated_cnot_experiment(
             model=model,

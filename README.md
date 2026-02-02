@@ -40,7 +40,7 @@ from surface_sim.experiments.rot_surface_code_css import memory_experiment
 # prepare the layout, model, and detectors objects
 layout = rot_surface_code(distance=3)
 model = CircuitNoiseModel(layout.qubit_inds)
-detectors = Detectors(layout.anc_qubits, frame="pre-gate")
+detectors = Detectors.from_layouts(layout)
 
 # create a memory experiment
 NUM_ROUNDS = 10
@@ -91,7 +91,7 @@ circuit = stim.Circuit(
 
 layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
 model = CircuitNoiseModel.from_layouts(*layouts)
-detectors = Detectors.from_layouts("pre-gate", *layouts)
+detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
 model.setup.set_var_param("prob", 1e-3)
 
