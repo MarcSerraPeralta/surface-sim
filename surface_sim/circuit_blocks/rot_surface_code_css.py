@@ -344,7 +344,7 @@ def _encoding_qubits_iterator(
     primitive_gates
         Set of primitive gates to use. The available options are:
         (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
-        (2) ``"h+cz"``, which uses RZ, H, and CZ gates.
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
         Note that the ``physical_reset_op`` will not be decomposed into primitive
         gates.
 
