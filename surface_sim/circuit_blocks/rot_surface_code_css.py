@@ -63,6 +63,10 @@ __all__ = [
     "qec_round_pipelined",
     "qec_round_pipelined_iterator",
     "log_trans_cnot_mid_cycle_css_iterator",
+    "encoding_qubits_iterator",
+    "encoding_qubits_x0_iterator",
+    "encoding_qubits_y0_iterator",
+    "encoding_qubits_z0_iterator",
     "encoding_qubits_iterator_cnots",
     "encoding_qubits_x0_iterator_cnots",
     "encoding_qubits_y0_iterator_cnots",
@@ -317,10 +321,11 @@ def log_trans_cnot_mid_cycle_css_iterator(
     yield model.tick()
 
 
-def encoding_qubits_iterator_cnots(
+def _encoding_qubits_iterator(
     model: Model,
     layout: Layout,
     physical_reset_op: str,
+    primitive_gates: str,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
@@ -336,6 +341,12 @@ def encoding_qubits_iterator_cnots(
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
         to a rotated surface code.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive
+        gates.
 
     Notes
     -----
@@ -346,19 +357,26 @@ def encoding_qubits_iterator_cnots(
 
     """
     if layout.distance % 2 == 1:
-        yield from encoding_qubits_odd_d_iterator_cnots(
-            model=model, layout=layout, physical_reset_op=physical_reset_op
+        yield from _encoding_qubits_odd_d_iterator(
+            model=model,
+            layout=layout,
+            physical_reset_op=physical_reset_op,
+            primitive_gates=primitive_gates,
         )
     else:
-        yield from encoding_qubits_even_d_iterator_cnots(
-            model=model, layout=layout, physical_reset_op=physical_reset_op
+        yield from _encoding_qubits_even_d_iterator(
+            model=model,
+            layout=layout,
+            physical_reset_op=physical_reset_op,
+            primitive_gates=primitive_gates,
         )
 
 
-def encoding_qubits_even_d_iterator_cnots(
+def _encoding_qubits_even_d_iterator(
     model: Model,
     layout: Layout,
     physical_reset_op: str,
+    primitive_gates: str,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
@@ -374,6 +392,12 @@ def encoding_qubits_even_d_iterator_cnots(
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
         to a rotated surface code.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive
+        gates.
 
     Notes
     -----
@@ -391,6 +415,8 @@ def encoding_qubits_even_d_iterator_cnots(
         raise TypeError(
             f"The given layout does not have even distance, but distance {layout.distance}."
         )
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
@@ -409,16 +435,20 @@ def encoding_qubits_even_d_iterator_cnots(
     # the CNOTs and resets depend wether the weight-2 stabilizers are Z-type or X-type.
     z_anc = layout.get_neighbors([l[(0, 0)]], stab_type="z_type")[0]
     reversed = len(layout.get_neighbors([z_anc])) != 2
+    qubits = set(layout.qubits)
 
     # step 1
     circ = Circuit()
     reset_z, reset_x = [l[(0, 2)], l[(0, 3)]], [l[(0, 1)]]
     if reversed:
         reset_z, reset_x = reset_x, reset_z
-    circ += model.reset_z(reset_z)
-    circ += model.reset_x(reset_x)
+    hadamards_1 = set(reset_x)
+    if primitive_gates == "cnot":
+        circ += model.reset_x(reset_x) + model.reset_z(reset_z)
+    elif primitive_gates == "cz":
+        circ += model.reset_z(reset_z + reset_x)
     circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
-    yield circ + model.idle(layout.anc_qubits)
+    yield circ + model.idle(qubits - set([l[(0, 0)], *reset_x, *reset_z]))
     yield model.tick()
 
     # step 2
@@ -427,9 +457,20 @@ def encoding_qubits_even_d_iterator_cnots(
     if reversed:
         pair1 = pair1[::-1]
         pair2 = pair2[::-1]
+    hadamards_2 = set([pair1[1], pair2[1]])
+
+    # apply hadamards between step 1 and 2
+    if primitive_gates == "cz":
+        hadamards = hadamards_1.symmetric_difference(hadamards_2)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot([*pair1, *pair2])
-    circ += model.idle(layout.anc_qubits)
+    if primitive_gates == "cnot":
+        circ += model.cnot([*pair1, *pair2])
+    elif primitive_gates == "cz":
+        circ += model.cphase([*pair1, *pair2])
+    circ += model.idle(qubits - set(pair1 + pair2))
     yield circ
     yield model.tick()
 
@@ -439,23 +480,42 @@ def encoding_qubits_even_d_iterator_cnots(
     if reversed:
         pair1 = pair1[::-1]
         pair2 = pair2[::-1]
+    hadamards_3 = set([pair1[1], pair2[1]])
+
+    # apply hadamards between step 2 and 3
+    if primitive_gates == "cz":
+        hadamards = hadamards_2.symmetric_difference(hadamards_3)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot([*pair1, *pair2])
-    circ += model.idle(layout.anc_qubits)
+    if primitive_gates == "cnot":
+        circ += model.cnot([*pair1, *pair2])
+    elif primitive_gates == "cz":
+        circ += model.cphase([*pair1, *pair2])
+    circ += model.idle(qubits - set(pair1 + pair2))
     yield circ
     yield model.tick()
 
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_3) + model.idle(qubits - hadamards_3)
+        yield model.tick()
+
     # grow code to maximum size
     for d in range(2, layout.distance, 2):
-        yield from grow_code_even_d_iterator_cnots(
-            model=model, layout=layout, init_distance=d
+        yield from _grow_code_even_d_iterator(
+            model=model,
+            layout=layout,
+            init_distance=d,
+            primitive_gates=primitive_gates,
         )
 
 
-def grow_code_even_d_iterator_cnots(
+def _grow_code_even_d_iterator(
     model: Model,
     layout: Layout,
     init_distance: int,
+    primitive_gates: str,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an circuit growing
@@ -471,6 +531,12 @@ def grow_code_even_d_iterator_cnots(
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
         to a rotated surface code.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive
+        gates.
 
     Notes
     -----
@@ -495,6 +561,8 @@ def grow_code_even_d_iterator_cnots(
             f"'init_distance' ({init_distance}) must be strictly larger than "
             f"the code distance ({layout.distance})."
         )
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
@@ -512,7 +580,7 @@ def grow_code_even_d_iterator_cnots(
     inner_ring = (init_distance - 1) // 2
     outer_ring = inner_ring + 1
     length = init_distance + 1
-    qubits = set(layout.data_qubits)
+    qubits = set(layout.qubits)
 
     # the CNOTs and resets depend wether the weight-2 stabilizers are Z-type or X-type.
     z_anc = layout.get_neighbors([l[(0, 0)]], stab_type="z_type")[0]
@@ -539,9 +607,13 @@ def grow_code_even_d_iterator_cnots(
 
     if reversed:
         reset_x, reset_z = reset_z, reset_x
+    hadamards_1 = set(reset_x)
     idling = qubits - set(reset_x) - set(reset_z)
 
-    yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    if primitive_gates == "cnot":
+        yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    elif primitive_gates == "cz":
+        yield model.reset_z(reset_x + reset_z) + model.idle(idling)
     yield model.tick()
 
     # step 2
@@ -585,8 +657,19 @@ def grow_code_even_d_iterator_cnots(
     if reversed:
         inner, outer = outer, inner
     cnots += list(chain.from_iterable(zip(outer, inner)))
+    hadamards_2 = set(cnots[1::2])
 
-    yield model.cnot(cnots) + model.idle(idling)
+    # apply hadamards between step 1 and 2
+    if primitive_gates == "cz":
+        hadamards = hadamards_1.symmetric_difference(hadamards_2)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
+    idling = qubits - set(cnots)
+    if primitive_gates == "cnot":
+        yield model.cnot(cnots) + model.idle(idling)
+    elif primitive_gates == "cz":
+        yield model.cphase(cnots) + model.idle(idling)
     yield model.tick()
 
     # step 3
@@ -617,15 +700,28 @@ def grow_code_even_d_iterator_cnots(
         if reversed:
             inner, outer = outer, inner
         cnots += list(chain.from_iterable(zip(outer, inner)))
+    hadamards_3 = set(cnots[1::2])
 
-    yield model.cnot(cnots) + model.idle(idling)
+    # apply hadamards between step 2 and 3
+    if primitive_gates == "cz":
+        hadamards = hadamards_2.symmetric_difference(hadamards_3)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
+    idling = qubits - set(cnots)
+    if primitive_gates == "cnot":
+        yield model.cnot(cnots) + model.idle(idling)
+    elif primitive_gates == "cz":
+        yield model.cphase(cnots) + model.idle(idling)
     yield model.tick()
 
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_3) + model.idle(qubits - hadamards_3)
+        yield model.tick()
 
-def encoding_qubits_odd_d_iterator_cnots(
-    model: Model,
-    layout: Layout,
-    physical_reset_op: str,
+
+def _encoding_qubits_odd_d_iterator(
+    model: Model, layout: Layout, physical_reset_op: str, primitive_gates: str
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
@@ -641,6 +737,12 @@ def encoding_qubits_odd_d_iterator_cnots(
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
         to a rotated surface code.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive
+        gates.
 
     Notes
     -----
@@ -658,6 +760,8 @@ def encoding_qubits_odd_d_iterator_cnots(
         raise TypeError(
             f"The given layout does not have odd distance, but distance {layout.distance}."
         )
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
@@ -672,62 +776,116 @@ def encoding_qubits_odd_d_iterator_cnots(
             )
         l[glabel] = qubit
 
+    qubits = set(layout.qubits)
+
     # first build d=3 rotated surface code
     # step 1
+    reset_x = [l[(1, 1)], l[(1, 7)], l[(1, 3)], l[(1, 5)]]
+    reset_z = [l[(1, 0)], l[(1, 2)], l[(1, 6)], l[(1, 4)]]
+    hadamards_1 = set(reset_x)
+
     circ = Circuit()
-    circ += model.reset_z([l[(1, 0)], l[(1, 2)], l[(1, 6)], l[(1, 4)]])
-    circ += model.reset_x([l[(1, 1)], l[(1, 7)], l[(1, 3)], l[(1, 5)]])
+    if primitive_gates == "cnot":
+        circ += model.reset_z(reset_z)
+        circ += model.reset_x(reset_x)
+    elif primitive_gates == "cz":
+        circ += model.reset_z(reset_z + reset_x)
     circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
-    yield circ + model.idle(layout.anc_qubits)
+    yield circ + model.idle(qubits - set([l[(0, 0)], *reset_x, *reset_z]))
     yield model.tick()
 
     # step 2
+    cnots = [l[(1, 1)], l[(1, 2)], l[(1, 3)], l[(0, 0)], l[(1, 5)], l[(1, 6)]]
+    hadamards_2 = set(cnots[1::2])
+
+    # apply hadamards between step 1 and 2
+    if primitive_gates == "cz":
+        hadamards = hadamards_1.symmetric_difference(hadamards_2)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot(
-        [l[(1, 1)], l[(1, 2)], l[(1, 3)], l[(0, 0)], l[(1, 5)], l[(1, 6)]]
-    )
-    circ += model.idle([l[(1, 0)], l[(1, 7)], l[(1, 4)], *layout.anc_qubits])
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
     yield circ
     yield model.tick()
 
     # step 3
+    cnots = [l[(1, 7)], l[(1, 0)], l[(0, 0)], l[(1, 1)], l[(1, 3)], l[(1, 4)]]
+    hadamards_3 = set(cnots[1::2])
+
+    # apply hadamards between step 2 and 3
+    if primitive_gates == "cz":
+        hadamards = hadamards_2.symmetric_difference(hadamards_3)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot(
-        [l[(1, 7)], l[(1, 0)], l[(0, 0)], l[(1, 1)], l[(1, 3)], l[(1, 4)]]
-    )
-    circ += model.idle([l[(1, 2)], l[(1, 6)], l[(1, 5)], *layout.anc_qubits])
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
     yield circ
     yield model.tick()
 
     # step 4
+    cnots = [l[(1, 0)], l[(1, 1)], l[(1, 7)], l[(0, 0)], l[(1, 3)], l[(1, 2)]]
+    hadamards_4 = set(cnots[1::2])
+
+    # apply hadamards between step 3 and 4
+    if primitive_gates == "cz":
+        hadamards = hadamards_3.symmetric_difference(hadamards_4)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot(
-        [l[(1, 0)], l[(1, 1)], l[(1, 7)], l[(0, 0)], l[(1, 3)], l[(1, 2)]]
-    )
-    circ += model.idle([l[(1, 6)], l[(1, 5)], l[(1, 4)], *layout.anc_qubits])
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
     yield circ
     yield model.tick()
 
     # step 5
+    cnots = [l[(1, 7)], l[(1, 6)], l[(0, 0)], l[(1, 5)]]
+    hadamards_5 = set(cnots[1::2])
+
+    # apply hadamards between step 4 and 5
+    if primitive_gates == "cz":
+        hadamards = hadamards_4.symmetric_difference(hadamards_5)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
     circ = Circuit()
-    circ += model.cnot([l[(1, 7)], l[(1, 6)], l[(0, 0)], l[(1, 5)]])
-    circ += model.idle(
-        [l[(1, 0)], l[(1, 1)], l[(1, 2)], l[(1, 3)], l[(1, 4)], *layout.anc_qubits]
-    )
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
     yield circ
     yield model.tick()
 
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_5) + model.idle(qubits - hadamards_5)
+        yield model.tick()
+
     # grow code to maximum size
     for d in range(3, layout.distance, 2):
-        yield from grow_code_odd_d_iterator_cnots(
-            model=model, layout=layout, init_distance=d
+        yield from _grow_code_odd_d_iterator(
+            model=model, layout=layout, init_distance=d, primitive_gates=primitive_gates
         )
 
 
-def grow_code_odd_d_iterator_cnots(
+def _grow_code_odd_d_iterator(
     model: Model,
     layout: Layout,
     init_distance: int,
+    primitive_gates: str,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an circuit growing
@@ -743,6 +901,12 @@ def grow_code_odd_d_iterator_cnots(
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
         to a rotated surface code.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive
+        gates.
 
     Notes
     -----
@@ -767,6 +931,8 @@ def grow_code_odd_d_iterator_cnots(
             f"'init_distance' ({init_distance}) must be strictly larger than "
             f"the code distance ({layout.distance})."
         )
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
@@ -784,7 +950,7 @@ def grow_code_odd_d_iterator_cnots(
     inner_ring = (init_distance - 1) // 2
     outer_ring = inner_ring + 1
     length = init_distance + 1
-    qubits = set(layout.data_qubits)
+    qubits = set(layout.qubits)
 
     # step 1
     reset_x: list[str] = []
@@ -800,8 +966,12 @@ def grow_code_odd_d_iterator_cnots(
         reset_z += [l[(outer_ring, p + i * length)] for p in range(1, length - 2, 2)]
         reset_x += [l[(outer_ring, p + i * length)] for p in range(2, length - 1, 2)]
     idling = qubits - set(reset_x) - set(reset_z)
+    hadamards_1 = set(reset_x)
 
-    yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    if primitive_gates == "cnot":
+        yield model.reset_x(reset_x) + model.reset_z(reset_z) + model.idle(idling)
+    elif primitive_gates == "cz":
+        yield model.reset_z(reset_x + reset_z) + model.idle(idling)
     yield model.tick()
 
     # step 2
@@ -819,8 +989,21 @@ def grow_code_odd_d_iterator_cnots(
             last, inner = inner, last
         cnots += [inner, last]
     idling = qubits - set(cnots)
+    hadamards_2 = set(cnots[1::2])
 
-    yield model.cnot(cnots) + model.idle(idling)
+    # apply hadamards between step 1 and 2
+    if primitive_gates == "cz":
+        hadamards = hadamards_1.symmetric_difference(hadamards_2)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
+    circ = Circuit()
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
+    yield circ
     yield model.tick()
 
     # step 3
@@ -838,9 +1021,200 @@ def grow_code_odd_d_iterator_cnots(
             outer, inner = inner, outer
         cnots += list(chain.from_iterable(zip(inner, outer)))
     idling = qubits - set(cnots)
+    hadamards_3 = set(cnots[1::2])
 
-    yield model.cnot(cnots) + model.idle(idling)
+    # apply hadamards between step 2 and 3
+    if primitive_gates == "cz":
+        hadamards = hadamards_2.symmetric_difference(hadamards_3)
+        yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+        yield model.tick()
+
+    circ = Circuit()
+    if primitive_gates == "cnot":
+        circ += model.cnot(cnots)
+    elif primitive_gates == "cz":
+        circ += model.cphase(cnots)
+    circ += model.idle(qubits - set(cnots))
+    yield circ
     yield model.tick()
+
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_3) + model.idle(qubits - hadamards_3)
+        yield model.tick()
+
+
+def encoding_qubits_iterator(
+    model: Model,
+    layout: Layout,
+    physical_reset_op: str,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    to a rotated surface code of the given model without the detectors.
+    Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from _encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op=physical_reset_op,
+        primitive_gates="cz",
+    )
+
+
+@qubit_encoding
+def encoding_qubits_x0_iterator(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +X eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model, layout=layout, physical_reset_op="reset_x"
+    )
+
+
+@qubit_encoding
+def encoding_qubits_y0_iterator(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Y eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_y",
+    )
+
+
+@qubit_encoding
+def encoding_qubits_z0_iterator(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Z eigenstate to a distance-3 rotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout. Must correspond to a distance-3 rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_z",
+    )
+
+
+def encoding_qubits_iterator_cnots(
+    model: Model,
+    layout: Layout,
+    physical_reset_op: str,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    to a rotated surface code of the given model without the detectors.
+    Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a rotated surface code.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    """
+    yield from _encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op=physical_reset_op,
+        primitive_gates="cnot",
+    )
 
 
 @qubit_encoding
