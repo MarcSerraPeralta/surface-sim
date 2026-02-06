@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+import math
+from collections.abc import Collection, Sequence
 
 from stim import Circuit, CircuitInstruction
 from typing_extensions import override
 
 from ..layouts import Layout
 from ..setups import (
+    NLR,
     SD6,
     SI1000,
     BiasedCircuitNoiseSetup,
@@ -302,6 +304,58 @@ class SI1000NoiseModel(CircuitNoiseModel):
             circ += self.idle_noise(idle_qubits, "extra_idle_meas_or_reset_error_prob")
         self._meas_or_reset_qubits = []
         return circ
+
+
+class NLRNoiseModel(SI1000NoiseModel):
+    """
+    The NLR noise model is defined in the following paper:
+
+    Beni, L. A., Higgott, O., & Shutty, N. (2025).
+    Tesseract: A search-based decoder for quantum error correction.
+    arXiv preprint arXiv:2503.10988.
+
+    which corresponds to a ``SI1000`` noise model but with higher noise
+    strength for the two-qubit depolarizing channels after the long-range CZ gates.
+
+    See the documentation for the ``SI1000NoiseModel`` for more information.
+    """
+
+    DEFAULT_SETUP = NLR()
+
+    def __init__(
+        self,
+        qubit_inds: dict[str, int],
+        qubit_coords: dict[str, Sequence[float | int]],
+        setup: Setup | None = None,
+    ) -> None:
+        self._qubit_coords: dict[str, Sequence[float | int]] = qubit_coords
+        super().__init__(qubit_inds=qubit_inds, setup=setup)
+        return
+
+    @override
+    def __getattribute__(self, name: str) -> object:
+        if name in ("cz", "cphase"):
+            name = "long_range_cz"
+        attr = super().__getattribute__(name)
+
+        if callable(attr) and (name in ("cz", "cphase")):
+
+            def cphase(qubits: Collection[str]) -> Circuit:
+                circuit = Circuit()
+                for pair in grouper(qubits, 2):
+                    distance = math.dist(
+                        self._qubit_coords[pair[0]], self._qubit_coords[pair[1]]
+                    )
+                    if distance > self.setup.param("long_coupler_distance"):
+                        attr = super().__getattribute__(f"long_range_{name}")
+                    else:
+                        attr = super().__getattribute__(name)
+                    circuit += attr(pair)
+                return circuit
+
+            return cphase
+
+        return attr
 
 
 class BiasedCircuitNoiseModel(Model):

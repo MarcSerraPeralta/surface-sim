@@ -70,6 +70,7 @@ SQ_RESETS = {
 PARENTS = (
     {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
     | {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
+    | {f"long_range_{n}_error_prob": "long_range_tq_error_prob" for n in TQ_GATES}
     | {f"{n}_error_prob": "sq_error_prob" for n in SQ_RESETS}
     | {f"{n}_error_prob": "sq_error_prob" for n in SQ_MEASUREMENTS}
 )
