@@ -206,3 +206,52 @@ class MeasurementNoiseSetup(Setup):
         )
         super().__init__(setup_dict)
         return
+
+
+class NLR(Setup):
+    def __init__(self) -> None:
+        """
+        Initialises a ``Setup`` class for the NLR noise described in:
+
+        Beni, L. A., Higgott, O., & Shutty, N. (2025).
+        Tesseract: A search-based decoder for quantum error correction.
+        arXiv preprint arXiv:2503.10988.
+
+        **IMPORTANT**
+
+        1. It should be loaded with the ``NLRNoiseModel`` model. It should not be loaded
+        with ``CircuitNoiseModel`` because the noise model stacks noise channels
+        for qubits that are not being measured on top of their respective
+        noise gate channels (e.g. idling).
+
+        2. See other assumptions done in the ``SI1000`` setup.
+
+        3. It contains three variable parameters that must be set before building any circuit:
+        ``"prob"``, ``"long_coupler_distance"``, and ``"long_coupler_error_prob_factor"``.
+        A coupler is considered long if the distance between the two qubits
+        involved in the two-qubit gate is strictly larger than the specified
+        ``long_coupler_distance``. For the long-range couplers, the noise
+        strength is ``long_coupler_error_prob_factor`` times larger than
+        standard two-qubit gates. In this sense, the ``NLR5`` noise model
+        corresponds to ``long_coupler_error_prob_factor = 5``.
+        """
+        setup_dict = dict(
+            name="NLR noise setup",
+            description="Setup for the NLR noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob} / 10",
+                    tq_error_prob="{prob}",
+                    long_range_tq_error_prob="{prob} * {long_coupler_error_prob_factor}",
+                    long_coupler_distance="{long_coupler_distance}",
+                    meas_error_prob="{prob} * 5",
+                    reset_error_prob="{prob} * 2",
+                    idle_error_prob="{prob} / 10",
+                    extra_idle_meas_or_reset_error_prob="{prob} * 2",
+                    assign_error_flag=False,
+                    assign_error_prob=0,
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
