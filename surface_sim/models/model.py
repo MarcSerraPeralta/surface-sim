@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from copy import deepcopy
 
 from stim import Circuit, CircuitInstruction, GateTarget, target_rec
@@ -224,88 +224,88 @@ class Model:
     def s_dag_gate(self, qubits: Collection[str]) -> Circuit:
         raise NotImplementedError
 
-    def cnot(self, qubits: Collection[str]) -> Circuit:
+    def cnot(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cx(self, qubits: Collection[str]) -> Circuit:
+    def cx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cxswap(self, qubits: Collection[str]) -> Circuit:
+    def cxswap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cy(self, qubits: Collection[str]) -> Circuit:
+    def cy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cphase(self, qubits: Collection[str]) -> Circuit:
+    def cphase(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def cz(self, qubits: Collection[str]) -> Circuit:
+    def cz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def czswap(self, qubits: Collection[str]) -> Circuit:
+    def czswap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def idleidle(self, qubits: Collection[str]) -> Circuit:
+    def idleidle(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def iswap(self, qubits: Collection[str]) -> Circuit:
+    def iswap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def iswap_dag(self, qubits: Collection[str]) -> Circuit:
+    def iswap_dag(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_xx(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_xx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_xx_dag(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_xx_dag(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_yy(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_yy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_yy_dag(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_yy_dag(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_zz(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_zz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def sqrt_zz_dag(self, qubits: Collection[str]) -> Circuit:
+    def sqrt_zz_dag(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def swap(self, qubits: Collection[str]) -> Circuit:
+    def swap(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def swapcx(self, qubits: Collection[str]) -> Circuit:
+    def swapcx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def swapcz(self, qubits: Collection[str]) -> Circuit:
+    def swapcz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def xcx(self, qubits: Collection[str]) -> Circuit:
+    def xcx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def xcy(self, qubits: Collection[str]) -> Circuit:
+    def xcy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def xcz(self, qubits: Collection[str]) -> Circuit:
+    def xcz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def ycx(self, qubits: Collection[str]) -> Circuit:
+    def ycx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def ycy(self, qubits: Collection[str]) -> Circuit:
+    def ycy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def ycz(self, qubits: Collection[str]) -> Circuit:
+    def ycz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def zcx(self, qubits: Collection[str]) -> Circuit:
+    def zcx(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def zcy(self, qubits: Collection[str]) -> Circuit:
+    def zcy(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
-    def zcz(self, qubits: Collection[str]) -> Circuit:
+    def zcz(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 
     def measure(self, qubits: Collection[str]) -> Circuit:
