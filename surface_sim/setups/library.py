@@ -230,7 +230,10 @@ class NLR(Setup):
         ``"prob"``, ``"long_coupler_distance"``, and ``"long_coupler_error_prob_factor"``.
         A coupler is considered long if the distance between the two qubits
         involved in the two-qubit gate is strictly larger than the specified
-        ``"long_coupler_distance"``.
+        ``long_coupler_distance``. For the long-range couplers, the noise 
+        strength is ``long_coupler_error_prob_factor`` times larger than
+        standard two-qubit gates. In this sense, the ``NLR5`` noise model
+        corresponds to ``long_coupler_error_prob_factor = 5``.
         """
         setup_dict = dict(
             name="NLR noise setup",
