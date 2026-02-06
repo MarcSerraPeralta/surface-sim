@@ -10,6 +10,7 @@ from surface_sim.models import (
     IncResMeasNoiseModel,
     MeasurementNoiseModel,
     MovableQubitsCircuitNoiseModel,
+    NLRNoiseModel,
     NoiselessModel,
     PhenomenologicalDepolNoiseModel,
     PhenomenologicalNoiseModel,
@@ -26,6 +27,7 @@ SETUP = {
         {
             "sq_error_prob": 0.1,
             "tq_error_prob": 0.1,
+            "long_range_tq_error_prob": 0.1,
             "meas_error_prob": 0.1,
             "assign_error_flag": True,
             "assign_error_prob": 0.1,
@@ -423,6 +425,109 @@ def test_SI1000NoiseModel():
     circ += model.tick()
     noise_channels = [o for o in circ if o.name in NOISE_GATES]
     assert len(noise_channels) == 6
+
+    return
+
+
+def test_NLRNoiseModel():
+    model = NLRNoiseModel(
+        qubit_inds={"D1": 0, "D2": 1, "D3": 2},
+        qubit_coords={"D1": [1, 0], "D2": [0, 0], "D3": [100, 0]},
+    )
+    model.setup.set_var_param("prob", 1e-3)
+    model.setup.set_var_param("long_coupler_distance", 1)
+    model.setup.set_var_param("long_coupler_error_prob_factor", 5)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        if name not in ["cphase", "cz"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check extra noise channels when doing measurement or resets
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.measure(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 6
+
+    # check noisier noise channels in long range CZ gates
+    model.new_circuit()
+    short_cz = model.cphase(["D1", "D2"])
+    long_cz = model.cphase(["D2", "D3"])
+    short_prob = [o.gate_args_copy()[0] for o in short_cz if o.name in NOISE_GATES][0]
+    long_prob = [o.gate_args_copy()[0] for o in long_cz if o.name in NOISE_GATES][0]
+    assert short_prob == 1e-3
+    assert long_prob == 5e-3
 
     return
 

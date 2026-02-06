@@ -8,7 +8,17 @@ from typing_extensions import override
 
 from ..layouts import Layout
 from ..setups import Setup
-from ..setups.setup import ANNOTATIONS, SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
+from ..setups.setup import (
+    ANNOTATIONS,
+    LONG_RANGE_TQ_GATES,
+    SQ_GATES,
+    SQ_MEASUREMENTS,
+    SQ_RESETS,
+    TQ_GATES,
+)
+
+ALL_TQ_GATES = TQ_GATES | LONG_RANGE_TQ_GATES
+ALL_OPS = ANNOTATIONS | SQ_GATES | ALL_TQ_GATES | SQ_MEASUREMENTS | SQ_RESETS
 
 
 class Model:
@@ -39,23 +49,12 @@ class Model:
     For more information, read the comments in issue #232.
     """
 
-    operations: list[str] = (
-        list(ANNOTATIONS)
-        + list(SQ_GATES)
-        + list(TQ_GATES)
-        + list(SQ_MEASUREMENTS)
-        + list(SQ_RESETS)
-    )
-
     DEFAULT_SETUP: Setup | None = None
 
     def __init__(self, qubit_inds: dict[str, int], setup: Setup | None = None) -> None:
         self._setup: Setup = setup if setup is not None else self._get_default_setup()
         self._qubit_inds: dict[str, int] = qubit_inds
-        self._meas_order: dict[str, list[int]] = {q: [] for q in qubit_inds}
-        self._num_meas: int = 0
-        self._last_op: str = ""
-        self._new_op: str = ""
+        self.new_circuit()
         return
 
     @classmethod
@@ -83,7 +82,7 @@ class Model:
         """
         attr: object = object.__getattribute__(self, name)
 
-        if callable(attr) and (name in self.operations):
+        if callable(attr) and (name in ALL_OPS):
             # this function is before running the called method.
             # if I only store the last operation it will be overwritten
             # by the new called method, thus I need to store the last and
@@ -176,7 +175,10 @@ class Model:
     def new_circuit(self) -> None:
         """Empties the variables used for ``meas_target``. This must be called
         when creating a new circuit."""
-        self.__init__(setup=self._setup, qubit_inds=self._qubit_inds)
+        self._meas_order: dict[str, list[int]] = {q: [] for q in self._qubit_inds}
+        self._num_meas: int = 0
+        self._last_op: str = ""
+        self._new_op: str = ""
         return
 
     # annotation operations

@@ -6,6 +6,7 @@ from .library import (
     IncResMeasNoiseModel,
     MeasurementNoiseModel,
     MovableQubitsCircuitNoiseModel,
+    NLRNoiseModel,
     NoiselessModel,
     PhenomenologicalDepolNoiseModel,
     PhenomenologicalNoiseModel,
@@ -28,6 +29,7 @@ __all__ = [
     "IncResMeasNoiseModel",
     "MeasurementNoiseModel",
     "SI1000NoiseModel",
+    "NLRNoiseModel",
     "MovableQubitsCircuitNoiseModel",
     "SD6NoiseModel",
 ]
