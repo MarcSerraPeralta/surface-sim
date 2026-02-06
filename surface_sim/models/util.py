@@ -1,12 +1,23 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from itertools import product
-from math import exp
+from math import dist, exp
 from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
+from stim import Circuit, CircuitInstruction
+
+from ..setups.setup import (
+    LONG_RANGE_TQ_GATES,
+    SQ_GATES,
+    SQ_MEASUREMENTS,
+    SQ_RESETS,
+    TQ_GATES,
+)
+from .model import Model
 
 T = TypeVar("T")
+ALL_TQ_GATES = TQ_GATES | LONG_RANGE_TQ_GATES
 
 
 def num_biased_ops(n: int) -> int:
@@ -111,3 +122,303 @@ def idle_error_probs(
     z_prob = 0.5 * deph_prob - 0.25 * relax_prob
 
     return (x_prob, y_prob, z_prob)
+
+
+def sq_gate_depol1_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_gate(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(SQ_GATES[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
+        return circ
+
+    return sq_gate
+
+
+def tq_gate_depol2_generator(
+    self: Model, name: str
+) -> Callable[[Sequence[str]], Circuit]:
+    def tq_gate(qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(ALL_TQ_GATES[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE2", inds, [prob]))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob: float = self.param(f"{name}_error_prob", qubit_pair)
+                circ.append(CircuitInstruction("DEPOLARIZE2", ind_pair, [prob]))
+        return circ
+
+    return tq_gate
+
+
+def tq_gate_depol1_generator(
+    self: Model, name: str
+) -> Callable[[Sequence[str]], Circuit]:
+    def tq_gate(qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(ALL_TQ_GATES[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob: float = self.param(f"{name}_error_prob", qubit_pair)
+                circ.append(CircuitInstruction("DEPOLARIZE1", ind_pair, [prob]))
+        return circ
+
+    return tq_gate
+
+
+def long_range_tq_gate_depol2_generator(
+    self: Model, name: str
+) -> Callable[[Sequence[str]], Circuit]:
+    def cphase(qubits: Sequence[str]) -> Circuit:
+        circuit = Circuit()
+        for pair in grouper(qubits, 2):
+            distance = dist(self._qubit_coords[pair[0]], self._qubit_coords[pair[1]])
+            _name = name
+            if distance > self.setup.param("long_coupler_distance"):
+                _name = f"long_range_{name}"
+            attr = tq_gate_depol2_generator(self, _name)
+            circuit += attr(pair)
+        return circuit
+
+    return cphase
+
+
+def sq_meas_x_assign_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_meas(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
+        circ = Circuit()
+
+        # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction(noise_name, inds, [prob]))
+            for qubit in qubits:
+                self.add_meas(qubit)
+            if self.param("assign_error_flag"):
+                prob: float = self.param("assign_error_prob")
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob]))
+            else:
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                circ.append(CircuitInstruction(noise_name, [ind], [prob]))
+            for qubit, ind in zip(qubits, inds):
+                self.add_meas(qubit)
+                if self.param("assign_error_flag", qubit):
+                    prob: float = self.param("assign_error_prob", qubit)
+                    circ.append(
+                        CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
+                    )
+                else:
+                    circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], [ind]))
+
+        return circ
+
+    return sq_meas
+
+
+def sq_reset_x_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_reset(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(SQ_RESETS[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction(noise_name, inds, [prob]))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                circ.append(CircuitInstruction(noise_name, [ind], [prob]))
+
+        return circ
+
+    return sq_reset
+
+
+def sq_gate_biased_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_gate(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(SQ_GATES[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli"),
+                biased_factor=self.param("biased_factor"),
+                num_qubits=1,
+            )
+            probs = prob * prefactors
+            circ.append(CircuitInstruction("PAULI_CHANNEL_1", inds, probs))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                prefactors = biased_prefactors(
+                    biased_pauli=self.param("biased_pauli", qubit),
+                    biased_factor=self.param("biased_factor", qubit),
+                    num_qubits=1,
+                )
+                probs = prob * prefactors
+                circ.append(CircuitInstruction("PAULI_CHANNEL_1", [ind], probs))
+        return circ
+
+    return sq_gate
+
+
+def tq_gate_biased_generator(
+    self: Model, name: str
+) -> Callable[[Sequence[str]], Circuit]:
+    def tq_gate(qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        circ.append(CircuitInstruction(TQ_GATES[name], inds))
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            prefactors = biased_prefactors(
+                biased_pauli=self.param("biased_pauli"),
+                biased_factor=self.param("biased_factor"),
+                num_qubits=2,
+            )
+            probs = prob * prefactors
+            circ.append(CircuitInstruction("PAULI_CHANNEL_2", inds, probs))
+        else:
+            for qubit_pair, ind_pair in zip(grouper(qubits, 2), grouper(inds, 2)):
+                prob: float = self.param(f"{name}_error_prob", qubit_pair)
+                prefactors = biased_prefactors(
+                    biased_pauli=self.param("biased_pauli", qubit_pair),
+                    biased_factor=self.param("biased_factor", qubit_pair),
+                    num_qubits=2,
+                )
+                probs = prob * prefactors
+                circ.append(CircuitInstruction("PAULI_CHANNEL_2", ind_pair, probs))
+        return circ
+
+    return tq_gate
+
+
+def sq_gate_noiseless_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_gate(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+        circ.append(CircuitInstruction(SQ_GATES[name], inds))
+        return circ
+
+    return sq_gate
+
+
+def tq_gate_noiseless_generator(
+    self: Model, name: str
+) -> Callable[[Sequence[str]], Circuit]:
+    def tq_gate(qubits: Sequence[str]) -> Circuit:
+        if len(qubits) % 2 != 0:
+            raise ValueError("Expected and even number of qubits.")
+
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+        circ.append(CircuitInstruction(TQ_GATES[name], inds))
+        return circ
+
+    return tq_gate
+
+
+def sq_meas_noiseless_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_meas(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+        for qubit in qubits:
+            self.add_meas(qubit)
+        circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+        return circ
+
+    return sq_meas
+
+
+def sq_reset_noiseless_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_reset(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+        circ.append(CircuitInstruction(SQ_RESETS[name], inds))
+        return circ
+
+    return sq_reset
+
+
+def sq_meas_depol1_assign_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_meas(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
+        if self.uniform:
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+            for qubit in qubits:
+                self.add_meas(qubit)
+            if self.param("assign_error_flag"):
+                prob: float = self.param("assign_error_prob")
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob]))
+            else:
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
+            for qubit, ind in zip(qubits, inds):
+                self.add_meas(qubit)
+                if self.param("assign_error_flag", qubit):
+                    prob: float = self.param("assign_error_prob", qubit)
+                    circ.append(
+                        CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
+                    )
+                else:
+                    circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], [ind]))
+
+        return circ
+
+    return sq_meas
