@@ -37,6 +37,22 @@ ALL_OPS = SQ_GATES | ALL_TQ_GATES | SQ_MEASUREMENTS | SQ_RESETS
 class CircuitNoiseModel(Model):
     DEFAULT_SETUP = CircuitNoiseSetup()
 
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+        if not callable(attr):
+            return attr
+
+        if name in SQ_GATES:
+            return self._sq_gate_generator(name)
+        elif name in ALL_TQ_GATES:
+            return self._tq_gate_generator(name)
+        elif name in SQ_MEASUREMENTS:
+            return self._sq_meas_generator(name)
+        elif name in SQ_RESETS:
+            return self._sq_reset_generator(name)
+        return attr
+
     def _sq_gate_generator(self, name: str):
         def sq_gate(qubits: Collection[str]) -> Circuit:
             inds = self.get_inds(qubits)
@@ -129,23 +145,6 @@ class CircuitNoiseModel(Model):
         return sq_reset
 
     @override
-    def __getattribute__(self, name: str) -> object:
-        attr = super().__getattribute__(name)
-
-        if not callable(attr):
-            return attr
-
-        if name in SQ_GATES:
-            return self._sq_gate_generator(name)
-        elif name in ALL_TQ_GATES:
-            return self._tq_gate_generator(name)
-        elif name in SQ_MEASUREMENTS:
-            return self._sq_meas_generator(name)
-        elif name in SQ_RESETS:
-            return self._sq_reset_generator(name)
-        return attr
-
-    @override
     def idle_noise(
         self, qubits: Collection[str], param_name: str = "idle_error_prob"
     ) -> Circuit:
@@ -168,6 +167,15 @@ class CircuitNoiseModel(Model):
 class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
     DEFAULT_SETUP = CircuitNoiseSetup()
 
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if name == "swap" and callable(attr):
+            return self._swap_generator(name)
+
+        return attr
+
     def _swap_generator(self, name: str):
         def swap(qubits: Collection[str]) -> Circuit:
             if len(qubits) % 2 != 0:
@@ -187,15 +195,6 @@ class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
             return circ
 
         return swap
-
-    @override
-    def __getattribute__(self, name: str) -> object:
-        attr = super().__getattribute__(name)
-
-        if name == "swap" and callable(attr):
-            return self._swap_generator(name)
-
-        return attr
 
 
 class SD6NoiseModel(CircuitNoiseModel):
@@ -266,9 +265,7 @@ class SI1000NoiseModel(CircuitNoiseModel):
 
     _supported_operations: list[str] = list(SQ_GATES) + [
         "cphase",
-        "long_range_cphase",  # for the NLRNoiseModel
         "cz",
-        "long_range_cz",  # for the NLRNoiseModel
         "measure",
         "measure_z",
         "reset",
@@ -339,6 +336,15 @@ class NLRNoiseModel(SI1000NoiseModel):
         super().__init__(qubit_inds=qubit_inds, setup=setup)
         return
 
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if callable(attr) and (name in ("cz", "cphase")):
+            return self._cphase_generator(name)
+
+        return attr
+
     def _cphase_generator(self, name: str):
         def cphase(qubits: Collection[str]) -> Circuit:
             circuit = Circuit()
@@ -354,15 +360,6 @@ class NLRNoiseModel(SI1000NoiseModel):
             return circuit
 
         return cphase
-
-    @override
-    def __getattribute__(self, name: str) -> object:
-        attr = super().__getattribute__(name)
-
-        if callable(attr) and (name in ("cz", "cphase")):
-            return self._cphase_generator(name)
-
-        return attr
 
 
 class BiasedCircuitNoiseModel(Model):

@@ -529,6 +529,10 @@ def test_NLRNoiseModel():
     assert short_prob == 1e-3
     assert long_prob == 5e-3
 
+    model.new_circuit()
+    full_circ = model.cphase(["D1", "D2", "D2", "D3"])
+    assert short_cz + long_cz == full_circ
+
     return
 
 
