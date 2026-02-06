@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from copy import deepcopy
 from typing import TypeVar
 
@@ -16,7 +16,7 @@ class Detectors:
         self,
         anc_qubits: Collection[str],
         frame: str,
-        anc_coords: Mapping[str, Collection[float | int]] | None = None,
+        anc_coords: Mapping[str, Sequence[float | int]] | None = None,
         include_gauge_dets: bool = False,
     ) -> None:
         """Initalises the ``Detectors`` class.
@@ -74,7 +74,7 @@ class Detectors:
 
         self.anc_qubit_labels: Collection[str] = anc_qubits
         self.frame: str = frame
-        self.anc_coords: dict[str, Collection[float | int]] = anc_coords
+        self.anc_coords: dict[str, Sequence[float | int]] = anc_coords
         self.include_gauge_dets: bool = include_gauge_dets
 
         self.new_circuit()
@@ -91,7 +91,7 @@ class Detectors:
         """Creates a ``Detectors`` object using the information from the layouts.
         It loads all the ancilla qubits and their coordinates.
         """
-        anc_coords: dict[str, Collection[float | int]] = {}
+        anc_coords: dict[str, Sequence[float | int]] = {}
         anc_qubits: list[str] = []
         for layout in layouts:
             anc_coords |= layout.anc_coords  # updates dict

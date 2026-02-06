@@ -71,7 +71,7 @@ class CircuitNoiseModel(Model):
         return sq_gate
 
     def _tq_gate_generator(self, name: str):
-        def tq_gate(qubits: Collection[str]) -> Circuit:
+        def tq_gate(qubits: Sequence[str]) -> Circuit:
             if len(qubits) % 2 != 0:
                 raise ValueError("Expected and even number of qubits.")
 
@@ -177,7 +177,7 @@ class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
         return attr
 
     def _swap_generator(self, name: str):
-        def swap(qubits: Collection[str]) -> Circuit:
+        def swap(qubits: Sequence[str]) -> Circuit:
             if len(qubits) % 2 != 0:
                 raise ValueError("Expected and even number of qubits.")
 
@@ -346,7 +346,7 @@ class NLRNoiseModel(SI1000NoiseModel):
         return attr
 
     def _cphase_generator(self, name: str):
-        def cphase(qubits: Collection[str]) -> Circuit:
+        def cphase(qubits: Sequence[str]) -> Circuit:
             circuit = Circuit()
             for pair in grouper(qubits, 2):
                 distance = math.dist(
@@ -404,7 +404,7 @@ class BiasedCircuitNoiseModel(Model):
 
         elif name in TQ_GATES:
 
-            def tq_gate(qubits: Collection[str]) -> Circuit:
+            def tq_gate(qubits: Sequence[str]) -> Circuit:
                 if len(qubits) % 2 != 0:
                     raise ValueError("Expected and even number of qubits.")
 
@@ -555,7 +555,7 @@ class T1T2NoiseModel(Model):
         super().new_circuit()
         return
 
-    def _generic_gate(self, name: str, qubits: Collection[str]) -> Circuit:
+    def _generic_gate(self, name: str, qubits: Sequence[str]) -> Circuit:
         """
         Returns the circuit instructions for a generic gate supported by
         ``stim`` on the given qubits.
@@ -778,7 +778,7 @@ class NoiselessModel(Model):
 
         elif name in TQ_GATES:
 
-            def tq_gate(qubits: Collection[str]) -> Circuit:
+            def tq_gate(qubits: Sequence[str]) -> Circuit:
                 if len(qubits) % 2 != 0:
                     raise ValueError("Expected and even number of qubits.")
 
