@@ -188,7 +188,7 @@ class Model:
             return missing_noise + Circuit("TICK")
         return Circuit("TICK")
 
-    def qubit_coords(self, coords: dict[str, Collection[float | int]]) -> Circuit:
+    def qubit_coords(self, coords: dict[str, Sequence[float | int]]) -> Circuit:
         if set(coords) > set(self._qubit_inds):
             raise ValueError(
                 "'coords' have qubits not defined in the model:\n"
