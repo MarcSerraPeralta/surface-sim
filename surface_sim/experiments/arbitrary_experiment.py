@@ -54,6 +54,8 @@ def schedule_from_circuit(
     - ``tuple[LogOpCallable, Layout]`` performs a (logical) single-layout operation
     - ``tuple[LogOpCallable, Layout, Layout]`` performs a (logical) two-qubit gate.
 
+    The OBSERVABLE_INCLUDE instructions are not included.
+
     For example, the following circuit
 
     .. code:
@@ -62,6 +64,7 @@ def schedule_from_circuit(
         M 1
         X 0
         TICK
+        OBSERVABLE_INCLUDE(0) rec[-1]
 
     is translated to
 
@@ -113,6 +116,8 @@ def schedule_from_circuit(
 
     instructions: Instructions = []
     for instr in circuit:
+        if instr.name == "OBSERVABLE_INCLUDE":
+            continue
         if instr.name == "TICK":
             instructions.append((gate_to_iterator["TICK"],))
             continue
@@ -574,6 +579,65 @@ def redefine_obs_from_circuit(
         new_circuit.append(new_instr)
 
     return new_circuit
+
+
+def experiment_from_circuit(
+    circuit: stim.Circuit,
+    layouts: list[Layout],
+    model: Model,
+    detectors: Detectors,
+    gate_to_iterator: dict[str, LogOpCallable],
+    anc_reset: bool = True,
+    anc_detectors: Collection[str] | None = None,
+) -> stim.Circuit:
+    """
+    Returns the encoded version of the given circuit.
+
+    Parameters
+    ----------
+    circuit
+        Stim circuit.
+    layouts
+        List of layouts whose index match the qubit index in ``circuit``.
+        This function only works for layouts that only have one logical qubit.
+    model
+        Noise model for the gates.
+    detectors
+        Object to build the detectors.
+    gate_to_iterator
+        Dictionary mapping the names of stim circuit instructions used in ``circuit``
+        to the functions that generate the equivalent logical circuit.
+        Note that ``TICK`` always refers to a QEC round for all layouts.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
+
+    Returns
+    -------
+    experiment
+        Stim circuit corresponding to the logical equivalent of the
+        given schedule. If ``circuit`` contains observable definitions,
+        then the observables in ``experiment`` correspond to those,
+        if not there is one observable for each measurement in ``circuit``.
+
+    Notes
+    -----
+    For more information, check the documentation of:
+    ``schedule_from_circuit``, ``experiment_from_schedule``, and
+    ``redefine_obs_from_circuit``.
+    """
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    stim_circuit = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    )
+    if circuit.num_observables != 0:
+        stim_circuit = redefine_obs_from_circuit(stim_circuit, circuit)
+
+    return stim_circuit
 
 
 def _grouper(iterable: Iterable[T], n: int) -> Iterable[tuple[T, ...]]:

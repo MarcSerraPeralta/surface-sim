@@ -5,6 +5,7 @@ from surface_sim import Detectors
 from surface_sim.circuit_blocks.decorators import noiseless
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.experiments import (
+    experiment_from_circuit,
     experiment_from_schedule,
     redefine_obs_from_circuit,
     schedule_from_circuit,
@@ -384,5 +385,53 @@ def test_redefine_obs_from_circuit():
     )
 
     assert new_circuit == expected_circuit
+
+    return
+
+
+def test_experiment_from_circuit():
+    layouts = unrot_surface_codes(4, distance=3)
+    model = NoiselessModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
+    circuit = stim.Circuit(
+        """
+        R 0 1 2
+        TICK
+        X 0
+        TICK
+        CX 0 1
+        TICK
+        M 0 1
+        OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]
+        """
+    )
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator
+    )
+
+    _ = experiment.detector_error_model()
+
+    assert experiment.num_observables == 1
+
+    circuit = stim.Circuit(
+        """
+        R 0 1 2
+        TICK
+        X 0
+        TICK
+        CX 0 1
+        TICK
+        M 0 1
+        """
+    )
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator
+    )
+
+    _ = experiment.detector_error_model()
+
+    assert experiment.num_observables == 2
 
     return
