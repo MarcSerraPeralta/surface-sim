@@ -67,3 +67,32 @@ def remove_nondeterministic_observables(
         new_circuit.append(new_obs)
 
     return new_circuit
+
+
+def move_observables_to_end(circuit: stim.Circuit) -> stim.Circuit:
+    """Move the observable definitions to the end of the given circuit."""
+    if not isinstance(circuit, stim.Circuit):
+        raise TypeError(
+            f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
+        )
+
+    new_circuit = stim.Circuit()
+    observables: dict[int, stim.CircuitInstruction] = {}
+    measurements: dict[int, int] = {}
+    for i, instr in enumerate(circuit.flattened()):
+        if instr.name == "OBSERVABLE_INCLUDE":
+            obs_ind = instr.gate_args_copy()[0]
+            observables[obs_ind] = instr
+            measurements[obs_ind] = circuit[i:].num_measurements
+        else:
+            new_circuit.append(instr)
+
+    for obs_ind in observables:
+        targets = observables[obs_ind].targets_copy()
+        new_targets = [t.value - measurements[obs_ind] for t in targets]
+        new_obs = stim.CircuitInstruction(
+            "OBSERVABLE_INCLUDE", [stim.target_rec(t) for t in new_targets], [obs_ind]
+        )
+        new_circuit.append(new_obs)
+
+    return new_circuit

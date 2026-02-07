@@ -37,7 +37,7 @@ def test_readme_example_arbitrary_circuit():
 
     from surface_sim import Detectors
     from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
-    from surface_sim.experiments import experiment_from_schedule, schedule_from_circuit
+    from surface_sim.experiments import experiment_from_circuit
     from surface_sim.layouts import unrot_surface_codes
     from surface_sim.models import CircuitNoiseModel
 
@@ -55,6 +55,7 @@ def test_readme_example_arbitrary_circuit():
         TICK
         M 0
         MX 1
+        OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]
         """
     )
 
@@ -64,9 +65,10 @@ def test_readme_example_arbitrary_circuit():
 
     model.setup.set_var_param("prob", 1e-3)
 
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    stim_circuit = experiment_from_schedule(schedule, model, detectors, anc_reset=True)
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
+    )
 
-    stim_circuit.detector_error_model()
+    _ = experiment.detector_error_model()
 
     return

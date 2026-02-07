@@ -8,7 +8,9 @@ from . import (
     unrot_surface_code_css,
 )
 from .arbitrary_experiment import (
+    experiment_from_circuit,
     experiment_from_schedule,
+    redefine_obs_from_circuit,
     schedule_from_circuit,
     schedule_from_mid_cycle_circuit,
 )
@@ -24,4 +26,6 @@ __all__ = [
     "schedule_from_circuit",
     "schedule_from_mid_cycle_circuit",
     "experiment_from_schedule",
+    "redefine_obs_from_circuit",
+    "experiment_from_circuit",
 ]

@@ -12,7 +12,7 @@ from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
 from ..util.observables import remove_nondeterministic_observables
-from .arbitrary_experiment import experiment_from_schedule, schedule_from_circuit
+from .arbitrary_experiment import experiment_from_circuit
 
 
 def memory_experiment(
@@ -92,11 +92,14 @@ def memory_experiment(
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
     unencoded_circuit = Circuit(f"R{b} 0" + "\nTICK" * num_rounds + f"\nM{b} 0")
-    schedule = schedule_from_circuit(
-        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    experiment = experiment_from_circuit(
+        unencoded_circuit,
+        [layout],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     return experiment
@@ -188,11 +191,14 @@ def repeated_s_experiment(
         + ("\nS 0" + "\nTICK" * num_rounds_per_gate) * num_s_gates
         + f"\nM{b} 0"
     )
-    schedule = schedule_from_circuit(
-        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    experiment = experiment_from_circuit(
+        unencoded_circuit,
+        [layout],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     return experiment
@@ -284,11 +290,14 @@ def repeated_h_experiment(
         + ("\nH 0" + "\nTICK" * num_rounds_per_gate) * num_h_gates
         + f"\nM{b} 0"
     )
-    schedule = schedule_from_circuit(
-        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    experiment = experiment_from_circuit(
+        unencoded_circuit,
+        [layout],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     return experiment
@@ -400,13 +409,14 @@ def repeated_cnot_experiment(
     unencoded_circuit_str += f"\nM{b} 0 1"
     unencoded_circuit = Circuit(unencoded_circuit_str)
 
-    schedule = schedule_from_circuit(
+    experiment = experiment_from_circuit(
         unencoded_circuit,
-        layouts=[layout_c, layout_t],
-        gate_to_iterator=gate_to_iterator,
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+        [layout_c, layout_t],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     return experiment
@@ -512,13 +522,14 @@ def repeated_s_injection_experiment(
     unencoded_circuit_str += f"\nM{b} 0"
     unencoded_circuit = Circuit(unencoded_circuit_str)
 
-    schedule = schedule_from_circuit(
+    experiment = experiment_from_circuit(
         unencoded_circuit,
-        layouts=[layout, layout_anc],
-        gate_to_iterator=gate_to_iterator,
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+        [layout, layout_anc],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     # keep only deterministic observables
@@ -642,11 +653,14 @@ def stability_experiment(
         gate_to_iterator[f"R{b}"] = custom_reset_iterator
 
     unencoded_circuit = Circuit(f"R{b} 0" + "\nTICK" * num_rounds + f"\nM{b} 0")
-    schedule = schedule_from_circuit(
-        unencoded_circuit, layouts=[layout], gate_to_iterator=gate_to_iterator
-    )
-    experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    experiment = experiment_from_circuit(
+        unencoded_circuit,
+        [layout],
+        model,
+        detectors,
+        gate_to_iterator,
+        anc_reset=anc_reset,
+        anc_detectors=anc_detectors,
     )
 
     # layout does not contain any logical qubit and thus there is no OBSERVABLE defined

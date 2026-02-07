@@ -1,4 +1,5 @@
 from collections.abc import Collection, Iterable, Sequence
+from itertools import chain
 from typing import TypeVar
 
 import stim
@@ -13,6 +14,7 @@ from ..util.circuit_operations import (
     RESET_OP_TYPES,
     merge_logical_operations,
 )
+from ..util.observables import move_observables_to_end
 
 T = TypeVar("T")
 Instructions = list[tuple[LogOpCallable] | LogicalOperation]
@@ -52,6 +54,8 @@ def schedule_from_circuit(
     - ``tuple[LogOpCallable, Layout]`` performs a (logical) single-layout operation
     - ``tuple[LogOpCallable, Layout, Layout]`` performs a (logical) two-qubit gate.
 
+    The OBSERVABLE_INCLUDE instructions are not included.
+
     For example, the following circuit
 
     .. code:
@@ -60,6 +64,7 @@ def schedule_from_circuit(
         M 1
         X 0
         TICK
+        OBSERVABLE_INCLUDE(0) rec[-1]
 
     is translated to
 
@@ -111,6 +116,8 @@ def schedule_from_circuit(
 
     instructions: Instructions = []
     for instr in circuit:
+        if instr.name == "OBSERVABLE_INCLUDE":
+            continue
         if instr.name == "TICK":
             instructions.append((gate_to_iterator["TICK"],))
             continue
@@ -467,7 +474,8 @@ def experiment_from_schedule(
     -------
     experiment
         Stim circuit corresponding to the logical equivalent of the
-        given schedule.
+        given schedule. For each logical measurement, an observable
+        is defined. To redefine them, see ``redefine_obs_from_circuit``.
 
     Notes
     -----
@@ -500,6 +508,136 @@ def experiment_from_schedule(
         )
 
     return experiment
+
+
+def redefine_obs_from_circuit(
+    encoded_circuit: stim.Circuit, unencoded_circuit: stim.Circuit
+) -> stim.Circuit:
+    """
+    Redefines the observables in the given encoded circuit to match the ones
+    in the unencoded circuit.
+
+    Parameters
+    ----------
+    encoded_circuit
+        Encoded stim circuit with observables defined for all the logical measurements.
+    unencoded_circuit
+        Unencoded stim circuit for the given ``encoded_circuit``.
+
+    Returns
+    -------
+    new_circuit
+        Same as ``encoded_circuit`` except for the redefined observables
+        based on the ones in ``unencoded_circuit``.
+    """
+    if not isinstance(encoded_circuit, stim.Circuit):
+        raise TypeError(
+            "'encoded_circuit' must be a stim.Circuit, "
+            f"but {type(encoded_circuit)} was given."
+        )
+    if not isinstance(unencoded_circuit, stim.Circuit):
+        raise TypeError(
+            "'unencoded_circuit' must be a stim.Circuit, "
+            f"but {type(unencoded_circuit)} was given."
+        )
+    if encoded_circuit.num_observables != unencoded_circuit.num_measurements:
+        raise ValueError(
+            "The number of observables in 'encoded_circuit' "
+            f"({encoded_circuit.num_observables}) "
+            "must match with the number of measurements in 'unencoded_circuit' "
+            f"({unencoded_circuit.num_measurements})."
+        )
+    if unencoded_circuit.num_measurements == 0:
+        return encoded_circuit
+
+    encoded_circuit = move_observables_to_end(encoded_circuit)
+    unencoded_circuit = move_observables_to_end(unencoded_circuit)
+
+    observables: dict[int, stim.CircuitInstruction] = {}
+    for k, instr in enumerate(encoded_circuit.flattened()[::-1]):
+        if instr.name == "OBSERVABLE_INCLUDE":
+            obs_ind = instr.gate_args_copy()[0]
+            observables[obs_ind - encoded_circuit.num_observables] = list(
+                instr.targets_copy()
+            )
+        else:
+            break
+
+    new_circuit = encoded_circuit[:-k]
+
+    for instr in unencoded_circuit.flattened():
+        if instr.name != "OBSERVABLE_INCLUDE":
+            continue
+
+        new_obs_ind = instr.gate_args_copy()
+        new_obs_targets = list(
+            chain(*[observables[t.value] for t in instr.targets_copy()])
+        )
+        new_instr = stim.CircuitInstruction(
+            "OBSERVABLE_INCLUDE", gate_args=new_obs_ind, targets=new_obs_targets
+        )
+        new_circuit.append(new_instr)
+
+    return new_circuit
+
+
+def experiment_from_circuit(
+    circuit: stim.Circuit,
+    layouts: list[Layout],
+    model: Model,
+    detectors: Detectors,
+    gate_to_iterator: dict[str, LogOpCallable],
+    anc_reset: bool = True,
+    anc_detectors: Collection[str] | None = None,
+) -> stim.Circuit:
+    """
+    Returns the encoded version of the given circuit.
+
+    Parameters
+    ----------
+    circuit
+        Stim circuit.
+    layouts
+        List of layouts whose index match the qubit index in ``circuit``.
+        This function only works for layouts that only have one logical qubit.
+    model
+        Noise model for the gates.
+    detectors
+        Object to build the detectors.
+    gate_to_iterator
+        Dictionary mapping the names of stim circuit instructions used in ``circuit``
+        to the functions that generate the equivalent logical circuit.
+        Note that ``TICK`` always refers to a QEC round for all layouts.
+    anc_reset
+        If ``True``, ancillas are reset at the beginning of the QEC round.
+        By default ``True``.
+    anc_detectors
+        List of ancilla qubits for which to define the detectors.
+        If ``None``, adds all detectors.
+        By default ``None``.
+
+    Returns
+    -------
+    experiment
+        Stim circuit corresponding to the encoded version of ``circuit``.
+        If ``circuit`` contains observable definitions,
+        then the observables in ``experiment`` correspond to those.
+        If not, there is one observable for each measurement in ``circuit``.
+
+    Notes
+    -----
+    For more information, check the documentation of:
+    ``schedule_from_circuit``, ``experiment_from_schedule``, and
+    ``redefine_obs_from_circuit``.
+    """
+    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    stim_circuit = experiment_from_schedule(
+        schedule, model, detectors, anc_reset=anc_reset, anc_detectors=anc_detectors
+    )
+    if circuit.num_observables != 0:
+        stim_circuit = redefine_obs_from_circuit(stim_circuit, circuit)
+
+    return stim_circuit
 
 
 def _grouper(iterable: Iterable[T], n: int) -> Iterable[tuple[T, ...]]:
