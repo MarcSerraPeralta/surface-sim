@@ -6,7 +6,7 @@ from .circuit_operations import (
     merge_ticks,
 )
 from .data_gen import sample_memory_experiment
-from .observables import remove_nondeterministic_observables
+from .observables import move_observables_to_end, remove_nondeterministic_observables
 
 __all__ = [
     "sample_memory_experiment",
@@ -16,4 +16,5 @@ __all__ = [
     "merge_operation_layers",
     "add_noise_to_circuit",
     "remove_nondeterministic_observables",
+    "move_observables_to_end",
 ]

@@ -1,4 +1,5 @@
 from collections.abc import Collection, Iterable, Sequence
+from itertools import chain
 from typing import TypeVar
 
 import stim
@@ -13,6 +14,7 @@ from ..util.circuit_operations import (
     RESET_OP_TYPES,
     merge_logical_operations,
 )
+from ..util.observables import move_observables_to_end
 
 T = TypeVar("T")
 Instructions = list[tuple[LogOpCallable] | LogicalOperation]
@@ -467,7 +469,8 @@ def experiment_from_schedule(
     -------
     experiment
         Stim circuit corresponding to the logical equivalent of the
-        given schedule.
+        given schedule. For each logical measurement, an observable
+        will be defined. To redefine them, see ``redefine_obs_from_circuit``.
 
     Notes
     -----
@@ -500,6 +503,77 @@ def experiment_from_schedule(
         )
 
     return experiment
+
+
+def redefine_obs_from_circuit(
+    encoded_circuit: stim.Circuit, unencoded_circuit: stim.Circuit
+) -> stim.Circuit:
+    """
+    Redefines the observables in the given encoded circuit to match the ones
+    in the unencoded circuit.
+
+    Parameters
+    ----------
+    encoded_circuit
+        Stim circuit with observables defined for all the logical measurements.
+    unencoded_circuit
+        Unencoded stim circuit for the given ``encoded_circuit``.
+
+    Returns
+    -------
+    new_circuit
+        Same as ``encoded_circuit`` except for the redefined observables
+        based on the ones in ``unencoded_circuit``.
+    """
+    if not isinstance(encoded_circuit, stim.Circuit):
+        raise TypeError(
+            "'encoded_circuit' must be a stim.Circuit, "
+            f"but {type(encoded_circuit)} was given."
+        )
+    if not isinstance(unencoded_circuit, stim.Circuit):
+        raise TypeError(
+            "'unencoded_circuit' must be a stim.Circuit, "
+            f"but {type(unencoded_circuit)} was given."
+        )
+    if encoded_circuit.num_observables != unencoded_circuit.num_measurements:
+        raise ValueError(
+            "The number of observables in 'encoded_circuit' "
+            f"({encoded_circuit.num_observables}) "
+            "must match with the number of measurements in 'unencoded_circuit' "
+            f"({unencoded_circuit.num_measurements})."
+        )
+    if unencoded_circuit.num_measurements == 0:
+        return encoded_circuit
+
+    encoded_circuit = move_observables_to_end(encoded_circuit)
+    unencoded_circuit = move_observables_to_end(unencoded_circuit)
+
+    observables: dict[int, stim.CircuitInstruction] = {}
+    for k, instr in enumerate(encoded_circuit.flattened()[::-1]):
+        if instr.name == "OBSERVABLE_INCLUDE":
+            obs_ind = instr.gate_args_copy()[0]
+            observables[obs_ind - encoded_circuit.num_observables] = list(
+                instr.targets_copy()
+            )
+        else:
+            break
+
+    new_circuit = encoded_circuit[:-k]
+
+    for instr in unencoded_circuit.flattened():
+        if instr.name != "OBSERVABLE_INCLUDE":
+            continue
+
+        new_obs_ind = instr.gate_args_copy()
+        new_obs_targets = list(
+            chain(*[observables[t.value] for t in instr.targets_copy()])
+        )
+        new_instr = stim.CircuitInstruction(
+            "OBSERVABLE_INCLUDE", gate_args=new_obs_ind, targets=new_obs_targets
+        )
+        new_circuit.append(new_instr)
+
+    return new_circuit
 
 
 def _grouper(iterable: Iterable[T], n: int) -> Iterable[tuple[T, ...]]:

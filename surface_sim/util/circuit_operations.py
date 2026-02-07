@@ -261,7 +261,8 @@ def merge_logical_operations(
     Returns
     -------
     circuit
-        Circuit from merging the given circuits.
+        Circuit from merging the given iterators.
+        The circuit includes an observable for each logical measurement operation.
     """
     if any(set(op[0].log_op_type) > set(VALID_OP_TYPES) for op in op_iterators):
         raise TypeError("'op_iterators' must be valid operation types.")

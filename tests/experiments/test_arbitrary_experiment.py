@@ -4,7 +4,11 @@ import stim
 from surface_sim import Detectors
 from surface_sim.circuit_blocks.decorators import noiseless
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
-from surface_sim.experiments import experiment_from_schedule, schedule_from_circuit
+from surface_sim.experiments import (
+    experiment_from_schedule,
+    redefine_obs_from_circuit,
+    schedule_from_circuit,
+)
 from surface_sim.experiments.arbitrary_experiment import schedule_from_instructions
 from surface_sim.layouts import unrot_surface_codes
 from surface_sim.models import CircuitNoiseModel, NoiselessModel
@@ -329,5 +333,56 @@ def test_noiseless_decorator():
         == noisy_experiment.without_noise().flow_generators()
     )
     assert len(noiseless_experiment) == len(noisy_experiment.without_noise())
+
+    return
+
+
+def test_redefine_obs_from_circuit():
+    unencoded_circuit = stim.Circuit(
+        """
+        R 0 1 2 3 4
+        M 0
+        OBSERVABLE_INCLUDE(1) rec[-1]
+        X 0
+        M 0
+        M 1 2
+        OBSERVABLE_INCLUDE(4) rec[-2] rec[-3]
+        """
+    )
+    encoded_circuit = stim.Circuit(
+        """
+        R 0 1 2 3 4 5 6 7
+        M 0 1 2
+        OBSERVABLE_INCLUDE(0) rec[-1] rec[-2] rec[-3]
+        X 0 1 2 3
+        CNOT 0 1 6 7
+        M 0 1 2
+        OBSERVABLE_INCLUDE(1) rec[-1] rec[-2] rec[-3]
+        M 3 4 5 6 7
+        OBSERVABLE_INCLUDE(2) rec[-5] rec[-4]
+        OBSERVABLE_INCLUDE(3) rec[-1] rec[-2] rec[-3]
+        X 0
+        """
+    )
+
+    new_circuit = redefine_obs_from_circuit(
+        encoded_circuit=encoded_circuit, unencoded_circuit=unencoded_circuit
+    )
+
+    expected_circuit = stim.Circuit(
+        """
+        R 0 1 2 3 4 5 6 7
+        M 0 1 2
+        X 0 1 2 3
+        CNOT 0 1 6 7
+        M 0 1 2
+        M 3 4 5 6 7
+        X 0
+        OBSERVABLE_INCLUDE(1) rec[-9] rec[-10] rec[-11]
+        OBSERVABLE_INCLUDE(4) rec[-5] rec[-4] rec[-6] rec[-7] rec[-8]
+        """
+    )
+
+    assert new_circuit == expected_circuit
 
     return
