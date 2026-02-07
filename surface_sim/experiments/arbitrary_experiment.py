@@ -475,7 +475,7 @@ def experiment_from_schedule(
     experiment
         Stim circuit corresponding to the logical equivalent of the
         given schedule. For each logical measurement, an observable
-        will be defined. To redefine them, see ``redefine_obs_from_circuit``.
+        is defined. To redefine them, see ``redefine_obs_from_circuit``.
 
     Notes
     -----
@@ -520,7 +520,7 @@ def redefine_obs_from_circuit(
     Parameters
     ----------
     encoded_circuit
-        Stim circuit with observables defined for all the logical measurements.
+        Encoded stim circuit with observables defined for all the logical measurements.
     unencoded_circuit
         Unencoded stim circuit for the given ``encoded_circuit``.
 
@@ -619,10 +619,10 @@ def experiment_from_circuit(
     Returns
     -------
     experiment
-        Stim circuit corresponding to the logical equivalent of the
-        given schedule. If ``circuit`` contains observable definitions,
-        then the observables in ``experiment`` correspond to those,
-        if not there is one observable for each measurement in ``circuit``.
+        Stim circuit corresponding to the encoded version of ``circuit``.
+        If ``circuit`` contains observable definitions,
+        then the observables in ``experiment`` correspond to those.
+        If not, there is one observable for each measurement in ``circuit``.
 
     Notes
     -----
