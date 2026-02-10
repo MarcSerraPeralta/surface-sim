@@ -17,6 +17,7 @@ from ..setups import (
     MeasurementNoiseSetup,
     PhenomenologicalNoiseSetup,
     Setup,
+    UniformDepolarizing,
 )
 from ..setups.setup import (
     LONG_RANGE_TQ_GATES,
@@ -143,6 +144,59 @@ class SD6NoiseModel(CircuitNoiseModel):
                 raise ValueError(
                     f"Operation {name} is not available in the SD6 noise model."
                 )
+
+        return attr
+
+
+class UniformDepolarizingNoiseModel(CircuitNoiseModel):
+    """
+    The UniformDepolarizing noise model is defined in the following paper:
+
+    McEwen, M., Bacon, D., & Gidney, C. (2023).
+    Relaxing hardware requirements for surface code circuits using time-dynamics. Quantum, 7, 1172.
+    https://doi.org/10.22331/q-2023-11-07-1172
+
+    see Table D.1 and Table D.2 for a description of the noise models.
+
+    To correctly use the UniformDepolarizing noise model (i.e. with the correct error rate relations),
+    one needs to use the `surface_sim.setups.UniformDepolarizing` setup.
+
+    The only physical operations available in this noise model are:
+    - CX
+    - CXSWAP
+    - any single-qubit Clifford
+    - initialization in the Z and X basis
+    - measurement in the Z and X basis
+    - 2-qubit Pauli measuremnts
+    - idling
+    """
+
+    _supported_operations: list[str] = list(SQ_GATES) + [
+        "cnot",
+        "cx",
+        "cxswap",
+        "measure",
+        "measure_z",
+        "measure_x",
+        "reset",
+        "reset_z",
+        "reset_x",
+    ]
+
+    DEFAULT_SETUP: Setup | None = UniformDepolarizing()
+
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if callable(attr) and (name in ALL_OPS):
+            if name not in self._supported_operations:
+                raise ValueError(
+                    f"Operation {name} is not available in the SD6 noise model."
+                )
+
+            if name in SQ_MEASUREMENTS:
+                return sq_meas_assign_depol1_generator(self, name)
 
         return attr
 

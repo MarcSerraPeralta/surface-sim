@@ -14,6 +14,7 @@ from .library import (
     SD6NoiseModel,
     SI1000NoiseModel,
     T1T2NoiseModel,
+    UniformDepolarizingNoiseModel,
 )
 from .model import Model
 
@@ -34,4 +35,5 @@ __all__ = [
     "NLRNoiseModel",
     "MovableQubitsCircuitNoiseModel",
     "SD6NoiseModel",
+    "UniformDepolarizingNoiseModel",
 ]

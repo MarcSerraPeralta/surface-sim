@@ -9,6 +9,7 @@ from .library import (
     IncResMeasNoiseSetup,
     MeasurementNoiseSetup,
     PhenomenologicalNoiseSetup,
+    UniformDepolarizing,
 )
 from .setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES, Setup
 
@@ -28,4 +29,5 @@ __all__ = [
     "PhenomenologicalNoiseSetup",
     "MeasurementNoiseSetup",
     "IncResMeasNoiseSetup",
+    "UniformDepolarizing",
 ]

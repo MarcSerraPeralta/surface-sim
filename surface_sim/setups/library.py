@@ -70,6 +70,43 @@ class SD6(Setup):
         return
 
 
+class UniformDepolarizing(Setup):
+    def __init__(self) -> None:
+        """
+        Initialises a ``Setup`` class for the SD6 noise described in:
+
+        McEwen, M., Bacon, D., & Gidney, C. (2023).
+        Relaxing hardware requirements for surface code circuits using time-dynamics. Quantum, 7, 1172.
+        https://doi.org/10.22331/q-2023-11-07-1172
+
+        **IMPORTANT**
+
+        1. It should be loaded with the ``UniformDepolarizingNoiseModel`` model.
+        It should not be loaded with ``CircuitNoiseModel`` because the
+        UniformDepolarizing noise model does not support all Clifford gates.
+
+        2. It contains a variable parameter ``"prob"`` that must be set before
+        building any circuit.
+        """
+        setup_dict = dict(
+            name="UniformDepolarizing noise setup",
+            description="Setup for a UniformDepolarizing noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob}",
+                    tq_error_prob="{prob}",
+                    meas_error_prob="{prob}",
+                    reset_error_prob="{prob}",
+                    idle_error_prob="{prob}",
+                    assign_error_flag=True,
+                    assign_error_prob="{prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
 class SI1000(Setup):
     def __init__(self) -> None:
         """
