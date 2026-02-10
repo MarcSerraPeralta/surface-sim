@@ -11,6 +11,7 @@ from ..setups import (
     SI1000,
     BiasedCircuitNoiseSetup,
     CircuitNoiseSetup,
+    ExtendedSI1000,
     IncomingNoiseSetup,
     IncResMeasNoiseSetup,
     MeasurementNoiseSetup,
@@ -32,6 +33,7 @@ from .util import (
     sq_gate_biased_generator,
     sq_gate_depol1_generator,
     sq_gate_noiseless_generator,
+    sq_meas_assign_depol1_generator,
     sq_meas_depol1_assign_generator,
     sq_meas_noiseless_generator,
     sq_meas_x_assign_generator,
@@ -180,7 +182,7 @@ class SI1000NoiseModel(CircuitNoiseModel):
     @override
     def new_circuit(self) -> None:
         self._meas_or_reset_qubits: list[str] = []
-        self._meas_reset_ops: list[str] = list(SQ_MEASUREMENTS) + list(SQ_RESETS)
+        self._meas_reset_ops: set[str] = set(list(SQ_MEASUREMENTS) + list(SQ_RESETS))
         super().new_circuit()
         return
 
@@ -193,6 +195,81 @@ class SI1000NoiseModel(CircuitNoiseModel):
                 raise ValueError(
                     f"Operation {name} is not available in the {self.__class__.__name__} noise model."
                 )
+
+            if name in self._meas_reset_ops:
+
+                def wrapper(qubits: Collection[str], *args, **kargs):
+                    self._meas_or_reset_qubits += list(qubits)
+                    return attr(qubits, *args, **kargs)
+
+                return wrapper
+
+        return attr
+
+    @override
+    def flush_noise(self) -> Circuit:
+        circ = Circuit()
+        if self._meas_or_reset_qubits:
+            idle_qubits = set(self._qubit_inds).difference(self._meas_or_reset_qubits)
+            circ += self.idle_noise(idle_qubits, "extra_idle_meas_or_reset_error_prob")
+        self._meas_or_reset_qubits = []
+        return circ
+
+
+class ExtendedSI1000NoiseModel(CircuitNoiseModel):
+    """
+    The (extended) SI1000 noise model is defined in the following paper:
+
+    McEwen, M., Bacon, D., & Gidney, C. (2023).
+    Relaxing hardware requirements for surface code circuits using time-dynamics. Quantum, 7, 1172.
+    https://doi.org/10.22331/q-2023-11-07-1172
+
+    see Table D.1 and Table D.2 for a description of the noise models.
+
+    To correctly use the ExtendedSI1000 noise model (i.e. with the correct error rate relations),
+    one needs to use the `surface_sim.setups.ExtendedSI1000` setup.
+
+    The only physical operations available in this noise model are:
+    - CZ
+    - iSWAP
+    - any single-qubit Clifford
+    - initialization in the Z basis
+    - measurement in the Z basis
+    - ZZ measurement
+    - idling
+    """
+
+    _supported_operations: list[str] = list(SQ_GATES) + [
+        "cphase",
+        "iswap",
+        "cz",
+        "measure",
+        "measure_z",
+        "reset",
+        "reset_z",
+    ]
+
+    DEFAULT_SETUP: Setup | None = ExtendedSI1000()
+
+    @override
+    def new_circuit(self) -> None:
+        self._meas_or_reset_qubits: list[str] = []
+        self._meas_reset_ops: set[str] = set(list(SQ_MEASUREMENTS) + list(SQ_RESETS))
+        super().new_circuit()
+        return
+
+    @override
+    def __getattribute__(self, name: str) -> object:
+        attr = super().__getattribute__(name)
+
+        if callable(attr) and (name in ALL_OPS):
+            if name not in self._supported_operations:
+                raise ValueError(
+                    f"Operation {name} is not available in the {self.__class__.__name__} noise model."
+                )
+
+            if name in SQ_MEASUREMENTS:
+                attr = sq_meas_assign_depol1_generator(self, name)
 
             if name in self._meas_reset_ops:
 

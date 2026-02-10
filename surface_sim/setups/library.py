@@ -114,6 +114,48 @@ class SI1000(Setup):
         return
 
 
+class ExtendedSI1000(Setup):
+    def __init__(self) -> None:
+        """
+        Initialises a ``Setup`` class for the ExtendedSI1000 noise described in:
+
+        McEwen, M., Bacon, D., & Gidney, C. (2023).
+        Relaxing hardware requirements for surface code circuits using time-dynamics. Quantum, 7, 1172.
+        https://doi.org/10.22331/q-2023-11-07-1172
+
+        **IMPORTANT**
+
+        1. It should be loaded with the ``ExtendedSI1000NoiseModel`` model. It should not be loaded
+        with ``CircuitNoiseModel`` because the noise model stacks noise channels
+        for qubits that are not being measured on top of their respective
+        noise gate channels (e.g. idling).
+
+        2. This noise model assumes that ``model.tick()`` is called
+        in-between gate layers.
+
+        3. It contains a variable parameter ``"prob"`` that must be set before
+        building any circuit.
+        """
+        setup_dict = dict(
+            name="ExtendedSI1000 noise setup",
+            description="Setup for the ExtendedSI1000 noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{prob} / 10",
+                    tq_error_prob="{prob}",
+                    meas_error_prob="{prob}",
+                    reset_error_prob="{prob} * 2",
+                    idle_error_prob="{prob} / 10",
+                    extra_idle_meas_or_reset_error_prob="{prob} * 2",
+                    assign_error_flag=True,
+                    assign_error_prob="{prob} * 5",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return
+
+
 class BiasedCircuitNoiseSetup(Setup):
     def __init__(self) -> None:
         """Initialises a ``Setup`` class for the biased circuit-level noise."""
