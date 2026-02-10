@@ -18,6 +18,7 @@ from surface_sim.models import (
     SD6NoiseModel,
     SI1000NoiseModel,
     T1T2NoiseModel,
+    UniformDepolarizingNoiseModel,
 )
 from surface_sim.setups import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
 
@@ -341,6 +342,60 @@ def test_SD6NoiseModel():
     return
 
 
+def test_UniformDepolarizingNoiseModel():
+    model = UniformDepolarizingNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z", "reset_x"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z", "measure_x"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise after the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == 0
+        assert len(ops) == 2
+        assert "DEPOLARIZE1" in ops
+
+    for name in TQ_GATES:
+        if name not in ["cx", "cnot", "cxswap"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
 def test_SI1000NoiseModel():
     model = SI1000NoiseModel(qubit_inds={"D1": 0, "D2": 1})
     model.setup.set_var_param("prob", 1e-3)
@@ -465,6 +520,7 @@ def test_ExtendedSI1000NoiseModel():
         # noise after the measurement
         assert ops.index(SQ_MEASUREMENTS[name]) == 0
         assert len(ops) == 2
+        assert "DEPOLARIZE1" in ops
 
     for name in TQ_GATES:
         if name not in ["cphase", "cz", "iswap"]:
