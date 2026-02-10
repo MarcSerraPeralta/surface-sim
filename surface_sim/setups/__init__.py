@@ -4,10 +4,12 @@ from .library import (
     SI1000,
     BiasedCircuitNoiseSetup,
     CircuitNoiseSetup,
+    ExtendedSI1000,
     IncomingNoiseSetup,
     IncResMeasNoiseSetup,
     MeasurementNoiseSetup,
     PhenomenologicalNoiseSetup,
+    UniformDepolarizing,
 )
 from .setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES, Setup
 
@@ -19,6 +21,7 @@ __all__ = [
     "Setup",
     "CircuitNoiseSetup",
     "SI1000",
+    "ExtendedSI1000",
     "SD6",
     "NLR",
     "BiasedCircuitNoiseSetup",
@@ -26,4 +29,5 @@ __all__ = [
     "PhenomenologicalNoiseSetup",
     "MeasurementNoiseSetup",
     "IncResMeasNoiseSetup",
+    "UniformDepolarizing",
 ]

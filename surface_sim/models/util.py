@@ -215,7 +215,6 @@ def sq_meas_x_assign_generator(
         noise_name = "X_ERROR" if "_x" not in name else "Z_ERROR"
         circ = Circuit()
 
-        # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
         if self.uniform:
             prob: float = self.param(f"{name}_error_prob")
             circ.append(CircuitInstruction(noise_name, inds, [prob]))
@@ -394,7 +393,6 @@ def sq_meas_depol1_assign_generator(
         inds = self.get_inds(qubits)
         circ = Circuit()
 
-        # separates X_ERROR and MZ lines for clearer stim.Circuits and diagrams
         if self.uniform:
             prob: float = self.param(f"{name}_error_prob")
             circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
@@ -418,6 +416,42 @@ def sq_meas_depol1_assign_generator(
                     )
                 else:
                     circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], [ind]))
+
+        return circ
+
+    return sq_meas
+
+
+def sq_meas_assign_depol1_generator(
+    self: Model, name: str
+) -> Callable[[Collection[str]], Circuit]:
+    def sq_meas(qubits: Collection[str]) -> Circuit:
+        inds = self.get_inds(qubits)
+        circ = Circuit()
+
+        if self.uniform:
+            for qubit in qubits:
+                self.add_meas(qubit)
+            if self.param("assign_error_flag"):
+                prob: float = self.param("assign_error_prob")
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds, [prob]))
+            else:
+                circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], inds))
+            prob: float = self.param(f"{name}_error_prob")
+            circ.append(CircuitInstruction("DEPOLARIZE1", inds, [prob]))
+        else:
+            for qubit, ind in zip(qubits, inds):
+                self.add_meas(qubit)
+                if self.param("assign_error_flag", qubit):
+                    prob: float = self.param("assign_error_prob", qubit)
+                    circ.append(
+                        CircuitInstruction(SQ_MEASUREMENTS[name], [ind], [prob])
+                    )
+                else:
+                    circ.append(CircuitInstruction(SQ_MEASUREMENTS[name], [ind]))
+            for qubit, ind in zip(qubits, inds):
+                prob: float = self.param(f"{name}_error_prob", qubit)
+                circ.append(CircuitInstruction("DEPOLARIZE1", [ind], [prob]))
 
         return circ
 
