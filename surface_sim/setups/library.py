@@ -73,7 +73,7 @@ class SD6(Setup):
 class UniformDepolarizing(Setup):
     def __init__(self) -> None:
         """
-        Initialises a ``Setup`` class for the SD6 noise described in:
+        Initialises a ``Setup`` class for the UniformDepolarizing noise described in:
 
         McEwen, M., Bacon, D., & Gidney, C. (2023).
         Relaxing hardware requirements for surface code circuits using time-dynamics. Quantum, 7, 1172.
