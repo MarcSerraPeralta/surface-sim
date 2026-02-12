@@ -1,4 +1,4 @@
-from .circuit_modifications import add_noise_to_circuit
+from .circuit_modifications import add_noise_to_circuit, remove_idling_from_circuit
 from .circuit_operations import (
     merge_circuits,
     merge_logical_operations,
@@ -17,4 +17,5 @@ __all__ = [
     "add_noise_to_circuit",
     "remove_nondeterministic_observables",
     "move_observables_to_end",
+    "remove_idling_from_circuit",
 ]
