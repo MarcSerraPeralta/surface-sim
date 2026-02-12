@@ -20,7 +20,7 @@ def test_remove_nondeterministic_observables():
         """
     )
 
-    new_circuit = remove_nondeterministic_observables(circuit, [[0, 1, 2], [1]])
+    new_circuit = remove_nondeterministic_observables(circuit, [[0, 100, 2], [100, 3]])
 
     expected_circuit = stim.Circuit(
         """
@@ -35,6 +35,8 @@ def test_remove_nondeterministic_observables():
     )
 
     assert new_circuit == expected_circuit
+
+    return
 
 
 def test_move_observables_to_end():
@@ -67,3 +69,26 @@ def test_move_observables_to_end():
     )
 
     assert new_circuit == expected_circuit
+
+    circuit = stim.Circuit(
+        """
+        M 0 1
+        OBSERVABLE_INCLUDE(0) rec[-2] rec[-1]
+        OBSERVABLE_INCLUDE(0) rec[-1]
+        M 0
+        """
+    )
+
+    new_circuit = move_observables_to_end(circuit)
+
+    expected_circuit = stim.Circuit(
+        """
+        M 0 1
+        M 0
+        OBSERVABLE_INCLUDE(0) rec[-3]
+        """
+    )
+
+    assert new_circuit == expected_circuit
+
+    return

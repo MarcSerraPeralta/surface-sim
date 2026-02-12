@@ -379,8 +379,8 @@ def test_redefine_obs_from_circuit():
         M 0 1 2
         M 3 4 5 6 7
         X 0
-        OBSERVABLE_INCLUDE(1) rec[-9] rec[-10] rec[-11]
-        OBSERVABLE_INCLUDE(4) rec[-5] rec[-4] rec[-6] rec[-7] rec[-8]
+        OBSERVABLE_INCLUDE(1) rec[-11] rec[-10] rec[-9]
+        OBSERVABLE_INCLUDE(4) rec[-8] rec[-7] rec[-6] rec[-5] rec[-4]
         """
     )
 
