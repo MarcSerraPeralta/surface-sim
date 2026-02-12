@@ -16,7 +16,7 @@ def remove_nondeterministic_observables(
     deterministic_obs
         List of deterministic observables in the circuit, specified by a list of
         indices corresponding to the observables in the circuit. Index ``i``
-        corresponds to the ``i``th observable defined in the circuit
+        corresponds to the ``i`` th observable defined in the circuit
 
     Returns
     -------
