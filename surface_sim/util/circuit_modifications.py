@@ -77,3 +77,19 @@ def add_noise_to_circuit(
             noisy_circuit.append(instr)
 
     return noisy_circuit
+
+
+def remove_idling_from_circuit(circuit: stim.Circuit) -> stim.Circuit:
+    """Removes idling operations from the given circuit."""
+    if not isinstance(circuit, stim.Circuit):
+        raise TypeError(
+            f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
+        )
+
+    new_circuit = stim.Circuit()
+    for instr in circuit.flattened():
+        if instr.name in set(["I", "II"]):
+            continue
+        new_circuit.append(instr)
+
+    return new_circuit

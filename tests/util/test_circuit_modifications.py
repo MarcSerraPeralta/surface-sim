@@ -1,7 +1,7 @@
 import stim
 
 from surface_sim.models import CircuitNoiseModel
-from surface_sim.util import add_noise_to_circuit
+from surface_sim.util import add_noise_to_circuit, remove_idling_from_circuit
 
 
 def test_add_noise_to_circuit():
@@ -55,5 +55,35 @@ def test_add_noise_to_circuit():
     )
 
     assert noisy_circuit == expected_circuit
+
+    return
+
+
+def test_remove_idling_from_circuit():
+    circuit = stim.Circuit(
+        """
+        R 0
+        I 1 2 3
+        M(0.1) 3 2
+        DETECTOR rec[-1]
+        CNOT 1 2
+        DEPOLARIZE1(0.1) 0 1
+        II 0 1
+        """
+    )
+
+    output_circuit = remove_idling_from_circuit(circuit)
+
+    expected_circuit = stim.Circuit(
+        """
+        R 0
+        M(0.1) 3 2
+        DETECTOR rec[-1]
+        CNOT 1 2
+        DEPOLARIZE1(0.1) 0 1
+        """
+    )
+
+    assert output_circuit == expected_circuit
 
     return
