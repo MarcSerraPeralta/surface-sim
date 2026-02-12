@@ -204,7 +204,7 @@ class Detectors:
         This behavior is due to the ``"post-gate"`` frame.
 
         Parameters
-        ---------
+        ----------
         new_stab_gens
             Dictionary that maps ancilla qubits (representing the stabilizer
             generators) to a list of ancilla qubits (representing the decomposition

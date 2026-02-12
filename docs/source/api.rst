@@ -10,7 +10,7 @@ API reference
    surface_sim.layouts
    surface_sim.detectors
    surface_sim.models
-   surface_sim.setup
+   surface_sim.setups
    surface_sim.log_gates
    surface_sim.circuit_blocks
    surface_sim.util

@@ -33,15 +33,13 @@ Example
 
     from surface_sim.layouts import rot_surface_code
     from surface_sim.models import CircuitNoiseModel
-    from surface_sim.setup import CircuitNoiseSetup
     from surface_sim import Detectors
     from surface_sim.experiments.rot_surface_code_css import memory_experiment
 
     # prepare the layout, model, and detectors objects
     layout = rot_surface_code(distance=3)
-    setup = CircuitNoiseSetup()
-    model = CircuitNoiseModel(setup, layout.qubit_inds)
-    detectors = Detectors(layout.anc_qubits, frame="pre-gate")
+    model = CircuitNoiseModel(layout.qubit_inds)
+    detectors = Detectors.from_layouts(layout)
 
     # create a memory experiment
     NUM_ROUNDS = 10
@@ -50,7 +48,7 @@ Example
     MEAS_RESET = True  # reset after ancilla measurements
     PROB = 1e-5
 
-    setup.set_var_param("prob", PROB)
+    model.setup.set_var_param("prob", PROB)
     stim_circuit = memory_experiment(
         model,
         layout,
@@ -61,16 +59,16 @@ Example
         anc_reset=MEAS_RESET,
     )
 
+
 **Arbitrary logical circuit from a given circuit**
 
 .. code-block:: python
 
     import stim
 
-    from surface_sim.setup import CircuitNoiseSetup
     from surface_sim.models import CircuitNoiseModel
     from surface_sim import Detectors
-    from surface_sim.experiments import schedule_from_circuit, experiment_from_schedule
+    from surface_sim.experiments import experiment_from_circuit
     from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
     from surface_sim.layouts import unrot_surface_codes
 
@@ -88,17 +86,16 @@ Example
         TICK
         M 0
         MX 1
+        OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]
         """
     )
 
     layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
-    setup = CircuitNoiseSetup()
-    model = CircuitNoiseModel.from_layouts(setup, *layouts)
-    detectors = Detectors.from_layouts("pre-gate", *layouts)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
-    setup.set_var_param("prob", 1e-3)
+    model.setup.set_var_param("prob", 1e-3)
 
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
-    stim_circuit = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=True
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
     )
