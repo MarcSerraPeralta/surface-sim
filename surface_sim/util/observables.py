@@ -27,6 +27,8 @@ def remove_nondeterministic_observables(
         raise TypeError(
             f"'circuit' must be stim.Circuit, but {type(circuit)} was given."
         )
+    if circuit.num_observables == 0:
+        return circuit
     if not isinstance(deterministic_obs, Collection):
         raise TypeError(
             "'deterministic_obs' must be a Collection, "
@@ -42,25 +44,24 @@ def remove_nondeterministic_observables(
     if max(indices) > circuit.num_observables - 1:
         raise ValueError("Index cannot be larger than 'circuit.num_observables-1'.")
 
-    new_circuit = stim.Circuit()
-    observables: list[stim.CircuitInstruction] = []
-    # moving the definition of the observables messes with the rec[-i] definition
-    # therefore I need to take care of how many measurements are between the definition
-    # and the end of the circuit (where I am going to define the deterministic observables)
-    measurements: list[int] = []
-    for i, instr in enumerate(circuit.flattened()):
+    new_circuit = move_observables_to_end(circuit)
+    observables: dict[int, set[int]] = {}
+    for k, instr in enumerate(new_circuit[::-1]):
         if instr.name == "OBSERVABLE_INCLUDE":
-            observables.append(instr)
-            measurements.append(circuit[i:].num_measurements)
+            obs_ind = instr.gate_args_copy()[0]
+            targets = [t.value for t in instr.targets_copy()]
+            if obs_ind not in observables:
+                observables[obs_ind] = set()
+            observables[obs_ind].symmetric_difference_update(targets)
         else:
-            new_circuit.append(instr)
+            break
+    new_circuit = new_circuit[:-k]
 
     for k, det_obs in enumerate(deterministic_obs):
-        new_targets: list[int] = []
+        new_targets: set[int] = set()
         for obs_ind in det_obs:
-            targets = observables[obs_ind].targets_copy()
-            targets = [t.value - measurements[obs_ind] for t in targets]
-            new_targets += targets
+            targets = observables.get(obs_ind, [])
+            new_targets.symmetric_difference_update(targets)
         new_obs = stim.CircuitInstruction(
             "OBSERVABLE_INCLUDE", [stim.target_rec(t) for t in new_targets], [k]
         )
@@ -76,20 +77,26 @@ def move_observables_to_end(circuit: stim.Circuit) -> stim.Circuit:
             f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
         )
 
+    # moving the definition of the observables messes with the rec[-i] definition
+    # therefore I need to take care of how many measurements are between the definition
+    # and the end of the circuit.
+
     new_circuit = stim.Circuit()
-    observables: dict[int, stim.CircuitInstruction] = {}
-    measurements: dict[int, int] = {}
+    observables: dict[int, set[int]] = {}
     for i, instr in enumerate(circuit.flattened()):
         if instr.name == "OBSERVABLE_INCLUDE":
             obs_ind = instr.gate_args_copy()[0]
-            observables[obs_ind] = instr
-            measurements[obs_ind] = circuit[i:].num_measurements
+            targets = instr.targets_copy()
+            m = circuit[i:].num_measurements
+            if obs_ind not in observables:
+                observables[obs_ind] = set()
+            observables[obs_ind].symmetric_difference_update(
+                [t.value - m for t in targets]
+            )
         else:
             new_circuit.append(instr)
 
-    for obs_ind in observables:
-        targets = observables[obs_ind].targets_copy()
-        new_targets = [t.value - measurements[obs_ind] for t in targets]
+    for obs_ind, new_targets in observables.items():
         new_obs = stim.CircuitInstruction(
             "OBSERVABLE_INCLUDE", [stim.target_rec(t) for t in new_targets], [obs_ind]
         )
