@@ -1464,8 +1464,7 @@ def log_x_error_iterator(
     model: Model, layout: Layout, prob: float | int = 0
 ) -> Generator[Circuit]:
     """
-    Yields stim circuits corresponding to a logical X error with probability ``prob``
-    of the given model.
+    Yields stim circuits corresponding to a logical X error with probability ``prob``.
     """
     if not isinstance(prob, (float, int)):
         raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
@@ -1491,8 +1490,7 @@ def log_y_error_iterator(
     model: Model, layout: Layout, prob: float | int = 0
 ) -> Generator[Circuit]:
     """
-    Yields stim circuits corresponding to a logical Y error with probability ``prob``
-    of the given model.
+    Yields stim circuits corresponding to a logical Y error with probability ``prob``.
     """
     if not isinstance(prob, (float, int)):
         raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
@@ -1521,8 +1519,7 @@ def log_z_error_iterator(
     model: Model, layout: Layout, prob: float | int = 0
 ) -> Generator[Circuit]:
     """
-    Yields stim circuits corresponding to a logical Z error with probability ``prob``
-    of the given model.
+    Yields stim circuits corresponding to a logical Z error with probability ``prob``.
     """
     if not isinstance(prob, (float, int)):
         raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
@@ -1548,8 +1545,8 @@ def log_depolarize1_error_iterator(
     model: Model, layout: Layout, prob: float | int = 0
 ) -> Generator[Circuit]:
     """
-    Yields stim circuits corresponding to a logical Y error with probability ``prob``
-    of the given model.
+    Yields stim circuits corresponding to a logical depolarizing error
+    with probability ``prob``.
     """
     if not isinstance(prob, (float, int)):
         raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
