@@ -17,6 +17,7 @@ from surface_sim.models import NoiselessModel
 from surface_sim.util.circuit_operations import (
     group_logical_operations,
     merge_circuits,
+    merge_logical_noise,
     merge_logical_operations,
     merge_operation_layers,
 )
@@ -129,13 +130,8 @@ def test_merge_circuits():
 
 def test_merge_qec_rounds():
     layout, other_layout = unrot_surface_codes(2, distance=3)
-    qubit_inds = layout.qubit_inds
-    qubit_inds.update(other_layout.qubit_inds)
-    anc_qubits = layout.anc_qubits + other_layout.anc_qubits
-    anc_coords = layout.anc_coords
-    anc_coords.update(other_layout.anc_coords)
-    model = NoiselessModel(qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
+    model = NoiselessModel.from_layouts(layout, other_layout)
+    detectors = Detectors.from_layouts(layout, other_layout)
 
     circuit = merge_logical_operations(
         [(qec_round_iterator, layout), (qec_round_iterator, other_layout)],
@@ -151,16 +147,12 @@ def test_merge_qec_rounds():
 
 def test_merge_logical_measurements():
     layout, other_layout = unrot_surface_codes(2, distance=3)
-    qubit_inds = layout.qubit_inds
-    qubit_inds.update(other_layout.qubit_inds)
-    anc_qubits = layout.anc_qubits + other_layout.anc_qubits
-    anc_coords = layout.anc_coords
-    anc_coords.update(other_layout.anc_coords)
-    model = NoiselessModel(qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
+    model = NoiselessModel.from_layouts(layout, other_layout)
+    detectors = Detectors.from_layouts(layout, other_layout)
 
     # need to initialize the ancillas, because if not `detectors` complains
-    # that they were inactive
+    # that they were inactive.
+    anc_qubits = layout.get_qubits(role="anc") + other_layout.get_qubits(role="anc")
     detectors.activate_detectors(anc_qubits, [])
 
     circuit = merge_logical_operations(
@@ -178,13 +170,8 @@ def test_merge_logical_measurements():
 
 def test_merge_logical_operations():
     layout, other_layout = unrot_surface_codes(2, distance=3)
-    qubit_inds = layout.qubit_inds
-    qubit_inds.update(other_layout.qubit_inds)
-    anc_qubits = layout.anc_qubits + other_layout.anc_qubits
-    anc_coords = layout.anc_coords
-    anc_coords.update(other_layout.anc_coords)
-    model = NoiselessModel(qubit_inds)
-    detectors = Detectors(anc_qubits, frame="pre-gate", anc_coords=anc_coords)
+    model = NoiselessModel.from_layouts(layout, other_layout)
+    detectors = Detectors.from_layouts(layout, other_layout)
 
     circuit = merge_logical_operations(
         [
@@ -250,5 +237,34 @@ def test_group_logical_operations():
         (init_qubits_z0_iterator, other_layout),
     ]
     assert post == [(log_z_error_iterator, layout)]
+
+    return
+
+
+def test_merge_logical_noise():
+    layout, other_layout = unrot_surface_codes(2, distance=3)
+    model = NoiselessModel.from_layouts(layout, other_layout)
+
+    circuit = merge_logical_noise(
+        [
+            (log_x_error_iterator, layout),
+            (log_depolarize1_error_iterator, other_layout),
+            (log_z_error_iterator, layout),
+        ],
+        model=model,
+    )
+
+    expected_circuit = stim.Circuit(
+        """
+        E(0) X0 X10 X20
+        E(0) X25 X35 X45
+        ELSE_CORRELATED_ERROR(0) X25 X35 X45 Z25 Z27 Z29
+        ELSE_CORRELATED_ERROR(0) Z25 Z27 Z29
+        E(0) Z0 Z2 Z4
+        TICK
+        """
+    )
+
+    assert circuit == expected_circuit
 
     return

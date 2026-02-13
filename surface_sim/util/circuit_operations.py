@@ -461,8 +461,37 @@ def merge_ticks(blocks: Collection[stim.Circuit]) -> stim.Circuit:
     return circuit
 
 
-def merge_logical_noise():
-    return
+def merge_logical_noise(
+    log_ops: Sequence[LogicalOperation], model: Model
+) -> stim.Circuit:
+    """
+    Returns the circuit corresponding to merging all the given logical
+    noise operations.
+
+    Note that it adds only a single ``TICK`` at the end of the circuit.
+
+    Parameters
+    ----------
+    log_ops
+        Logical noise channels to merge.
+    model
+        Noise model to use.
+        Note that it is only used to get the indicies of the qubits.
+
+    Returns
+    -------
+    circuit
+        Stim circuit corresponding to merging all the ``log_ops``.
+        A single ``TICK`` is added at the end of the circuit.
+    """
+    circuit = stim.Circuit()
+
+    for log_op in log_ops:
+        op, layouts = log_op[0], log_op[1:]
+        circuit += sum(op(model, *layouts), start=stim.Circuit())
+
+    circuit += stim.Circuit("TICK")
+    return circuit
 
 
 def group_logical_operations(

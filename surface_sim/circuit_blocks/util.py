@@ -1459,19 +1459,6 @@ def qec_round_iterator_cnots(
     yield from to_end_cycle_iterator_cnots(model, layout)
 
 
-def log_x_error(
-    model: Model, layout: Layout, detectors: Detectors, prob: float | int = 0
-) -> Circuit:
-    """
-    Returns stim circuit corresponding to a logical X error with probability ``prob``
-    of the given model.
-    """
-    # the stabilizer generators do not change when applying a logical X gate
-    return sum(
-        log_x_error_iterator(model=model, layout=layout, prob=prob), start=Circuit()
-    )
-
-
 @logical_noise
 def log_x_error_iterator(
     model: Model, layout: Layout, prob: float | int = 0
@@ -1586,9 +1573,9 @@ def log_depolarize1_error_iterator(
     circuit = Circuit(
         f"CORRELATED_ERROR({prob / 3}) "
         + " ".join([f"X{i}" for i in log_x_inds])
-        + f"ELSE_CORRELATED_ERROR({prob / (3 - prob)}) "
+        + f"\nELSE_CORRELATED_ERROR({prob / (3 - prob)}) "
         + " ".join([f"X{i}" for i in log_x_inds] + [f"Z{i}" for i in log_z_inds])
-        + f"ELSE_CORRELATED_ERROR({prob / (3 - 2 * prob)}) "
+        + f"\nELSE_CORRELATED_ERROR({prob / (3 - 2 * prob)}) "
         + " ".join([f"Z{i}" for i in log_z_inds])
     )
     yield circuit

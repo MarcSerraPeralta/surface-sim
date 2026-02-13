@@ -502,7 +502,7 @@ def experiment_from_schedule(
     for block in schedule:
         pre_log_noise, log_ops, post_log_noise = group_logical_operations(block)
         if pre_log_noise:
-            experiment += merge_logical_noise(pre_log_noise)
+            experiment += merge_logical_noise(pre_log_noise, model=model)
 
         experiment += merge_logical_operations(
             log_ops,
@@ -514,7 +514,7 @@ def experiment_from_schedule(
         )
 
         if post_log_noise:
-            experiment += merge_logical_noise(post_log_noise)
+            experiment += merge_logical_noise(post_log_noise, model=model)
 
     return experiment
 
