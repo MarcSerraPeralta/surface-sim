@@ -17,13 +17,17 @@ from .util import (
     init_qubits_x1_iterator,
     init_qubits_z0_iterator,
     init_qubits_z1_iterator,
+    log_depolarize1_error_iterator,
     log_meas,
     log_meas_iterator,
     log_meas_x_iterator,
     log_meas_z_iterator,
     log_x,
+    log_x_error_iterator,
     log_x_iterator,
+    log_y_error_iterator,
     log_z,
+    log_z_error_iterator,
     log_z_iterator,
     qubit_coords,
 )
@@ -48,6 +52,10 @@ __all__ = [
     "init_qubits_x1_iterator",
     "qec_round",
     "qec_round_iterator",
+    "log_x_error_iterator",
+    "log_y_error_iterator",
+    "log_z_error_iterator",
+    "log_depolarize1_error_iterator",
     "gate_to_iterator",
 ]
 
@@ -237,4 +245,8 @@ gate_to_iterator = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }

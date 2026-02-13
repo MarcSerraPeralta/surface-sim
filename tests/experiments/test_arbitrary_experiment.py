@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import stim
 
@@ -433,5 +434,32 @@ def test_experiment_from_circuit():
     _ = experiment.detector_error_model()
 
     assert experiment.num_observables == 2
+
+    circuit = stim.Circuit(
+        """
+        R 0 1
+        X_ERROR(0.001) 0
+        TICK
+        DEPOLARIZE1(0.006) 1
+        M 0 1
+        """
+    )
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator
+    )
+
+    # approximate_disjoint_errors=True is required when using correlated errors.
+    dem = experiment.detector_error_model(approximate_disjoint_errors=True)
+
+    for instr in dem.flattened():
+        if instr.type != "error":
+            continue
+
+        # using np.isclose because of the approximations stim does
+        if instr.targets_copy() == [stim.DemTarget("L0")]:
+            assert np.isclose(instr.args_copy()[0], 0.001, rtol=5e-3)
+        if instr.targets_copy() == [stim.DemTarget("L1")]:
+            assert np.isclose(instr.args_copy()[0], 0.004, rtol=5e-3)
 
     return

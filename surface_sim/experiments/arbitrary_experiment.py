@@ -4,7 +4,7 @@ from typing import TypeVar
 
 import stim
 
-from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable
+from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable, copy_from
 from ..circuit_blocks.util import idle_iterator, qubit_coords
 from ..detectors.detectors import Detectors
 from ..layouts.layout import Layout
@@ -12,6 +12,8 @@ from ..models.model import Model
 from ..util.circuit_operations import (
     QEC_OP_TYPES,
     RESET_OP_TYPES,
+    group_logical_operations,
+    merge_logical_noise,
     merge_logical_operations,
 )
 from ..util.observables import move_observables_to_end
@@ -128,6 +130,26 @@ def schedule_from_circuit(
         if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
                 instructions.append((func_iter, layouts[i], layouts[j]))
+        elif set(["logical_noise"]).intersection(func_iter.log_op_type):
+            prob = instr.gate_args_copy()[0]
+
+            # the 'iterator' key is needed because it captures the 'func_iter'
+            # current value. If not, when 'log_op' is called, 'func_iter' corresponds
+            # to the last element in this for-loop. Same for 'prob'.
+            # another strategy is to use functools.partial but it does not work
+            # well with the LogOpCallable object.
+            @copy_from(func_iter)
+            def log_op(
+                model: Model,
+                layout: Layout,
+                iterator: LogOpCallable = func_iter,
+                prob: float = prob,
+                **kargs,
+            ):
+                return iterator(model=model, layout=layout, prob=prob, **kargs)
+
+            for i in targets:
+                instructions.append((log_op, layouts[i]))
         else:
             for i in targets:
                 instructions.append((func_iter, layouts[i]))
@@ -423,6 +445,9 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
         elif set(["sq_unitary_gate", "tq_unitary_gate"]).intersection(op.log_op_type):
             for l in layouts:
                 counter[l] += 1
+        elif set(["logical_noise"]).intersection(op.log_op_type):
+            # does not count as logical operation
+            pass
         else:
             raise ValueError(f"Do not know how to process '{op.log_op_type}'.")
 
@@ -498,14 +523,21 @@ def experiment_from_schedule(
     experiment += qubit_coords(model, *layouts)
 
     for block in schedule:
+        pre_log_noise, log_ops, post_log_noise = group_logical_operations(block)
+        if pre_log_noise:
+            experiment += merge_logical_noise(pre_log_noise, model=model)
+
         experiment += merge_logical_operations(
-            block,
+            log_ops,
             model=model,
             detectors=detectors,
             init_log_obs_ind=experiment.num_observables,
             anc_reset=anc_reset,
             anc_detectors=anc_detectors,
         )
+
+        if post_log_noise:
+            experiment += merge_logical_noise(post_log_noise, model=model)
 
     return experiment
 

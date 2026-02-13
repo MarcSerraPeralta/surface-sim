@@ -12,10 +12,14 @@ from .util import general_qec_round_iterator_cnots as general_qec_round_iterator
 # methods to have in this script
 from .util import (
     idle_iterator,
+    log_depolarize1_error_iterator,
     log_meas,
     log_meas_iterator,
     log_meas_x_iterator,
     log_meas_z_iterator,
+    log_x_error_iterator,
+    log_y_error_iterator,
+    log_z_error_iterator,
     qubit_coords,
 )
 
@@ -46,6 +50,10 @@ __all__ = [
     "log_fold_trans_swap_b_iterator",
     "log_fold_trans_swap_c",
     "log_fold_trans_swap_c_iterator",
+    "log_x_error_iterator",
+    "log_y_error_iterator",
+    "log_z_error_iterator",
+    "log_depolarize1_error_iterator",
     "qec_round",
     "qec_round_iterator",
     "gate_to_iterator",
@@ -744,4 +752,8 @@ gate_to_iterator = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }

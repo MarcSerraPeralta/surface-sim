@@ -115,6 +115,13 @@ def logical_measurement_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     return func
 
 
+def logical_noise(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    func.log_op_type += ["logical_noise"]
+    return func
+
+
 def noiseless(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     """Decorator for removing all noise channels from a ``LogOpCallable``"""
     if not isinstance(func, LogOpCallable):
@@ -135,3 +142,23 @@ def noiseless(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     noiseless_op.noiseless = True
 
     return noiseless_op
+
+
+def copy_from(
+    other_func: LogOpCallable,
+) -> Callable[[LogOpCallable | LogOpFunction], LogOpCallable]:
+    """Decorator for copying all the logical operation attributes from a function."""
+
+    def decorator(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+        if not isinstance(func, LogOpCallable):
+            func = LogOpCallable(func)
+
+        func.log_op_type = other_func.log_op_type
+        func.rot_basis = other_func.rot_basis
+        func.num_qubits = other_func.num_qubits
+        func.noiseless = other_func.noiseless
+        func.name = other_func.__name__
+
+        return func
+
+    return decorator

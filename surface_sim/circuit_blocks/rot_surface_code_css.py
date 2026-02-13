@@ -17,6 +17,7 @@ from .util import (
     init_qubits_x1_iterator,
     init_qubits_z0_iterator,
     init_qubits_z1_iterator,
+    log_depolarize1_error_iterator,
     log_fold_trans_s,
     log_fold_trans_s_iterator,
     log_meas,
@@ -26,8 +27,11 @@ from .util import (
     log_trans_cnot,
     log_trans_cnot_iterator,
     log_x,
+    log_x_error_iterator,
     log_x_iterator,
+    log_y_error_iterator,
     log_z,
+    log_z_error_iterator,
     log_z_iterator,
     qec_round_iterator,
     qec_round_iterator_cnots,
@@ -71,6 +75,10 @@ __all__ = [
     "encoding_qubits_x0_iterator_cnots",
     "encoding_qubits_y0_iterator_cnots",
     "encoding_qubits_z0_iterator_cnots",
+    "log_x_error_iterator",
+    "log_y_error_iterator",
+    "log_z_error_iterator",
+    "log_depolarize1_error_iterator",
     "gate_to_iterator",
     "gate_to_iterator_cnots",
     "gate_to_iterator_mid_cycle_cnots",
@@ -1321,6 +1329,10 @@ gate_to_iterator = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
 gate_to_iterator_cnots = {
     "TICK": qec_round_iterator_cnots,
@@ -1336,6 +1348,10 @@ gate_to_iterator_cnots = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
 gate_to_iterator_mid_cycle_cnots = {
     "CX": log_trans_cnot_mid_cycle_css_iterator,
@@ -1346,6 +1362,10 @@ gate_to_iterator_mid_cycle_cnots = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
 tick_iterators_mid_cycle_cnots = [
     to_mid_cycle_iterator_cnots,
@@ -1365,4 +1385,8 @@ gate_to_iterator_pipelined = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
