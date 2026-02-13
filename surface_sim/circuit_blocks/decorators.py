@@ -5,6 +5,7 @@ Decorators for functions that
 """
 
 from collections.abc import Callable, Generator
+from copy import deepcopy
 
 import stim
 
@@ -142,3 +143,24 @@ def noiseless(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     noiseless_op.noiseless = True
 
     return noiseless_op
+
+
+def copy_from(
+    other_func: LogOpCallable,
+) -> Callable[[LogOpCallable | LogOpFunction], LogOpCallable]:
+    """Decorator for copying all the logical operation attributes from a function."""
+
+    def decorator(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+        target_func = deepcopy(func)
+        if not isinstance(func, LogOpCallable):
+            target_func = LogOpCallable(func)
+
+        target_func.log_op_type = deepcopy(other_func.log_op_type)
+        target_func.rot_basis = deepcopy(other_func.rot_basis)
+        target_func.num_qubits = deepcopy(other_func.num_qubits)
+        target_func.noiseless = deepcopy(other_func.noiseless)
+        target_func.name = deepcopy(other_func.__name__)
+
+        return target_func
+
+    return decorator
