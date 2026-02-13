@@ -12,6 +12,8 @@ from ..models.model import Model
 from ..util.circuit_operations import (
     QEC_OP_TYPES,
     RESET_OP_TYPES,
+    group_logical_operations,
+    merge_logical_noise,
     merge_logical_operations,
 )
 from ..util.observables import move_observables_to_end
@@ -498,14 +500,21 @@ def experiment_from_schedule(
     experiment += qubit_coords(model, *layouts)
 
     for block in schedule:
+        pre_log_noise, log_ops, post_log_noise = group_logical_operations(block)
+        if pre_log_noise:
+            experiment += merge_logical_noise(pre_log_noise)
+
         experiment += merge_logical_operations(
-            block,
+            log_ops,
             model=model,
             detectors=detectors,
             init_log_obs_ind=experiment.num_observables,
             anc_reset=anc_reset,
             anc_detectors=anc_detectors,
         )
+
+        if post_log_noise:
+            experiment += merge_logical_noise(post_log_noise)
 
     return experiment
 

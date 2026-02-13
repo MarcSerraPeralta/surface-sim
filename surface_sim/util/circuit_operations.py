@@ -36,7 +36,10 @@ QEC_RESET_OP_TYPES = ["qec_round", "to_mid_cycle_circuit"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 MEAS_OP_TYPES = ["measurement"]
 RESET_OP_TYPES = ["qubit_init", "qubit_encoding"]
-VALID_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
+NOISE_OP_TYPES = ["logical_noise"]
+VALID_OP_TYPES = (
+    QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES + NOISE_OP_TYPES
+)
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -456,3 +459,74 @@ def merge_ticks(blocks: Collection[stim.Circuit]) -> stim.Circuit:
         after_tick += block[tick_idx + 1 :]
     circuit += stim.Circuit("TICK") + after_tick
     return circuit
+
+
+def merge_logical_noise():
+    return
+
+
+def group_logical_operations(
+    log_ops: Sequence[LogicalOperation],
+) -> tuple[list[LogicalOperation], list[LogicalOperation], list[LogicalOperation]]:
+    """
+    Splits the given list of logical operations into (1) the logical noise that is
+    applied before the actual logical operations, (2) the actual logical operations,
+    and (3) the logical noise that is applied after the actual logical operations.
+
+    Parameters
+    ----------
+    log_ops
+        List of logical operations.
+        Each layout can only participate in a single actual logical operation, but
+        can participate in multiple logical noise operations.
+
+    Returns
+    -------
+    pre_log_noise
+        Logical noise operations that appear before the actual logical operations.
+    true_log_ops
+        Actual logical operations.
+    post_log_noise
+        Logical noise operations that appear after the actual logical operations.
+    """
+    if not isinstance(log_ops, Sequence):
+        raise TypeError(f"'log_ops' must be a Sequence, but {type(log_ops)} was given.")
+    if any(not isinstance(i[0], LogOpCallable) for i in log_ops):
+        raise TypeError(
+            "The first element for each entry in 'log_ops' must be LogOpCallable."
+        )
+
+    pre_log_noise: list[LogicalOperation] = []
+    true_log_ops: list[LogicalOperation] = []
+    post_log_noise: list[LogicalOperation] = []
+    log_op_layouts: set[Layout] = set()
+
+    for log_op in log_ops:
+        op_types = log_op[0].log_op_type
+        if set(NOISE_OP_TYPES).intersection(op_types) != set():
+            if set(NOISE_OP_TYPES).intersection(op_types) != set(op_types):
+                raise TypeError(
+                    "A logical operation cannot be both a logical noise channel "
+                    f"and a logical operation: {op_types}."
+                )
+            if len(log_op[1:]) != 1:
+                raise ValueError(
+                    "Only single-qubit logical noise channels are supported: {log_op[1:]}."
+                )
+            layout = log_op[1]
+
+            if layout not in log_op_layouts:
+                pre_log_noise.append(log_op)
+            else:
+                post_log_noise.append(log_op)
+        else:
+            if log_op_layouts.intersection(log_op[1:]) != set():
+                raise ValueError(
+                    "Layouts must only perform an actual logical operation."
+                )
+            else:
+                true_log_ops.append(log_op)
+                for layout in log_op[1:]:
+                    log_op_layouts.add(layout)
+
+    return pre_log_noise, true_log_ops, post_log_noise

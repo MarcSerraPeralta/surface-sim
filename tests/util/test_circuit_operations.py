@@ -4,14 +4,18 @@ import stim
 from surface_sim import Detectors
 from surface_sim.circuit_blocks.unrot_surface_code_css import (
     init_qubits_z0_iterator,
+    log_depolarize1_error_iterator,
     log_meas_x_iterator,
     log_meas_z_iterator,
+    log_x_error_iterator,
     log_x_iterator,
+    log_z_error_iterator,
     qec_round_iterator,
 )
 from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_codes
 from surface_sim.models import NoiselessModel
 from surface_sim.util.circuit_operations import (
+    group_logical_operations,
     merge_circuits,
     merge_logical_operations,
     merge_operation_layers,
@@ -220,5 +224,31 @@ def test_merge_logical_operations():
             anc_reset=True,
             anc_detectors=["X1"],
         )
+
+    return
+
+
+def test_group_logical_operations():
+    layout, other_layout = unrot_surface_codes(2, distance=3)
+
+    pre, ops, post = group_logical_operations(
+        [
+            (log_x_error_iterator, layout),
+            (init_qubits_z0_iterator, layout),
+            (log_depolarize1_error_iterator, other_layout),
+            (init_qubits_z0_iterator, other_layout),
+            (log_z_error_iterator, layout),
+        ],
+    )
+
+    assert pre == [
+        (log_x_error_iterator, layout),
+        (log_depolarize1_error_iterator, other_layout),
+    ]
+    assert ops == [
+        (init_qubits_z0_iterator, layout),
+        (init_qubits_z0_iterator, other_layout),
+    ]
+    assert post == [(log_z_error_iterator, layout)]
 
     return

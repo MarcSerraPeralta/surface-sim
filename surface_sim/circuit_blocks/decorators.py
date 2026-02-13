@@ -115,6 +115,13 @@ def logical_measurement_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     return func
 
 
+def logical_noise(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    func.log_op_type += ["logical_noise"]
+    return func
+
+
 def noiseless(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     """Decorator for removing all noise channels from a ``LogOpCallable``"""
     if not isinstance(func, LogOpCallable):

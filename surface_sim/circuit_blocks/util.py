@@ -9,6 +9,7 @@ from ..models import Model
 from .decorators import (
     logical_measurement_x,
     logical_measurement_z,
+    logical_noise,
     qec_circuit,
     qubit_init_x,
     qubit_init_z,
@@ -1456,3 +1457,138 @@ def qec_round_iterator_cnots(
     """
     yield from to_mid_cycle_iterator_cnots(model, layout, anc_reset=anc_reset)
     yield from to_end_cycle_iterator_cnots(model, layout)
+
+
+def log_x_error(
+    model: Model, layout: Layout, detectors: Detectors, prob: float | int = 0
+) -> Circuit:
+    """
+    Returns stim circuit corresponding to a logical X error with probability ``prob``
+    of the given model.
+    """
+    # the stabilizer generators do not change when applying a logical X gate
+    return sum(
+        log_x_error_iterator(model=model, layout=layout, prob=prob), start=Circuit()
+    )
+
+
+@logical_noise
+def log_x_error_iterator(
+    model: Model, layout: Layout, prob: float | int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical X error with probability ``prob``
+    of the given model.
+    """
+    if not isinstance(prob, (float, int)):
+        raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
+    if prob > 1 or prob < 0:
+        raise ValueError("'prob' must be a physical error probability.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_x_qubits = layout.logical_param("log_x", log_qubit_label)
+    log_x_inds = layout.get_inds(log_x_qubits)
+
+    circuit = Circuit(
+        f"CORRELATED_ERROR({prob}) " + " ".join([f"X{i}" for i in log_x_inds])
+    )
+    yield circuit
+
+
+@logical_noise
+def log_y_error_iterator(
+    model: Model, layout: Layout, prob: float | int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical Y error with probability ``prob``
+    of the given model.
+    """
+    if not isinstance(prob, (float, int)):
+        raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
+    if prob > 1 or prob < 0:
+        raise ValueError("'prob' must be a physical error probability.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_x_qubits = layout.logical_param("log_x", log_qubit_label)
+    log_x_inds = layout.get_inds(log_x_qubits)
+    log_z_qubits = layout.logical_param("log_z", log_qubit_label)
+    log_z_inds = layout.get_inds(log_z_qubits)
+
+    circuit = Circuit(
+        f"CORRELATED_ERROR({prob}) "
+        + " ".join([f"X{i}" for i in log_x_inds] + [f"Z{i}" for i in log_z_inds])
+    )
+    yield circuit
+
+
+@logical_noise
+def log_z_error_iterator(
+    model: Model, layout: Layout, prob: float | int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical Z error with probability ``prob``
+    of the given model.
+    """
+    if not isinstance(prob, (float, int)):
+        raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
+    if prob > 1 or prob < 0:
+        raise ValueError("'prob' must be a physical error probability.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_z_qubits = layout.logical_param("log_z", log_qubit_label)
+    log_z_inds = layout.get_inds(log_z_qubits)
+
+    circuit = Circuit(
+        f"CORRELATED_ERROR({prob}) " + " ".join([f"Z{i}" for i in log_z_inds])
+    )
+    yield circuit
+
+
+@logical_noise
+def log_depolarize1_error_iterator(
+    model: Model, layout: Layout, prob: float | int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a logical Y error with probability ``prob``
+    of the given model.
+    """
+    if not isinstance(prob, (float, int)):
+        raise TypeError(f"'prob' must be a float, but {type(prob)} was given.")
+    if prob > 1 or prob < 0:
+        raise ValueError("'prob' must be a physical error probability.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_x_qubits = layout.logical_param("log_x", log_qubit_label)
+    log_x_inds = layout.get_inds(log_x_qubits)
+    log_z_qubits = layout.logical_param("log_z", log_qubit_label)
+    log_z_inds = layout.get_inds(log_z_qubits)
+
+    # probabilities:
+    # p/3 = p/3
+    # p/3 = (1 - p/3)*A --> A = p/(3 - p)
+    # p/3 = (1 - p/3)*(1 - A)*B --> B = p/(3 - 2p)
+    circuit = Circuit(
+        f"CORRELATED_ERROR({prob / 3}) "
+        + " ".join([f"X{i}" for i in log_x_inds])
+        + f"ELSE_CORRELATED_ERROR({prob / (3 - prob)}) "
+        + " ".join([f"X{i}" for i in log_x_inds] + [f"Z{i}" for i in log_z_inds])
+        + f"ELSE_CORRELATED_ERROR({prob / (3 - 2 * prob)}) "
+        + " ".join([f"Z{i}" for i in log_z_inds])
+    )
+    yield circuit

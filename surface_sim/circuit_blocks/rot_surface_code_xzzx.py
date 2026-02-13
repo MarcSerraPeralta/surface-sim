@@ -9,7 +9,14 @@ from ..models import Model
 from .decorators import logical_measurement_x, logical_measurement_z, qec_circuit
 
 # methods to have in this script
-from .util import idle_iterator, qubit_coords
+from .util import (
+    idle_iterator,
+    log_depolarize1_error_iterator,
+    log_x_error_iterator,
+    log_y_error_iterator,
+    log_z_error_iterator,
+    qubit_coords,
+)
 from .util import init_qubits_x0_xzzx_iterator as init_qubits_x0_iterator
 from .util import init_qubits_x1_xzzx_iterator as init_qubits_x1_iterator
 from .util import init_qubits_xzzx as init_qubits
@@ -46,6 +53,10 @@ __all__ = [
     "qec_round_iterator",
     "qec_round_pipelined",
     "qec_round_pipelined_iterator",
+    "log_x_error_iterator",
+    "log_y_error_iterator",
+    "log_z_error_iterator",
+    "log_depolarize1_error_iterator",
     "gate_to_iterator",
     "gate_to_iterator_pipelined",
 ]
@@ -744,6 +755,10 @@ gate_to_iterator = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
 gate_to_iterator_pipelined = {
     "TICK": qec_round_pipelined_iterator,
@@ -756,4 +771,8 @@ gate_to_iterator_pipelined = {
     "M": log_meas_z_iterator,
     "MZ": log_meas_z_iterator,
     "MX": log_meas_x_iterator,
+    "X_ERROR": log_x_error_iterator,
+    "Y_ERROR": log_y_error_iterator,
+    "Z_ERROR": log_z_error_iterator,
+    "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
