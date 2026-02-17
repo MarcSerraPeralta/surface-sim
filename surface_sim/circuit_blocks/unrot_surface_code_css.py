@@ -1,6 +1,5 @@
 from collections.abc import Collection, Generator
 
-
 from stim import Circuit
 
 from ..detectors import Detectors

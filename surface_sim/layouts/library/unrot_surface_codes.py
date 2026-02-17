@@ -4,13 +4,13 @@ from functools import partial
 from itertools import count
 
 from ...log_gates.unrot_surface_code_css import (
+    set_encoding,
     set_fold_trans_h,
     set_fold_trans_s,
     set_idle,
     set_trans_cnot,
     set_x,
     set_z,
-    set_encoding,
 )
 from ..layout import Layout, QubitDict
 from .util import check_distance, invert_shift, is_valid, set_missing_neighbours_to_none

@@ -1,9 +1,9 @@
 from surface_sim.detectors import get_new_stab_dict_from_layout
 from surface_sim.layouts import unrot_surface_code
 from surface_sim.log_gates.unrot_surface_code_css import (
+    set_encoding,
     set_fold_trans_h,
     set_fold_trans_s,
-    set_encoding,
 )
 
 
