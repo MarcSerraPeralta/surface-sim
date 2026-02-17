@@ -299,8 +299,18 @@ def _encoding_qubits_odd_d_iterator(
 
     # maps from coordinates to qubit labels
     l: dict[tuple[int, int], str] = {}
-    for qubit, coord in layout.qubit_coords.items():
-        l[(int(coord[0]), int(coord[1]))] = qubit
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+    # l: dict[tuple[int, int], str] = {}
+    # for qubit, coord in layout.qubit_coords.items():
+    #     l[(int(coord[0]), int(coord[1]))] = qubit
 
     qubits = set(layout.qubits)
     d = layout.distance
@@ -419,7 +429,7 @@ def _encoding_qubits_odd_d_iterator(
         cnots_4 = [l[coord] for coord in [(2 + offset,4 + offset),(2 + offset,2 + offset)
         ,(3 + offset,3 + offset),(4 + offset,2 + offset)
         ,(2 + offset,0 + offset),(1 + offset,1 + offset)]]
-        yield model.cz(cnots_4) + model.idle(set(qubits)-set(cnots_4))
+        yield model.cnot(cnots_4) + model.idle(set(qubits)-set(cnots_4))
         yield model.tick()
         # Step 5
         cnots_5 = [l[coord] for coord in [(2 + offset,0 + offset),(3 + offset,1 + offset)
@@ -485,8 +495,18 @@ def _encoding_qubits_even_d_iterator(
 
     # maps from coordinates to qubit labels
     l: dict[tuple[int, int], str] = {}
-    for qubit, coord in layout.qubit_coords.items():
-        l[(int(coord[0]), int(coord[1]))] = qubit
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+    # l: dict[tuple[int, int], str] = {}
+    # for qubit, coord in layout.qubit_coords.items():
+    #     l[(int(coord[0]), int(coord[1]))] = qubit
 
     qubits = set(layout.qubits)
     d = layout.distance
@@ -761,8 +781,18 @@ def _grow_code_iterator(
 
     # maps from coordinates to qubit labels
     l: dict[tuple[int, int], str] = {}
-    for qubit, coord in layout.qubit_coords.items():
-        l[(int(coord[0]), int(coord[1]))] = qubit
+    for qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"{gate_label} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+    # l: dict[tuple[int, int], str] = {}
+    # for qubit, coord in layout.qubit_coords.items():
+    #     l[(int(coord[0]), int(coord[1]))] = qubit
 
     d = layout.distance
     target_d = curr_distance + 2

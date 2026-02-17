@@ -272,3 +272,83 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
         )
 
     return
+
+def set_encoding(layout: Layout) -> None:
+    """
+    Adds the required attributes (in place) for the layout to run the encoding
+    circuits for the unrotated surface code.
+
+    This implementation assumes that the qubits are placed in a square 2D grid,
+    and that the (spatial) separation between qubits is more than ``1e-6``.
+
+    Parameters
+    ----------
+    layout
+        The (square) layout in which to add the attributes.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    The information about the encoding circuit is stored in the layout
+    as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.
+    """
+    if layout.code != "unrotated_surface_code":
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but a layout for the code {layout.code} was given."
+        )
+    if layout.distance_x != layout.distance_z:
+        raise ValueError(
+            "This function is for square surface codes, "
+            f"but d_x={layout.distance_x} and d_z={layout.distance_z} were given."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    # identify data qubits in the 4 corners of the surface code
+    corners: list[str] = []
+    for data_qubit in layout.data_qubits:
+        if len(layout.get_neighbors([data_qubit])) != 2:
+            continue
+        corners.append(data_qubit)
+
+    # maps from coordinates to qubit labels
+    l: dict[tuple[float | int, float | int], str] = {}
+    for qubit, coord in layout.qubit_coords.items():
+        l[(coord[0], coord[1])] = qubit
+
+    # unrotated surface code are symmetric for the four corners, 
+    # # but for the sake of consistency we pick an arbitrary one as top left qubit.
+    # we then find the two directions for x and z logical operators, with x direction corresponding to right
+    # and z direction corresponding to down.
+    top_left_coord = np.array(layout.get_coords([corners[0]])[0])
+    z_anc = layout.get_neighbors([corners[0]], stab_type="z_type")[0]
+    z_anc_coord = np.array(layout.get_coords([z_anc])[0])
+    x_anc = layout.get_neighbors([corners[0]], stab_type="x_type")[0]
+    x_anc_coord = np.array(layout.get_coords([x_anc])[0])
+    dir_x = z_anc_coord - top_left_coord
+    dir_z = x_anc_coord - top_left_coord
+    glabels: dict[str, tuple[int, int]] = {}
+    for qubit, coord in layout.qubit_coords.items():
+        coord_diff = np.array(coord)-top_left_coord
+        # solve the linear equations to find the coordinates in the logical x and z directions
+        det_denom = dir_x[0]*dir_z[1]-dir_x[1]*dir_z[0]
+        det_x = coord_diff[0]*dir_z[1]-coord_diff[1]*dir_z[0]
+        det_y = coord_diff[1]*dir_x[0]-coord_diff[0]*dir_x[1]
+        if abs(det_denom) < 1e-6:
+            raise ValueError("The directions for x and z logical operators are linearly dependent.")
+        x = int(round(det_x/det_denom))
+        y = int(round(det_y/det_denom))
+        if not np.isclose(x, det_x/det_denom, atol=1e-6) or not np.isclose(y, det_y/det_denom, atol=1e-6):
+            raise ValueError("The qubit coordinates are not equally spaced")
+        glabels[qubit] = (x, y)
+
+    # store generalized labels
+    for data_qubit in layout.data_qubits:
+        layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
+
+    return
