@@ -290,10 +290,10 @@ def set_encoding(layout: Layout) -> None:
 
     Notes
     -----
-    The implementation follows Figure 9 from:
+    The implementation follows Figure 1 from:
 
-        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
-        Quantum 5, 517 (2021).
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
 
     The information about the encoding circuit is stored in the layout
     as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.
@@ -335,6 +335,7 @@ def set_encoding(layout: Layout) -> None:
     dir_x = z_anc_coord - top_left_coord
     dir_z = x_anc_coord - top_left_coord
     glabels: dict[str, tuple[int, int]] = {}
+    # get the generalized labels for each qubit based on the coordinates in the x and z logical directions
     for qubit, coord in layout.qubit_coords.items():
         coord_diff = np.array(coord) - top_left_coord
         # solve the linear equations to find the coordinates in the logical x and z directions
