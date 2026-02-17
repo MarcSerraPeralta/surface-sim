@@ -13,6 +13,7 @@ __all__ = [
     "set_fold_trans_s",
     "set_fold_trans_h",
     "set_trans_cnot",
+    "set_encoding",
 ]
 
 
@@ -288,10 +289,10 @@ def set_encoding(layout: Layout) -> None:
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figure 9 from:
 
-        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
-        arXiv preprint arXiv:2509.09779 (2025).
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
 
     The information about the encoding circuit is stored in the layout
     as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.

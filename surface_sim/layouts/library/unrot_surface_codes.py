@@ -10,6 +10,7 @@ from ...log_gates.unrot_surface_code_css import (
     set_trans_cnot,
     set_x,
     set_z,
+    set_encoding,
 )
 from ..layout import Layout, QubitDict
 from .util import check_distance, invert_shift, is_valid, set_missing_neighbours_to_none
@@ -358,6 +359,7 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
         set_x(layout)
         set_z(layout)
         set_idle(layout)
+        set_encoding(layout)
         for other_layout in layouts:
             if layout == other_layout:
                 continue
