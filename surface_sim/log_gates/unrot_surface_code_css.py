@@ -274,6 +274,7 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
 
     return
 
+
 def set_encoding(layout: Layout) -> None:
     """
     Adds the required attributes (in place) for the layout to run the encoding
@@ -322,7 +323,7 @@ def set_encoding(layout: Layout) -> None:
     for qubit, coord in layout.qubit_coords.items():
         l[(coord[0], coord[1])] = qubit
 
-    # unrotated surface code are symmetric for the four corners, 
+    # unrotated surface code are symmetric for the four corners,
     # # but for the sake of consistency we pick an arbitrary one as top left qubit.
     # we then find the two directions for x and z logical operators, with x direction corresponding to right
     # and z direction corresponding to down.
@@ -335,16 +336,20 @@ def set_encoding(layout: Layout) -> None:
     dir_z = x_anc_coord - top_left_coord
     glabels: dict[str, tuple[int, int]] = {}
     for qubit, coord in layout.qubit_coords.items():
-        coord_diff = np.array(coord)-top_left_coord
+        coord_diff = np.array(coord) - top_left_coord
         # solve the linear equations to find the coordinates in the logical x and z directions
-        det_denom = dir_x[0]*dir_z[1]-dir_x[1]*dir_z[0]
-        det_x = coord_diff[0]*dir_z[1]-coord_diff[1]*dir_z[0]
-        det_y = coord_diff[1]*dir_x[0]-coord_diff[0]*dir_x[1]
+        det_denom = dir_x[0] * dir_z[1] - dir_x[1] * dir_z[0]
+        det_x = coord_diff[0] * dir_z[1] - coord_diff[1] * dir_z[0]
+        det_y = coord_diff[1] * dir_x[0] - coord_diff[0] * dir_x[1]
         if abs(det_denom) < 1e-6:
-            raise ValueError("The directions for x and z logical operators are linearly dependent.")
-        x = int(round(det_x/det_denom))
-        y = int(round(det_y/det_denom))
-        if not np.isclose(x, det_x/det_denom, atol=1e-6) or not np.isclose(y, det_y/det_denom, atol=1e-6):
+            raise ValueError(
+                "The directions for x and z logical operators are linearly dependent."
+            )
+        x = int(round(det_x / det_denom))
+        y = int(round(det_y / det_denom))
+        if not np.isclose(x, det_x / det_denom, atol=1e-6) or not np.isclose(
+            y, det_y / det_denom, atol=1e-6
+        ):
             raise ValueError("The qubit coordinates are not equally spaced")
         glabels[qubit] = (x, y)
 

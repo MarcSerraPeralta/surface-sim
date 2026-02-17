@@ -764,11 +764,12 @@ def test_repeated_s_injection_experiment():
         ),
         (
             rot_surface_code_rectangles(2, 3),
-            lambda *args,
-            **kargs: exp.rot_surface_code_css.repeated_s_injection_experiment(
-                *args,
-                gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
-                **kargs,
+            lambda *args, **kargs: (
+                exp.rot_surface_code_css.repeated_s_injection_experiment(
+                    *args,
+                    gate_to_iterator=cb.rot_surface_code_css.gate_to_iterator_pipelined,
+                    **kargs,
+                )
             ),
         ),
     ]
