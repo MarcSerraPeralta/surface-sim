@@ -1,0 +1,826 @@
+import pytest
+from stim import Circuit, target_rec
+
+from surface_sim import Setup
+from surface_sim.models import (
+    BiasedCircuitNoiseModel,
+    CircuitNoiseModel,
+    ExtendedSI1000NoiseModel,
+    IncomingDepolNoiseModel,
+    IncomingNoiseModel,
+    IncResMeasNoiseModel,
+    MeasurementNoiseModel,
+    MovableQubitsCircuitNoiseModel,
+    NLRNoiseModel,
+    NoiselessModel,
+    PhenomenologicalDepolNoiseModel,
+    PhenomenologicalNoiseModel,
+    SD6NoiseModel,
+    SI1000NoiseModel,
+    T1T2NoiseModel,
+    UniformDepolarizingNoiseModel,
+)
+from surface_sim.setups import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES
+
+SETUP = {
+    "gate_durations": {n: 1 for n in (SQ_GATES | TQ_GATES).values()}
+    | {n: 10 for n in (SQ_RESETS | SQ_MEASUREMENTS).values()},
+    "setup": [
+        {
+            "sq_error_prob": 0.1,
+            "tq_error_prob": 0.1,
+            "long_range_tq_error_prob": 0.1,
+            "meas_error_prob": 0.1,
+            "assign_error_flag": True,
+            "assign_error_prob": 0.1,
+            "reset_error_prob": 0.1,
+            "idle_error_prob": 0.1,
+            "extra_idle_meas_or_reset_error_prob": 0.1,
+            "T1": 1,
+            "T2": 1,
+            "symmetric_noise": False,
+            "biased_pauli": "X",
+            "biased_factor": 0,
+        },
+    ],
+}
+
+NOISE_GATES = [
+    "DEPOLARIZE1",
+    "DEPOLARIZE2",
+    "PAULI_CHANNEL_1",
+    "PAULI_CHANNEL_2",
+    "X_ERROR",
+    "Z_ERROR",
+    "Y_ERROR",
+]
+
+
+def test_NoiselessModel():
+    model = NoiselessModel(qubit_inds={"D1": 0, "D2": 1})
+
+    SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
+    for name in SQ_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_OPS[name]]
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_PhenomenologicalNoiseModel():
+    model = PhenomenologicalNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert ops == ["X_ERROR", "Z_ERROR"]
+
+    return
+
+
+def test_PhenomenologicalDepolNoiseModel():
+    model = PhenomenologicalDepolNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
+
+    ops = [o.name for o in model.idle(["D1"])]
+    assert set(NOISE_GATES + ["I"]) >= set(ops)
+    assert len(ops) == 1
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert ops == ["DEPOLARIZE1"]
+
+    return
+
+
+def test_IncResMeasNoiseModel():
+    model = IncResMeasNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_NOISELESS_OPS = SQ_GATES
+    for name in SQ_NOISELESS_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
+
+    SQ_NOISY_OPS = SQ_MEASUREMENTS | SQ_RESETS
+    for name in SQ_NOISY_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_NOISY_OPS[name] in ops
+        assert set(NOISE_GATES + [SQ_NOISY_OPS[name]]) >= set(ops)
+        # noise before the measurement and after resets
+        if name in SQ_MEASUREMENTS:
+            assert ops.index(SQ_NOISY_OPS[name]) == len(ops) - 1
+        else:
+            assert ops.index(SQ_NOISY_OPS[name]) == 0
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert ops == ["X_ERROR", "Z_ERROR"]
+
+    return
+
+
+def test_MeasurementNoiseModel():
+    model = MeasurementNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_NOISELESS_OPS = SQ_GATES | SQ_RESETS
+    for name in SQ_NOISELESS_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_NOISELESS_OPS[name]]
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_IncomingNoiseModel():
+    model = IncomingNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
+    for name in SQ_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_OPS[name]]
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert ops == ["X_ERROR", "Z_ERROR"]
+
+    return
+
+
+def test_IncomingDepolNoiseModel():
+    model = IncomingDepolNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
+    for name in SQ_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert ops == [SQ_OPS[name]]
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert ops == [TQ_GATES[name]]
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert ops == ["DEPOLARIZE1"]
+
+    return
+
+
+def test_T1T2NoiseModel():
+    setup = Setup(SETUP)
+    model = T1T2NoiseModel(setup=setup, qubit_inds={"D1": 0, "D2": 1})
+
+    SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
+    for name in SQ_OPS:
+        if name == "idle":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_OPS[name] in ops
+        assert set(NOISE_GATES + [SQ_OPS[name]]) >= set(ops)
+        assert len(ops) > 1
+
+    ops = [o.name for o in model.idle(["D1"])]
+    assert ops == ["I"]
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) > 1
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check that extra idling is added if the gate durations do not match
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.reset(["D1"])
+    circ += model.hadamard(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 0
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.reset(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.hadamard(["D1"])
+    circ += model.hadamard(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    return
+
+
+def test_SD6NoiseModel():
+    model = SD6NoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        if name not in ["cx", "cnot"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_UniformDepolarizingNoiseModel():
+    model = UniformDepolarizingNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z", "reset_x"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z", "measure_x"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise after the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == 0
+        assert len(ops) == 2
+        assert "DEPOLARIZE1" in ops
+
+    for name in TQ_GATES:
+        if name not in ["cx", "cnot", "cxswap"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_SI1000NoiseModel():
+    model = SI1000NoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        if name not in ["cphase", "cz"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check extra noise channels when doing measurement or resets
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.measure(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 6
+
+    return
+
+
+def test_ExtendedSI1000NoiseModel():
+    model = ExtendedSI1000NoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise after the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == 0
+        assert len(ops) == 2
+        assert "DEPOLARIZE1" in ops
+
+    for name in TQ_GATES:
+        if name not in ["cphase", "cz", "iswap"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check extra noise channels when doing measurement or resets
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.measure(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+    assert set([o.name for o in noise_channels]) == set(["DEPOLARIZE1"])
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+    assert set([o.name for o in noise_channels]) == set(["X_ERROR", "DEPOLARIZE1"])
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 6
+
+    return
+
+
+def test_NLRNoiseModel():
+    model = NLRNoiseModel(
+        qubit_inds={"D1": 0, "D2": 1, "D3": 2},
+        qubit_coords={"D1": [1, 0], "D2": [0, 0], "D3": [100, 0]},
+    )
+    model.setup.set_var_param("prob", 1e-3)
+    model.setup.set_var_param("long_coupler_distance", 1)
+    model.setup.set_var_param("long_coupler_error_prob_factor", 5)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        if name not in ["reset", "reset_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        if name not in ["measure", "measure_z"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        if name not in ["cphase", "cz"]:
+            with pytest.raises(ValueError):
+                model.__getattribute__(name)(["D1", "D2"])
+            continue
+
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    # check extra noise channels when doing measurement or resets
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.measure(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 3
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.idle(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 2
+
+    model.new_circuit()
+    circ = Circuit()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    circ += model.idle(["D1"])
+    circ += model.reset(["D2"])
+    circ += model.tick()
+    noise_channels = [o for o in circ if o.name in NOISE_GATES]
+    assert len(noise_channels) == 6
+
+    # check noisier noise channels in long range CZ gates
+    model.new_circuit()
+    short_cz = model.cphase(["D1", "D2"])
+    long_cz = model.cphase(["D2", "D3"])
+    short_prob = [o.gate_args_copy()[0] for o in short_cz if o.name in NOISE_GATES][0]
+    long_prob = [o.gate_args_copy()[0] for o in long_cz if o.name in NOISE_GATES][0]
+    assert short_prob == 1e-3
+    assert long_prob == 5e-3
+
+    model.new_circuit()
+    full_circ = model.cphase(["D1", "D2", "D2", "D3"])
+    assert short_cz + long_cz == full_circ
+
+    return
+
+
+def test_BiasedCircuitNoiseModel():
+    model = BiasedCircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+    model.setup.set_var_param("biased_pauli", "X")
+    model.setup.set_var_param("biased_factor", 3.1)
+
+    SQ_OPS = SQ_GATES | SQ_RESETS | SQ_MEASUREMENTS
+    for name in SQ_OPS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_OPS[name] in ops
+        assert set(NOISE_GATES + [SQ_OPS[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_CircuitNoiseModel():
+    model = CircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_MovableQubitsCircuitNoiseModel():
+    model = MovableQubitsCircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("prob", 1e-3)
+
+    for name in SQ_GATES:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_GATES[name] in ops
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    for name in SQ_RESETS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_RESETS[name] in ops
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops)
+        # noise after the reset
+        assert ops.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o.name for o in model.__getattribute__(name)(["D1"])]
+        assert SQ_MEASUREMENTS[name] in ops
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops)
+        # noise before the measurement
+        assert ops.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+
+    for name in TQ_GATES:
+        if name == "swap":
+            continue
+        ops = [o.name for o in model.__getattribute__(name)(["D1", "D2"])]
+        assert TQ_GATES[name] in ops
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops)
+        assert len(ops) == 2
+
+    ops = [o.name for o in model.swap(["D1", "D2"])]
+    assert "SWAP" in ops
+    assert set(NOISE_GATES + ["SWAP"]) >= set(ops)
+    assert ("DEPOLARIZE1" in ops) and ("DEPOLARIZE2" not in ops)
+    assert len(ops) == 2
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_model_meas_order():
+    setup = Setup(SETUP)
+    qubit_inds = {"D1": 1, "D2": 2}
+    models = [
+        CircuitNoiseModel(setup=setup, qubit_inds=qubit_inds),
+        NoiselessModel(qubit_inds=qubit_inds),
+        T1T2NoiseModel(setup=setup, qubit_inds=qubit_inds),
+        IncomingNoiseModel(setup=setup, qubit_inds=qubit_inds),
+        PhenomenologicalNoiseModel(setup=setup, qubit_inds=qubit_inds),
+        SI1000NoiseModel(setup=setup, qubit_inds=qubit_inds),
+    ]
+
+    for model in models:
+        circuit = Circuit()
+        for instr in model.measure(["D1", "D2"]):
+            circuit.append(instr)
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+
+        assert model.meas_target("D1", -2) == target_rec(-3)
+
+        model.new_circuit()
+        circuit = Circuit()
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+        for instr in model.measure(["D1"]):
+            circuit.append(instr)
+
+        assert model.meas_target("D1", -2) == target_rec(-2)
+
+    return
