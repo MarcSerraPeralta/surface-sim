@@ -72,8 +72,8 @@ PARENTS = (
     {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
     | {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
     | {f"{n}_error_prob": "long_range_tq_error_prob" for n in LONG_RANGE_TQ_GATES}
-    | {f"{n}_error_prob": "sq_error_prob" for n in SQ_RESETS}
-    | {f"{n}_error_prob": "sq_error_prob" for n in SQ_MEASUREMENTS}
+    | {f"{n}_error_prob": "reset_error_prob" for n in SQ_RESETS}
+    | {f"{n}_error_prob": "meas_error_prob" for n in SQ_MEASUREMENTS}
 )
 
 
