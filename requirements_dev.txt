@@ -91,7 +91,7 @@ pandas==2.2.2
     # via xarray
 pillow==11.1.0
     # via matplotlib
-pip-tools==7.4.1
+pip-tools==7.5.3
     # via surface-sim (pyproject.toml)
 pluggy==1.6.0
     # via pytest
