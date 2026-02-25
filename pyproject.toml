@@ -14,7 +14,7 @@ authors = [
 maintainers = [
     { name = "Marc Serra Peralta", email = "marcserraperalta@gmail.com" },
 ]
-license = {file = "LICENSE"}
+license = "MIT"
 readme = "README.md"
 dependencies = [
     "numpy",
@@ -28,6 +28,9 @@ dependencies = [
     "galois",
 ]
 keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 include = ["surface_sim", "surface_sim.*"]  # package names should match these glob patterns (["*"] by default)
