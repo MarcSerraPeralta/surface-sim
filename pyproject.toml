@@ -17,7 +17,7 @@ maintainers = [
 license = "MIT"
 readme = "README.md"
 dependencies = [
-    "numpy",
+    "numpy >= 1.26.4", # for Python 3.12
     "xarray",
     "networkx",
     "scipy", # required by netwokx but not automatically installed by pip
@@ -37,7 +37,7 @@ include = ["surface_sim", "surface_sim.*"]  # package names should match these g
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project.optional-dependencies]
-dev = ["pip-tools",
+dev = ["pip-tools>=7.5.3", # older versions are incompatible with newer pip versions
        "pytest",
        "ruff",
        "gprof2dot",
