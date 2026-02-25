@@ -1,6 +1,6 @@
 """Main surface-sim module."""
 
-__version__ = "0.10.0"
+__version__ = "0.10.1"
 
 from . import circuit_blocks, experiments, layouts, log_gates, models, setups, util
 from .circuit_blocks.decorators import noiseless

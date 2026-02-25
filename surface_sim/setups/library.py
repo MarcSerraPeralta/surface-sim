@@ -242,6 +242,7 @@ class PhenomenologicalNoiseSetup(Setup):
             setup=[
                 dict(
                     sq_error_prob="{prob}",
+                    meas_error_prob=0,
                     assign_error_flag=True,
                     assign_error_prob="{prob}",
                 ),
@@ -260,6 +261,8 @@ class IncResMeasNoiseSetup(Setup):
             setup=[
                 dict(
                     sq_error_prob="{prob}",
+                    reset_error_prob="{prob}",
+                    meas_error_prob=0,
                     assign_error_flag=True,
                     assign_error_prob="{prob}",
                 ),
@@ -278,6 +281,7 @@ class MeasurementNoiseSetup(Setup):
             setup=[
                 dict(
                     sq_error_prob="{prob}",
+                    meas_error_prob=0,
                     assign_error_flag=True,
                     assign_error_prob="{prob}",
                 ),
