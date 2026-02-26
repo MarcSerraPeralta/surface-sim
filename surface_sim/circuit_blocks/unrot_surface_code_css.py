@@ -242,6 +242,13 @@ def _encoding_qubits_iterator(
         Quantum 5, 517 (2021).
 
     """
+    if layout.code != "unrotated_surface_code":
+        raise TypeError(
+            f"The given layout is not an unrotated surface code, but a {layout.code}."
+        )
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
+
     circ = model.reset(layout.qubits)
     centre_qubit = _map_coords_to_qubits(layout, [[(0, 0)]])[0]
     circ += model.__getattribute__(physical_reset_op)(centre_qubit)
@@ -308,13 +315,14 @@ def _circuit_builder_iterator(
     tq_gates_list = gates_list[1:]
     # if the primitive gate is cz, then the h gates will be applied to the target qubits of the cz gates,
     # which are the second qubits in the two qubit gates.
-    # we take symmetric difference between the target qubits of the current two qubit gates and the next two qubit gates
+    # take symmetric difference between the target qubits of the current two qubit gates and the next two qubit gates
     if primitive_gates == "cz":
         h_0 = tq_gates_list[0][1::2]
         yield model.h_gate(h_gates + h_0) + model.idle(set(qubits) - set(h_gates + h_0))
     else:
         yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
     yield model.tick()
+
     for i in range(len(tq_gates_list)):
         if primitive_gates == "cz":
             yield model.cz(tq_gates_list[i]) + model.idle(
@@ -424,6 +432,7 @@ def _grow_code_coordinates(
         h_gates_coord += [(-cur_d, i)]  # left
         h_gates_coord += [(cur_d, i)]  # right
     gates_list.append(h_gates_coord)
+
     # step 1, two qubit gates at 4 corner
     tq_gates_1_coord = [
         (-cur_d, -cur_d),
@@ -444,6 +453,7 @@ def _grow_code_coordinates(
         tq_gates_1_coord += [(2 - cur_d, i), (-cur_d, i)]  # left
         tq_gates_1_coord += [(cur_d - 2, i), (cur_d, i)]  # right
     gates_list.append(tq_gates_1_coord)
+
     # step 2, two qubit gates at 4 corner
     tq_gates_2_coord = [
         (-cur_d, -cur_d),
@@ -464,6 +474,7 @@ def _grow_code_coordinates(
         tq_gates_2_coord += [(i, -cur_d), (i, 2 - cur_d)]  # top
         tq_gates_2_coord += [(i, cur_d), (i, cur_d - 2)]  # bottom
     gates_list.append(tq_gates_2_coord)
+
     # step 3
     tq_gates_3_coord = []
     for i in range(1 - cur_d, cur_d + 1, 2):
@@ -473,6 +484,7 @@ def _grow_code_coordinates(
         tq_gates_3_coord += [(-cur_d, i), (-cur_d - 1, i - 1)]  # left
         tq_gates_3_coord += [(cur_d, i), (cur_d + 1, i + 1)]  # right
     gates_list.append(tq_gates_3_coord)
+
     # step 4
     tq_gates_4_coord = []
     for i in range(1 - cur_d, cur_d + 1, 2):
@@ -539,7 +551,7 @@ def encoding_qubits_x0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -571,7 +583,7 @@ def encoding_qubits_y0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -605,7 +617,7 @@ def encoding_qubits_z0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -675,7 +687,7 @@ def encoding_qubits_x0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -705,7 +717,7 @@ def encoding_qubits_y0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -735,7 +747,7 @@ def encoding_qubits_z0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 unrotated surface code.
+        Code layout.
 
     Notes
     -----
