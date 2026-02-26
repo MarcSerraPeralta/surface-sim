@@ -359,5 +359,5 @@ def set_encoding(layout: Layout) -> None:
     # store generalized labels
     for data_qubit in layout.data_qubits:
         layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
-    print(glabels)
+
     return

@@ -229,7 +229,7 @@ def _encoding_qubits_iterator(
         to a unrotated surface code.
     primitive_gates
         Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
+        (1) ``"cnot"``, which uses RZ, and CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
         Note that the ``physical_reset_op`` will not be decomposed into primitive
         gates.
@@ -295,8 +295,8 @@ def _circuit_builder_iterator(
         Code layout.
     primitive_gates
         Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
-        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        (1) ``"cnot"``, which uses CNOT gates, and
+        (2) ``"cz"``, which uses H, and CZ gates.
         Note that the ``physical_reset_op`` will not be decomposed into primitive
         gates.
 
@@ -394,8 +394,8 @@ def _grow_code_coordinates(
         to an unrotated surface code.
     primitive_gates
         Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
-        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+        (1) ``"cnot"``, which uses CNOT gates, and
+        (2) ``"cz"``, which uses H, and CZ gates.
         Note that the ``physical_reset_op`` will not be decomposed into primitive
         gates.
 
