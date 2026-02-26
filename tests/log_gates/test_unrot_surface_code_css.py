@@ -127,57 +127,56 @@ def test_set_encoding():
     set_encoding(layout)
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
-    data_qubits = sorted(layout.data_qubits)
+    data_qubits = layout.data_qubits
     labels = sorted([layout.param(gate_label, d)["label"] for d in data_qubits])
-    print(labels)
     assert labels == [
+        (-3, -3),
+        (-3, -1),
+        (-3, 1),
+        (-3, 3),
+        (-2, -2),
+        (-2, 0),
+        (-2, 2),
+        (-1, -3),
+        (-1, -1),
+        (-1, 1),
+        (-1, 3),
+        (0, -2),
         (0, 0),
         (0, 2),
-        (0, 4),
-        (0, 6),
+        (1, -3),
+        (1, -1),
         (1, 1),
         (1, 3),
-        (1, 5),
+        (2, -2),
         (2, 0),
         (2, 2),
-        (2, 4),
-        (2, 6),
+        (3, -3),
+        (3, -1),
         (3, 1),
         (3, 3),
-        (3, 5),
-        (4, 0),
-        (4, 2),
-        (4, 4),
-        (4, 6),
-        (5, 1),
-        (5, 3),
-        (5, 5),
-        (6, 0),
-        (6, 2),
-        (6, 4),
-        (6, 6),
     ]
 
     layout = unrot_surface_code(3)
     set_encoding(layout)
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
-    data_qubits = sorted(layout.data_qubits)
+    data_qubits = layout.data_qubits
     labels = sorted([layout.param(gate_label, d)["label"] for d in data_qubits])
     assert labels == [
+        (-2, -2),
+        (-2, 0),
+        (-2, 2),
+        (-1, -1),
+        (-1, 1),
+        (0, -2),
         (0, 0),
         (0, 2),
-        (0, 4),
+        (1, -1),
         (1, 1),
-        (1, 3),
+        (2, -2),
         (2, 0),
         (2, 2),
-        (2, 4),
-        (3, 1),
-        (3, 3),
-        (4, 0),
-        (4, 2),
-        (4, 4),
     ]
 
     return

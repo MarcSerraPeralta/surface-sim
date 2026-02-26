@@ -1,4 +1,5 @@
 from collections.abc import Collection, Generator
+
 from stim import Circuit
 
 from ..detectors import Detectors
@@ -242,35 +243,44 @@ def _encoding_qubits_iterator(
 
     """
     circ = model.reset(layout.qubits)
-    centre_qubit = _map_coordinates_to_qubits(layout, [[(0,0)]])[0]
+    centre_qubit = _map_coords_to_qubits(layout, [[(0, 0)]])[0]
     circ += model.__getattribute__(physical_reset_op)(centre_qubit)
     yield circ
     yield model.tick()
 
     if layout.distance % 2 == 1:
-        encoding_distance_3_gates = _map_coordinates_to_qubits(layout, encoding_distance_3_gates_coord)
-        yield from _circuit_builder_iterator(encoding_distance_3_gates, model, layout, primitive_gates)
+        encoding_d_3_gates = _map_coords_to_qubits(layout, encoding_d_3_gates_coord)
+        yield from _circuit_builder_iterator(
+            encoding_d_3_gates, model, layout, primitive_gates
+        )
     else:
-        encoding_distance_2_gates = _map_coordinates_to_qubits(layout, encoding_distance_2_gates_coord)
-        yield from _circuit_builder_iterator(encoding_distance_2_gates, model, layout, primitive_gates)
+        encoding_d_2_gates = _map_coords_to_qubits(layout, encoding_d_2_gates_coord)
+        yield from _circuit_builder_iterator(
+            encoding_d_2_gates, model, layout, primitive_gates
+        )
         if layout.distance >= 4:
-            encoding_distance_4_gates = _map_coordinates_to_qubits(layout, encoding_distance_4_gates_coord)
-            yield from _circuit_builder_iterator(encoding_distance_4_gates, model, layout, primitive_gates)
-    for d in range(4-layout.distance%2, layout.distance, 2):
+            encoding_d_4_gates = _map_coords_to_qubits(layout, encoding_d_4_gates_coord)
+            yield from _circuit_builder_iterator(
+                encoding_d_4_gates, model, layout, primitive_gates
+            )
+    for d in range(4 - layout.distance % 2, layout.distance, 2):
         gates_list_coords = _grow_code_coordinates(layout, d, primitive_gates)
-        gates_list = _map_coordinates_to_qubits(layout, gates_list_coords)
+        gates_list = _map_coords_to_qubits(layout, gates_list_coords)
         yield from _circuit_builder_iterator(gates_list, model, layout, primitive_gates)
 
-def _circuit_builder_iterator(gates_list: list[list[str]], model: Model, layout: Layout, primitive_gates: str):
+
+def _circuit_builder_iterator(
+    gates_list: list[list[str]], model: Model, layout: Layout, primitive_gates: str
+):
     """
-    Take the primative gate and a list of lists of two qubit gates to be applied at each step 
-    and yields the corresponding iterator for the circuit. 
+    Take the primative gate and a list of lists of two qubit gates to be applied at each step
+    and yields the corresponding iterator for the circuit.
     Note that this encoding circuit is not fault tolerant.
 
     Parameters
     ----------
     gates_list
-        List of lists of gates to be applied at each step. 
+        List of lists of gates to be applied at each step.
         The first list corresponds to the Hadamard gates, the rest corresponds to two qubit gates.
     model
         Noise model for the gates.
@@ -296,29 +306,36 @@ def _circuit_builder_iterator(gates_list: list[list[str]], model: Model, layout:
     qubits = layout.qubits
     h_gates = gates_list[0]
     tq_gates_list = gates_list[1:]
-    # if the primitive gate is cz, then the h gates will be applied to the target qubits of the cz gates, 
+    # if the primitive gate is cz, then the h gates will be applied to the target qubits of the cz gates,
     # which are the second qubits in the two qubit gates.
     # we take symmetric difference between the target qubits of the current two qubit gates and the next two qubit gates
     if primitive_gates == "cz":
         h_0 = tq_gates_list[0][1::2]
-        yield model.h_gate(h_gates+h_0) + model.idle(set(qubits) - set(h_gates+h_0))
+        yield model.h_gate(h_gates + h_0) + model.idle(set(qubits) - set(h_gates + h_0))
     else:
         yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
     yield model.tick()
     for i in range(len(tq_gates_list)):
         if primitive_gates == "cz":
-            yield model.cz(tq_gates_list[i]) + model.idle(set(qubits) - set(tq_gates_list[i]))
+            yield model.cz(tq_gates_list[i]) + model.idle(
+                set(qubits) - set(tq_gates_list[i])
+            )
         else:
-            yield model.cnot(tq_gates_list[i]) + model.idle(set(qubits) - set(tq_gates_list[i]))
+            yield model.cnot(tq_gates_list[i]) + model.idle(
+                set(qubits) - set(tq_gates_list[i])
+            )
         yield model.tick()
         if primitive_gates == "cz":
             h_1 = set(tq_gates_list[i][1::2])
             if i != len(tq_gates_list) - 1:
-                h_1 = h_1^set(tq_gates_list[i+1][1::2])
+                h_1 = h_1 ^ set(tq_gates_list[i + 1][1::2])
             yield model.h_gate(h_1) + model.idle(set(qubits) - set(h_1))
             yield model.tick()
-        
-def _map_coordinates_to_qubits(layout: Layout, gates_coord_list: list[list[tuple[int, int]]]) -> list[list[str]]:
+
+
+def _map_coords_to_qubits(
+    layout: Layout, gates_coord_list: list[list[tuple[int, int]]]
+) -> list[list[str]]:
     """
     Convert a list of lists of coordinates to a list of lists of qubits corresponding to the coordinates
     that was defined in the log_gates when setting up the layout.
@@ -343,11 +360,12 @@ def _map_coordinates_to_qubits(layout: Layout, gates_coord_list: list[list[tuple
                 "Use the 'log_gates' module to set it up."
             )
         l[glabel] = qubit
-    
+
     gates_list = []
     for gates_coord in gates_coord_list:
         gates_list.append([l[coord] for coord in gates_coord])
     return gates_list
+
 
 def _grow_code_coordinates(
     layout: Layout,
@@ -399,72 +417,74 @@ def _grow_code_coordinates(
 
     gates_list = []
     h_gates_coord = []
-    for i in range(1-cur_d, cur_d +1, 2):
-        h_gates_coord += [(i, -cur_d-1)]  # top
-        h_gates_coord += [(i, cur_d+1)]  # bottom
-    for i in range(-cur_d, cur_d+2, 2):
+    for i in range(1 - cur_d, cur_d + 1, 2):
+        h_gates_coord += [(i, -cur_d - 1)]  # top
+        h_gates_coord += [(i, cur_d + 1)]  # bottom
+    for i in range(-cur_d, cur_d + 2, 2):
         h_gates_coord += [(-cur_d, i)]  # left
         h_gates_coord += [(cur_d, i)]  # right
     gates_list.append(h_gates_coord)
     # step 1, two qubit gates at 4 corner
     tq_gates_1_coord = [
-            (-cur_d, -cur_d),
-            (-cur_d-1, -cur_d-1),
-            (cur_d, -cur_d),
-            (cur_d+1, -cur_d-1),
-            (-cur_d, cur_d),
-            (-cur_d-1, cur_d+1),
-            (cur_d, cur_d),
-            (cur_d+1,cur_d+1)]
+        (-cur_d, -cur_d),
+        (-cur_d - 1, -cur_d - 1),
+        (cur_d, -cur_d),
+        (cur_d + 1, -cur_d - 1),
+        (-cur_d, cur_d),
+        (-cur_d - 1, cur_d + 1),
+        (cur_d, cur_d),
+        (cur_d + 1, cur_d + 1),
+    ]
     # two qubit gates at outer line
-    for i in range(1-cur_d, cur_d+1, 2):
-        tq_gates_1_coord += [(1-cur_d, i), (-cur_d-1, i)]  # left
-        tq_gates_1_coord += [(cur_d-1, i),(cur_d+1, i)]  # right
+    for i in range(1 - cur_d, cur_d + 1, 2):
+        tq_gates_1_coord += [(1 - cur_d, i), (-cur_d - 1, i)]  # left
+        tq_gates_1_coord += [(cur_d - 1, i), (cur_d + 1, i)]  # right
     # two qubit gates at inner corner
-    for i in range(2-cur_d, cur_d, 2):
-        tq_gates_1_coord += [(2-cur_d, i),(-cur_d, i)]  # left
-        tq_gates_1_coord += [(cur_d-2, i),(cur_d, i)]  # right
+    for i in range(2 - cur_d, cur_d, 2):
+        tq_gates_1_coord += [(2 - cur_d, i), (-cur_d, i)]  # left
+        tq_gates_1_coord += [(cur_d - 2, i), (cur_d, i)]  # right
     gates_list.append(tq_gates_1_coord)
     # step 2, two qubit gates at 4 corner
     tq_gates_2_coord = [
-            (-cur_d, -cur_d),
-            (-cur_d-1, -cur_d+1),
-            (cur_d, -cur_d),
-            (cur_d+1, 1-cur_d),
-            (-cur_d, cur_d),
-            (-cur_d-1, cur_d-1),
-            (cur_d, cur_d),
-            (cur_d+1, cur_d-1),
-        ]
+        (-cur_d, -cur_d),
+        (-cur_d - 1, -cur_d + 1),
+        (cur_d, -cur_d),
+        (cur_d + 1, 1 - cur_d),
+        (-cur_d, cur_d),
+        (-cur_d - 1, cur_d - 1),
+        (cur_d, cur_d),
+        (cur_d + 1, cur_d - 1),
+    ]
     # two qubit gates at outer line
-    for i in range(1-cur_d, cur_d+1, 2):
-        tq_gates_2_coord += [(i, -cur_d-1),(i, 1-cur_d)]  # top
-        tq_gates_2_coord += [(i, cur_d+1),(i, cur_d-1)]  # bottom
+    for i in range(1 - cur_d, cur_d + 1, 2):
+        tq_gates_2_coord += [(i, -cur_d - 1), (i, 1 - cur_d)]  # top
+        tq_gates_2_coord += [(i, cur_d + 1), (i, cur_d - 1)]  # bottom
     # two qubit gates at inner corner
-    for i in range(2-cur_d, cur_d, 2):
-        tq_gates_2_coord += [(i, -cur_d),(i, 2-cur_d)]  # top
-        tq_gates_2_coord += [(i, cur_d),(i, cur_d-2)]  # bottom
+    for i in range(2 - cur_d, cur_d, 2):
+        tq_gates_2_coord += [(i, -cur_d), (i, 2 - cur_d)]  # top
+        tq_gates_2_coord += [(i, cur_d), (i, cur_d - 2)]  # bottom
     gates_list.append(tq_gates_2_coord)
     # step 3
     tq_gates_3_coord = []
-    for i in range(1-cur_d, cur_d+1, 2):
-        tq_gates_3_coord += [(i, -cur_d-1), (i + 1, -cur_d)]  # top
-        tq_gates_3_coord += [(i, cur_d+1),(i - 1, cur_d)]  # bottom
-    for i in range(2-cur_d, cur_d, 2):
-        tq_gates_3_coord += [(-cur_d, i),(-cur_d-1, i - 1)]  # left
-        tq_gates_3_coord += [(cur_d, i),(cur_d+1, i + 1)]  # right
+    for i in range(1 - cur_d, cur_d + 1, 2):
+        tq_gates_3_coord += [(i, -cur_d - 1), (i + 1, -cur_d)]  # top
+        tq_gates_3_coord += [(i, cur_d + 1), (i - 1, cur_d)]  # bottom
+    for i in range(2 - cur_d, cur_d, 2):
+        tq_gates_3_coord += [(-cur_d, i), (-cur_d - 1, i - 1)]  # left
+        tq_gates_3_coord += [(cur_d, i), (cur_d + 1, i + 1)]  # right
     gates_list.append(tq_gates_3_coord)
     # step 4
     tq_gates_4_coord = []
-    for i in range(1-cur_d, cur_d+1, 2):
-        tq_gates_4_coord += [(i, -cur_d-1),(i - 1, -cur_d)]  # top
-        tq_gates_4_coord += [(i, cur_d+1),(i + 1, cur_d)]  # bottom
-    for i in range(2-cur_d, cur_d, 2):
-        tq_gates_4_coord += [(-cur_d, i),(-cur_d-1, i + 1)]  # left
-        tq_gates_4_coord += [(cur_d, i),(cur_d+1, i - 1)]  # right
+    for i in range(1 - cur_d, cur_d + 1, 2):
+        tq_gates_4_coord += [(i, -cur_d - 1), (i - 1, -cur_d)]  # top
+        tq_gates_4_coord += [(i, cur_d + 1), (i + 1, cur_d)]  # bottom
+    for i in range(2 - cur_d, cur_d, 2):
+        tq_gates_4_coord += [(-cur_d, i), (-cur_d - 1, i + 1)]  # left
+        tq_gates_4_coord += [(cur_d, i), (cur_d + 1, i - 1)]  # right
     gates_list.append(tq_gates_4_coord)
 
     return gates_list
+
 
 def encoding_qubits_iterator(
     model: Model,
@@ -770,26 +790,116 @@ gate_to_iterator_cnots = {
     "Z_ERROR": log_z_error_iterator,
     "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
-encoding_distance_2_gates_coord = [
-    [(1,-1), (-1,1)],
-    [(0,0),(-1,-1),(1,-1),(1,1)],
-    [(-1,1),(-1,-1),(0,0),(1,1)],
-    [(-1,1), (0,0)],
-    [(1,-1), (0,0)],
-    ]
-encoding_distance_3_gates_coord = [
-    [(0,-2),(1,1),(1,-1),(-1,1),(-1,-1),(0,2)],
-    [(-1,-1),(-2,-2),(1,-1),(2,-2),(0,0),(-2,0),(-1,1),(-2,2),(1,1),(2,2)],
-    [(0,0),(2,0),(-1,-1),(-2,0)],
-    [(0,-2),(0,0),(-1,1),(-2,0),(1,-1),(2,0)],
-    [(0,2),(0,0),(1,1),(2,0),(0,-2),(-1,-1)],
-    [(0,-2),(1,-1),(0,2),(-1, 1)],
-    [(0,2),(1,1)],
-    ]
-encoding_distance_4_gates_coord = [
-    [(-1,-3),(1,-3),(-2,-2),(2,-2),(-2,0),(2,0),(-2,2),(2,2),(-1,3),(1,3)],
-    [(-2,-2),(-3,-3),(2,-2),(3,-3),(-1,-1),(-3,-1),(0,-2),(1,-1),(0,0),(-2,0),(0,2),(-1,1),(1,1),(3,1),(-2,2),(-3,3),(2,2),(3,3)],
-    [(-2,-2),(-3,-1),(-1,-3),(-1,-1),(1,-3),(0,-2),(1,-1),(3,-1),(0,0),(2,0),(-1,1),(-3,1),(-1,3),(0,2),(1,3),(1,1),(2,2),(3,1)],
-    [(-1,-3),(0,-2),(1,-3),(1,-1),(2,-2),(3,-1),(-2,0),(-3,-1),(2,0),(3,1),(-2,2),(-3,1),(-1,3),(-1,1),(1,3),(0,2)],
-    [(-1,-3),(-2,-2),(1,-3),(2,-2),(-2,0),(-3,1),(2,0),(3,-1),(-1,3),(-2,2),(1,3),(2,2)],
+encoding_d_2_gates_coord = [
+    [(1, -1), (-1, 1)],
+    [(0, 0), (-1, -1), (1, -1), (1, 1)],
+    [(-1, 1), (-1, -1), (0, 0), (1, 1)],
+    [(-1, 1), (0, 0)],
+    [(1, -1), (0, 0)],
+]
+encoding_d_3_gates_coord = [
+    [(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)],
+    [
+        (-1, -1),
+        (-2, -2),
+        (1, -1),
+        (2, -2),
+        (0, 0),
+        (-2, 0),
+        (-1, 1),
+        (-2, 2),
+        (1, 1),
+        (2, 2),
+    ],
+    [(0, 0), (2, 0), (-1, -1), (-2, 0)],
+    [(0, -2), (0, 0), (-1, 1), (-2, 0), (1, -1), (2, 0)],
+    [(0, 2), (0, 0), (1, 1), (2, 0), (0, -2), (-1, -1)],
+    [(0, -2), (1, -1), (0, 2), (-1, 1)],
+    [(0, 2), (1, 1)],
+]
+encoding_d_4_gates_coord = [
+    [
+        (-1, -3),
+        (1, -3),
+        (-2, -2),
+        (2, -2),
+        (-2, 0),
+        (2, 0),
+        (-2, 2),
+        (2, 2),
+        (-1, 3),
+        (1, 3),
+    ],
+    [
+        (-2, -2),
+        (-3, -3),
+        (2, -2),
+        (3, -3),
+        (-1, -1),
+        (-3, -1),
+        (0, -2),
+        (1, -1),
+        (0, 0),
+        (-2, 0),
+        (0, 2),
+        (-1, 1),
+        (1, 1),
+        (3, 1),
+        (-2, 2),
+        (-3, 3),
+        (2, 2),
+        (3, 3),
+    ],
+    [
+        (-2, -2),
+        (-3, -1),
+        (-1, -3),
+        (-1, -1),
+        (1, -3),
+        (0, -2),
+        (1, -1),
+        (3, -1),
+        (0, 0),
+        (2, 0),
+        (-1, 1),
+        (-3, 1),
+        (-1, 3),
+        (0, 2),
+        (1, 3),
+        (1, 1),
+        (2, 2),
+        (3, 1),
+    ],
+    [
+        (-1, -3),
+        (0, -2),
+        (1, -3),
+        (1, -1),
+        (2, -2),
+        (3, -1),
+        (-2, 0),
+        (-3, -1),
+        (2, 0),
+        (3, 1),
+        (-2, 2),
+        (-3, 1),
+        (-1, 3),
+        (-1, 1),
+        (1, 3),
+        (0, 2),
+    ],
+    [
+        (-1, -3),
+        (-2, -2),
+        (1, -3),
+        (2, -2),
+        (-2, 0),
+        (-3, 1),
+        (2, 0),
+        (3, -1),
+        (-1, 3),
+        (-2, 2),
+        (1, 3),
+        (2, 2),
+    ],
 ]
