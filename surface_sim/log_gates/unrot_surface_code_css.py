@@ -318,43 +318,36 @@ def set_encoding(layout: Layout) -> None:
             continue
         corners.append(data_qubit)
 
-    # maps from coordinates to qubit labels
-    l: dict[tuple[float | int, float | int], str] = {}
-    for qubit, coord in layout.qubit_coords.items():
-        l[(coord[0], coord[1])] = qubit
-
-    # unrotated surface code are symmetric for the four corners,
-    # but for the sake of consistency we pick an arbitrary one as top left qubit.
-    # we then find the two directions for x and z logical operators, with x direction corresponding to right
-    # and z direction corresponding to down.
+    # orient the surface code so that logical X is the horizontal direction
+    # and logical Z is the vertical direction.
+    # the unrot surface code is symmetrical along the fold so it does not
+    # matter which corner is picked to orient it.
     top_left_coord = np.array(layout.get_coords([corners[0]])[0])
     z_anc = layout.get_neighbors([corners[0]], stab_type="z_type")[0]
     z_anc_coord = np.array(layout.get_coords([z_anc])[0])
     x_anc = layout.get_neighbors([corners[0]], stab_type="x_type")[0]
     x_anc_coord = np.array(layout.get_coords([x_anc])[0])
     dir_x = z_anc_coord - top_left_coord
-    dir_z = x_anc_coord - top_left_coord
+    dir_y = x_anc_coord - top_left_coord
+
+    # maps from coordinates to qubit labels.
+    # ancilla qubits are also included for ease in the next double 'for' loop.
+    coords_to_label_dict: dict[tuple[float, float], str] = {}
+    for qubit, coords in layout.qubit_coords.items():
+        coords = np.round(coords, decimals=5)  # to avoid numerical issues
+        coords_to_label_dict[tuple(coords)] = qubit
+
+    # get the generalized labels for each qubit.
+    # note that in the unrot surface code, data qubits are not placed in a square 2D grid.
     glabels: dict[str, tuple[int, int]] = {}
-    # get the generalized labels for each qubit based on the coordinates in the x and z logical directions
-    for qubit, coord in layout.qubit_coords.items():
-        coord_diff = np.array(coord) - top_left_coord
-        # solve the linear equations to find the coordinates in the logical x and z directions
-        det_denom = dir_x[0] * dir_z[1] - dir_x[1] * dir_z[0]
-        det_x = coord_diff[0] * dir_z[1] - coord_diff[1] * dir_z[0]
-        det_y = coord_diff[1] * dir_x[0] - coord_diff[0] * dir_x[1]
-        if abs(det_denom) < 1e-6:
-            raise ValueError(
-                "The directions for x and z logical operators are linearly dependent."
-            )
-        # convert the new coordinate to int
-        x = int(round(det_x / det_denom))
-        y = int(round(det_y / det_denom))
-        if not np.isclose(x, det_x / det_denom, atol=1e-6) or not np.isclose(
-            y, det_y / det_denom, atol=1e-6
-        ):
-            raise ValueError("The qubit coordinates are not equally spaced")
-        # shift the (0, 0) coordinate to centre qubit
-        glabels[qubit] = (x - layout.distance_x + 1, y - layout.distance_x + 1)
+    for x in range(2 * layout.distance - 1):
+        for y in range(2 * layout.distance - 1):
+            coords = top_left_coord + x * dir_x + y * dir_y
+            coords = np.round(coords, decimals=5)  # to avoid numerical issues
+            qubit = coords_to_label_dict[tuple(coords)]
+
+            # (0, 0) = data qubit in the middle of the surface code
+            glabels[qubit] = (x - layout.distance + 1, y - layout.distance + 1)
 
     # store generalized labels
     for data_qubit in layout.data_qubits:
