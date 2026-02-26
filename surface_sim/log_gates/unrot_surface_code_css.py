@@ -290,10 +290,10 @@ def set_encoding(layout: Layout) -> None:
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figure 2 and 9 from:
 
-        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
-        arXiv preprint arXiv:2509.09779 (2025).
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
 
     The information about the encoding circuit is stored in the layout
     as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.
@@ -324,7 +324,7 @@ def set_encoding(layout: Layout) -> None:
         l[(coord[0], coord[1])] = qubit
 
     # unrotated surface code are symmetric for the four corners,
-    # # but for the sake of consistency we pick an arbitrary one as top left qubit.
+    # but for the sake of consistency we pick an arbitrary one as top left qubit.
     # we then find the two directions for x and z logical operators, with x direction corresponding to right
     # and z direction corresponding to down.
     top_left_coord = np.array(layout.get_coords([corners[0]])[0])
@@ -346,16 +346,18 @@ def set_encoding(layout: Layout) -> None:
             raise ValueError(
                 "The directions for x and z logical operators are linearly dependent."
             )
+        # convert the new coordinate to int
         x = int(round(det_x / det_denom))
         y = int(round(det_y / det_denom))
         if not np.isclose(x, det_x / det_denom, atol=1e-6) or not np.isclose(
             y, det_y / det_denom, atol=1e-6
         ):
             raise ValueError("The qubit coordinates are not equally spaced")
-        glabels[qubit] = (x, y)
+        # shift the (0, 0) coordinate to centre qubit
+        glabels[qubit] = (x - layout.distance_x + 1, y - layout.distance_x + 1)
 
     # store generalized labels
     for data_qubit in layout.data_qubits:
         layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
-
+    print(glabels)
     return

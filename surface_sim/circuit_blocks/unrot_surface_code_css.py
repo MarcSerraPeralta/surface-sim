@@ -1,5 +1,4 @@
 from collections.abc import Collection, Generator
-
 from stim import Circuit
 
 from ..detectors import Detectors
@@ -236,45 +235,47 @@ def _encoding_qubits_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
 
     """
+    circ = model.reset(layout.qubits)
+    centre_qubit = _map_coordinates_to_qubits(layout, [[(0,0)]])[0]
+    circ += model.__getattribute__(physical_reset_op)(centre_qubit)
+    yield circ
+    yield model.tick()
+
     if layout.distance % 2 == 1:
-        yield from _encoding_qubits_odd_d_iterator(
-            model=model,
-            layout=layout,
-            physical_reset_op=physical_reset_op,
-            primitive_gates=primitive_gates,
-        )
+        encoding_distance_3_gates = _map_coordinates_to_qubits(layout, encoding_distance_3_gates_coord)
+        yield from _circuit_builder_iterator(encoding_distance_3_gates, model, layout, primitive_gates)
     else:
-        yield from _encoding_qubits_even_d_iterator(
-            model=model,
-            layout=layout,
-            physical_reset_op=physical_reset_op,
-            primitive_gates=primitive_gates,
-        )
+        encoding_distance_2_gates = _map_coordinates_to_qubits(layout, encoding_distance_2_gates_coord)
+        yield from _circuit_builder_iterator(encoding_distance_2_gates, model, layout, primitive_gates)
+        if layout.distance >= 4:
+            encoding_distance_4_gates = _map_coordinates_to_qubits(layout, encoding_distance_4_gates_coord)
+            yield from _circuit_builder_iterator(encoding_distance_4_gates, model, layout, primitive_gates)
+    for d in range(4-layout.distance%2, layout.distance, 2):
+        gates_list_coords = _grow_code_coordinates(layout, d, primitive_gates)
+        gates_list = _map_coordinates_to_qubits(layout, gates_list_coords)
+        yield from _circuit_builder_iterator(gates_list, model, layout, primitive_gates)
 
-
-def _encoding_qubits_odd_d_iterator(
-    model: Model, layout: Layout, physical_reset_op: str, primitive_gates: str
-) -> Generator[Circuit]:
+def _circuit_builder_iterator(gates_list: list[list[str]], model: Model, layout: Layout, primitive_gates: str):
     """
-    Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    to a odd-distance unrotated surface code of the given model without the detectors.
+    Take the primative gate and a list of lists of two qubit gates to be applied at each step 
+    and yields the corresponding iterator for the circuit. 
     Note that this encoding circuit is not fault tolerant.
 
     Parameters
     ----------
+    gates_list
+        List of lists of gates to be applied at each step. 
+        The first list corresponds to the Hadamard gates, the rest corresponds to two qubit gates.
     model
         Noise model for the gates.
     layout
         Code layout.
-    physical_reset_op
-        Reset operation to be applied to the physical qubit that will grow
-        to a unrotated surface code.
     primitive_gates
         Set of primitive gates to use. The available options are:
         (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
@@ -284,832 +285,82 @@ def _encoding_qubits_odd_d_iterator(
 
     Notes
     -----
-    The implementation follows Figure 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
 
     """
-    if layout.code != "unrotated_surface_code":
-        raise TypeError(
-            f"The given layout is not an unrotated surface code, but a {layout.code}."
-        )
-    if layout.distance % 2 == 0:
-        raise TypeError(
-            f"The given layout does not have odd distance, but distance {layout.distance}."
-        )
     if primitive_gates not in ["cnot", "cz"]:
         raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
-    if len(layout.qubit_coords.items()) == 0:
-        raise ValueError("The layout does not have qubit coordinates.")
-
-    gate_label = f"encoding_{layout.logical_qubits[0]}"
-
-    # maps from coordinates to qubit labels
-    l: dict[tuple[int, int], str] = {}
-    for qubit in layout.data_qubits:
-        glabel = layout.param(gate_label, qubit)["label"]
-        if glabel is None:
-            raise ValueError(
-                "The layout does not have the information to run "
-                f"{gate_label} gate on qubit {qubit}. "
-                "Use the 'log_gates' module to set it up."
-            )
-        l[glabel] = qubit
-    # l: dict[tuple[int, int], str] = {}
-    # for qubit, coord in layout.qubit_coords.items():
-    #     l[(int(coord[0]), int(coord[1]))] = qubit
-
-    qubits = set(layout.qubits)
-    d = layout.distance
-    offset = d - 3
-
-    # encode initial d=3 code on the center of the layout
+    qubits = layout.qubits
+    h_gates = gates_list[0]
+    tq_gates_list = gates_list[1:]
+    # if the primitive gate is cz, then the h gates will be applied to the target qubits of the cz gates, 
+    # which are the second qubits in the two qubit gates.
+    # we take symmetric difference between the target qubits of the current two qubit gates and the next two qubit gates
     if primitive_gates == "cz":
-        yield model.reset(qubits)
-        yield model.tick()
-        # H gate
-        h_gates = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-                (3 + offset, 1 + offset),
-                (1 + offset, 3 + offset),
-                (3 + offset, 3 + offset),
-                (2 + offset, 4 + offset),
-            ]
-        ]
-        if physical_reset_op == "reset_x" or physical_reset_op == "reset_y":
-            h_gates += [l[(2 + offset, 2 + offset)]]
-        # decompose CNOT into H CZ H
-        h_0 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 0 + offset),
-                (0 + offset, 2 + offset),
-                (0 + offset, 4 + offset),
-                (4 + offset, 0 + offset),
-                (4 + offset, 4 + offset),
-            ]
-        ]
-        if physical_reset_op == "reset_y":
-            circ = model.h_gate(h_gates + h_0) + model.idle(
-                set(qubits) - set(h_gates + h_0)
-            )
-            circ += model.s_gate([l[(2 + offset, 2 + offset)]])
-            yield circ
-        else:
-            yield model.h_gate(h_gates + h_0) + model.idle(
-                set(qubits) - set(h_gates + h_0)
-            )
-        yield model.tick()
-        # Step 1
-        czs_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (0 + offset, 0 + offset),
-                (3 + offset, 1 + offset),
-                (4 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-                (0 + offset, 2 + offset),
-                (1 + offset, 3 + offset),
-                (0 + offset, 4 + offset),
-                (3 + offset, 3 + offset),
-                (4 + offset, 4 + offset),
-            ]
-        ]
-        h_1 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 0 + offset),
-                (4 + offset, 2 + offset),
-                (0 + offset, 4 + offset),
-                (4 + offset, 0 + offset),
-                (4 + offset, 4 + offset),
-            ]
-        ]
-
-        yield model.cz(czs_1) + model.idle(set(qubits) - set(czs_1))
-        yield model.tick()
-        yield model.h_gate(h_1) + model.idle(set(qubits) - set(h_1))
-        yield model.tick()
-        # Step 2
-        czs_2 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 2 + offset),
-                (4 + offset, 2 + offset),
-                (1 + offset, 1 + offset),
-                (0 + offset, 2 + offset),
-            ]
-        ]
-        h_2 = [l[coord] for coord in [(2 + offset, 2 + offset)]]
-        yield model.cz(czs_2) + model.idle(set(qubits) - set(czs_2))
-        yield model.tick()
-        yield model.h_gate(h_2) + model.idle(set(qubits) - set(h_2))
-        yield model.tick()
-        # Step 3
-        czs_3 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-                (1 + offset, 3 + offset),
-                (0 + offset, 2 + offset),
-                (3 + offset, 1 + offset),
-                (4 + offset, 2 + offset),
-            ]
-        ]
-        h_3 = [
-            l[coord] for coord in [(1 + offset, 1 + offset), (0 + offset, 2 + offset)]
-        ]
-        yield model.cz(czs_3) + model.idle(set(qubits) - set(czs_3))
-        yield model.tick()
-        yield model.h_gate(h_3) + model.idle(set(qubits) - set(h_3))
-        yield model.tick()
-        # Step 4
-        czs_4 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 4 + offset),
-                (2 + offset, 2 + offset),
-                (3 + offset, 3 + offset),
-                (4 + offset, 2 + offset),
-                (2 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-            ]
-        ]
-        h_4 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (3 + offset, 1 + offset),
-                (2 + offset, 2 + offset),
-                (4 + offset, 2 + offset),
-                (1 + offset, 3 + offset),
-            ]
-        ]
-        yield model.cz(czs_4) + model.idle(set(qubits) - set(czs_4))
-        yield model.tick()
-        yield model.h_gate(h_4) + model.idle(set(qubits) - set(h_4))
-        yield model.tick()
-        # Step 5
-        czs_5 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (3 + offset, 1 + offset),
-                (2 + offset, 4 + offset),
-                (1 + offset, 3 + offset),
-            ]
-        ]
-        h_5 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 3 + offset),
-                (3 + offset, 1 + offset),
-                (3 + offset, 3 + offset),
-            ]
-        ]
-        yield model.cz(czs_5) + model.idle(set(qubits) - set(czs_5))
-        yield model.tick()
-        yield model.h_gate(h_5) + model.idle(set(qubits) - set(h_5))
-        yield model.tick()
-        # Step 6
-        czs_6 = [
-            l[coord] for coord in [(2 + offset, 4 + offset), (3 + offset, 3 + offset)]
-        ]
-        h_6 = [l[coord] for coord in [(3 + offset, 3 + offset)]]
-        yield model.cz(czs_6) + model.idle(set(qubits) - set(czs_6))
-        yield model.tick()
-        yield model.h_gate(h_6) + model.idle(set(qubits) - set(h_6))
-        yield model.tick()
+        h_0 = tq_gates_list[0][1::2]
+        yield model.h_gate(h_gates+h_0) + model.idle(set(qubits) - set(h_gates+h_0))
     else:
-        init_x = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-                (3 + offset, 1 + offset),
-                (1 + offset, 3 + offset),
-                (3 + offset, 3 + offset),
-                (2 + offset, 4 + offset),
-            ]
-        ]
-        circ = model.reset_x(init_x) + model.reset(set(qubits) - set(init_x))
-        if physical_reset_op == "reset_x":
-            circ += model.reset_x([l[(2 + offset, 2 + offset)]])
-        elif physical_reset_op == "reset_y":
-            circ += model.reset_y([l[(2 + offset, 2 + offset)]])
-        yield circ
-        yield model.tick()
-        # Step 1
-        cnots_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (0 + offset, 0 + offset),
-                (3 + offset, 1 + offset),
-                (4 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-                (0 + offset, 2 + offset),
-                (1 + offset, 3 + offset),
-                (0 + offset, 4 + offset),
-                (3 + offset, 3 + offset),
-                (4 + offset, 4 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_1) + model.idle(set(qubits) - set(cnots_1))
-        yield model.tick()
-        # Step 2
-        cnots_2 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 2 + offset),
-                (4 + offset, 2 + offset),
-                (1 + offset, 1 + offset),
-                (0 + offset, 2 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_2) + model.idle(set(qubits) - set(cnots_2))
-        yield model.tick()
-        # Step 3
-        cnots_3 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-                (1 + offset, 3 + offset),
-                (0 + offset, 2 + offset),
-                (3 + offset, 1 + offset),
-                (4 + offset, 2 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_3) + model.idle(set(qubits) - set(cnots_3))
-        yield model.tick()
-        # Step 4
-        cnots_4 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 4 + offset),
-                (2 + offset, 2 + offset),
-                (3 + offset, 3 + offset),
-                (4 + offset, 2 + offset),
-                (2 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_4) + model.idle(set(qubits) - set(cnots_4))
-        yield model.tick()
-        # Step 5
-        cnots_5 = [
-            l[coord]
-            for coord in [
-                (2 + offset, 0 + offset),
-                (3 + offset, 1 + offset),
-                (2 + offset, 4 + offset),
-                (1 + offset, 3 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_5) + model.idle(set(qubits) - set(cnots_5))
-        yield model.tick()
-        # Step 6
-        cnots_6 = [
-            l[coord] for coord in [(2 + offset, 4 + offset), (3 + offset, 3 + offset)]
-        ]
-        yield model.cnot(cnots_6) + model.idle(set(qubits) - set(cnots_6))
-        yield model.tick()
-
-    # grow code to maximum size
-    for d in range(3, layout.distance, 2):
-        yield from _grow_code_iterator(
-            model=model, layout=layout, curr_distance=d, primitive_gates=primitive_gates
-        )
-
-
-def _encoding_qubits_even_d_iterator(
-    model: Model, layout: Layout, physical_reset_op: str, primitive_gates: str
-) -> Generator[Circuit]:
-    """
-    Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    to an even-distance unrotated surface code of the given model without the detectors.
-    Note that this encoding circuit is not fault tolerant.
-
-    Parameters
-    ----------
-    model
-        Noise model for the gates.
-    layout
-        Code layout.
-    physical_reset_op
-        Reset operation to be applied to the physical qubit that will grow
-        to an unrotated surface code.
-    primitive_gates
-        Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
-        (2) ``"cz"``, which uses RZ, H, and CZ gates.
-        Note that the ``physical_reset_op`` will not be decomposed into primitive
-        gates.
-
-    Notes
-    -----
-    The implementation follows Figure 9 from:
-
-        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
-        Quantum 5, 517 (2021).
-
-    """
-    if layout.code != "unrotated_surface_code":
-        raise TypeError(
-            f"The given layout is not an unrotated surface code, but a {layout.code}."
-        )
-    if layout.distance % 2 == 1:
-        raise TypeError(
-            f"The given layout does not have odd distance, but distance {layout.distance}."
-        )
-    if primitive_gates not in ["cnot", "cz"]:
-        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
-
-    gate_label = f"encoding_{layout.logical_qubits[0]}"
-
-    # maps from coordinates to qubit labels
-    l: dict[tuple[int, int], str] = {}
-    for qubit in layout.data_qubits:
-        glabel = layout.param(gate_label, qubit)["label"]
-        if glabel is None:
-            raise ValueError(
-                "The layout does not have the information to run "
-                f"{gate_label} gate on qubit {qubit}. "
-                "Use the 'log_gates' module to set it up."
-            )
-        l[glabel] = qubit
-    # l: dict[tuple[int, int], str] = {}
-    # for qubit, coord in layout.qubit_coords.items():
-    #     l[(int(coord[0]), int(coord[1]))] = qubit
-
-    qubits = set(layout.qubits)
-    d = layout.distance
-    offset = d - 2
-
-    if primitive_gates == "cz":
-        yield model.reset(qubits)
-        yield model.tick()
-        # H gate
-        h_gates = [
-            l[coord] for coord in [(2 + offset, 0 + offset), (0 + offset, 2 + offset)]
-        ]
-        if physical_reset_op == "reset_x" or physical_reset_op == "reset_y":
-            h_gates += [l[(1 + offset, 1 + offset)]]
-        # decompose CNOT into H CZ H
-        h_0 = [
-            l[coord] for coord in [(0 + offset, 0 + offset), (2 + offset, 2 + offset)]
-        ]
-        if physical_reset_op == "reset_y":
-            circ = model.h_gate(h_gates + h_0) + model.idle(
-                set(qubits) - set(h_gates + h_0)
-            )
-            circ += model.s_gate([l[(1 + offset, 1 + offset)]])
-            yield circ
+        yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
+    yield model.tick()
+    for i in range(len(tq_gates_list)):
+        if primitive_gates == "cz":
+            yield model.cz(tq_gates_list[i]) + model.idle(set(qubits) - set(tq_gates_list[i]))
         else:
-            yield model.h_gate(h_gates + h_0) + model.idle(
-                set(qubits) - set(h_gates + h_0)
-            )
+            yield model.cnot(tq_gates_list[i]) + model.idle(set(qubits) - set(tq_gates_list[i]))
         yield model.tick()
-        # Step 1
-        czs_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (0 + offset, 0 + offset),
-                (2 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-            ]
-        ]
-
-        yield model.cz(czs_1) + model.idle(set(qubits) - set(czs_1))
-        yield model.tick()
-        # Step 2
-        czs_2 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 2 + offset),
-                (0 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-                (2 + offset, 2 + offset),
-            ]
-        ]
-        h_2 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-                (2 + offset, 2 + offset),
-            ]
-        ]
-        yield model.cz(czs_2) + model.idle(set(qubits) - set(czs_2))
-        yield model.tick()
-        yield model.h_gate(h_2) + model.idle(set(qubits) - set(h_2))
-        yield model.tick()
-        # Step 3
-        czs_3 = [
-            l[coord] for coord in [(0 + offset, 2 + offset), (1 + offset, 1 + offset)]
-        ]
-        yield model.cz(czs_3) + model.idle(set(qubits) - set(czs_3))
-        yield model.tick()
-        # Step 4
-        czs_4 = [
-            l[coord] for coord in [(2 + offset, 0 + offset), (1 + offset, 1 + offset)]
-        ]
-        h_4 = [l[coord] for coord in [(1 + offset, 1 + offset)]]
-        yield model.cz(czs_4) + model.idle(set(qubits) - set(czs_4))
-        yield model.tick()
-        yield model.h_gate(h_4) + model.idle(set(qubits) - set(h_4))
-        yield model.tick()
-
-        if d >= 4:
-            offset = d - 4
-            # H gate
-            h_gates = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (4 + offset, 0 + offset),
-                    (1 + offset, 1 + offset),
-                    (5 + offset, 1 + offset),
-                    (1 + offset, 3 + offset),
-                    (5 + offset, 3 + offset),
-                    (1 + offset, 5 + offset),
-                    (5 + offset, 5 + offset),
-                    (2 + offset, 6 + offset),
-                    (4 + offset, 6 + offset),
-                ]
-            ]
-            # decompose CNOT into H CZ H
-            h_0 = [
-                l[coord]
-                for coord in [
-                    (0 + offset, 0 + offset),
-                    (6 + offset, 0 + offset),
-                    (0 + offset, 2 + offset),
-                    (4 + offset, 2 + offset),
-                    (1 + offset, 3 + offset),
-                    (2 + offset, 4 + offset),
-                    (6 + offset, 4 + offset),
-                    (0 + offset, 6 + offset),
-                    (6 + offset, 6 + offset),
-                ]
-            ]
-            yield model.h_gate(h_gates + h_0) + model.idle(
-                set(qubits) - set(h_gates + h_0)
-            )
-            yield model.tick()
-            # Step 1
-            czs_1 = [
-                l[coord]
-                for coord in [
-                    (1 + offset, 1 + offset),
-                    (0 + offset, 0 + offset),
-                    (5 + offset, 1 + offset),
-                    (6 + offset, 0 + offset),
-                    (2 + offset, 2 + offset),
-                    (0 + offset, 2 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 2 + offset),
-                    (3 + offset, 3 + offset),
-                    (1 + offset, 3 + offset),
-                    (3 + offset, 5 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 4 + offset),
-                    (6 + offset, 4 + offset),
-                    (1 + offset, 5 + offset),
-                    (0 + offset, 6 + offset),
-                    (5 + offset, 5 + offset),
-                    (6 + offset, 6 + offset),
-                ]
-            ]
-            h_1 = [
-                l[coord]
-                for coord in [
-                    (0 + offset, 0 + offset),
-                    (6 + offset, 0 + offset),
-                    (1 + offset, 3 + offset),
-                    (0 + offset, 6 + offset),
-                    (6 + offset, 6 + offset),
-                    (3 + offset, 1 + offset),
-                    (2 + offset, 2 + offset),
-                    (6 + offset, 2 + offset),
-                    (5 + offset, 3 + offset),
-                    (0 + offset, 4 + offset),
-                    (4 + offset, 4 + offset),
-                    (3 + offset, 5 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 2 + offset),
-                ]
-            ]
-            yield model.cz(czs_1) + model.idle(set(qubits) - set(czs_1))
-            yield model.tick()
+        if primitive_gates == "cz":
+            h_1 = set(tq_gates_list[i][1::2])
+            if i != len(tq_gates_list) - 1:
+                h_1 = h_1^set(tq_gates_list[i+1][1::2])
             yield model.h_gate(h_1) + model.idle(set(qubits) - set(h_1))
             yield model.tick()
-            # Step 2
-            czs_2 = [
-                l[coord]
-                for coord in [
-                    (1 + offset, 1 + offset),
-                    (0 + offset, 2 + offset),
-                    (2 + offset, 0 + offset),
-                    (2 + offset, 2 + offset),
-                    (4 + offset, 0 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 2 + offset),
-                    (6 + offset, 2 + offset),
-                    (3 + offset, 3 + offset),
-                    (5 + offset, 3 + offset),
-                    (2 + offset, 4 + offset),
-                    (0 + offset, 4 + offset),
-                    (2 + offset, 6 + offset),
-                    (3 + offset, 5 + offset),
-                    (4 + offset, 6 + offset),
-                    (4 + offset, 4 + offset),
-                    (5 + offset, 5 + offset),
-                    (6 + offset, 4 + offset),
-                ]
-            ]
-            h_2 = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 2 + offset),
-                    (5 + offset, 3 + offset),
-                    (4 + offset, 4 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 2 + offset),
-                ]
-            ]
-            yield model.cz(czs_2) + model.idle(set(qubits) - set(czs_2))
-            yield model.tick()
-            yield model.h_gate(h_2) + model.idle(set(qubits) - set(h_2))
-            yield model.tick()
-            # Step 3
-            czs_3 = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 0 + offset),
-                    (4 + offset, 2 + offset),
-                    (5 + offset, 1 + offset),
-                    (6 + offset, 2 + offset),
-                    (1 + offset, 3 + offset),
-                    (0 + offset, 2 + offset),
-                    (5 + offset, 3 + offset),
-                    (6 + offset, 4 + offset),
-                    (1 + offset, 5 + offset),
-                    (0 + offset, 4 + offset),
-                    (2 + offset, 6 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 6 + offset),
-                    (3 + offset, 5 + offset),
-                ]
-            ]
-            h_3 = [
-                l[coord]
-                for coord in [
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 2 + offset),
-                    (0 + offset, 2 + offset),
-                    (6 + offset, 4 + offset),
-                    (2 + offset, 4 + offset),
-                    (3 + offset, 5 + offset),
-                    (1 + offset, 1 + offset),
-                    (5 + offset, 1 + offset),
-                    (1 + offset, 5 + offset),
-                    (5 + offset, 5 + offset),
-                ]
-            ]
-            yield model.cz(czs_3) + model.idle(set(qubits) - set(czs_3))
-            yield model.tick()
-            yield model.h_gate(h_3) + model.idle(set(qubits) - set(h_3))
-            yield model.tick()
-            # Step 4
-            czs_4 = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (1 + offset, 1 + offset),
-                    (4 + offset, 0 + offset),
-                    (5 + offset, 1 + offset),
-                    (1 + offset, 3 + offset),
-                    (0 + offset, 4 + offset),
-                    (5 + offset, 3 + offset),
-                    (6 + offset, 2 + offset),
-                    (2 + offset, 6 + offset),
-                    (1 + offset, 5 + offset),
-                    (4 + offset, 6 + offset),
-                    (5 + offset, 5 + offset),
-                ]
-            ]
-            h_4 = [
-                l[coord]
-                for coord in [
-                    (1 + offset, 1 + offset),
-                    (5 + offset, 1 + offset),
-                    (6 + offset, 2 + offset),
-                    (0 + offset, 4 + offset),
-                    (1 + offset, 5 + offset),
-                    (5 + offset, 5 + offset),
-                ]
-            ]
-            yield model.cz(czs_4) + model.idle(set(qubits) - set(czs_4))
-            yield model.tick()
-            yield model.h_gate(h_4) + model.idle(set(qubits) - set(h_4))
-            yield model.tick()
-    else:
-        init_x = [
-            l[coord] for coord in [(2 + offset, 0 + offset), (0 + offset, 2 + offset)]
-        ]
-        circ = model.reset_x(init_x) + model.reset(set(qubits) - set(init_x))
-        if physical_reset_op == "reset_x":
-            circ += model.reset_x([l[(1 + offset, 1 + offset)]])
-        elif physical_reset_op == "reset_y":
-            circ += model.reset_y([l[(1 + offset, 1 + offset)]])
-        yield circ
-        yield model.tick()
-        # Step 1
-        cnots_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (0 + offset, 0 + offset),
-                (2 + offset, 0 + offset),
-                (2 + offset, 2 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_1) + model.idle(set(qubits) - set(cnots_1))
-        yield model.tick()
-        # Step 2
-        cnots_2 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 2 + offset),
-                (0 + offset, 0 + offset),
-                (1 + offset, 1 + offset),
-                (2 + offset, 2 + offset),
-            ]
-        ]
-        yield model.cnot(cnots_2) + model.idle(set(qubits) - set(cnots_2))
-        yield model.tick()
-        # Step 3
-        cnots_3 = [
-            l[coord] for coord in [(0 + offset, 2 + offset), (1 + offset, 1 + offset)]
-        ]
-        yield model.cnot(cnots_3) + model.idle(set(qubits) - set(cnots_3))
-        yield model.tick()
-        # Step 4
-        cnots_4 = [
-            l[coord] for coord in [(2 + offset, 0 + offset), (1 + offset, 1 + offset)]
-        ]
-        yield model.cnot(cnots_4) + model.idle(set(qubits) - set(cnots_4))
-        yield model.tick()
-
-        if d >= 4:
-            offset = d - 4
-            # H gate
-            init_x = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (4 + offset, 0 + offset),
-                    (1 + offset, 1 + offset),
-                    (5 + offset, 1 + offset),
-                    (1 + offset, 3 + offset),
-                    (5 + offset, 3 + offset),
-                    (1 + offset, 5 + offset),
-                    (5 + offset, 5 + offset),
-                    (2 + offset, 6 + offset),
-                    (4 + offset, 6 + offset),
-                ]
-            ]
-            yield model.reset_x(init_x) + model.idle(set(qubits) - set(init_x))
-            yield model.tick()
-            # Step 1
-            cnots_1 = [
-                l[coord]
-                for coord in [
-                    (1 + offset, 1 + offset),
-                    (0 + offset, 0 + offset),
-                    (5 + offset, 1 + offset),
-                    (6 + offset, 0 + offset),
-                    (2 + offset, 2 + offset),
-                    (0 + offset, 2 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 2 + offset),
-                    (3 + offset, 3 + offset),
-                    (1 + offset, 3 + offset),
-                    (3 + offset, 5 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 4 + offset),
-                    (6 + offset, 4 + offset),
-                    (1 + offset, 5 + offset),
-                    (0 + offset, 6 + offset),
-                    (5 + offset, 5 + offset),
-                    (6 + offset, 6 + offset),
-                ]
-            ]
-            yield model.cnot(cnots_1) + model.idle(set(qubits) - set(cnots_1))
-            yield model.tick()
-            # Step 2
-            cnots_2 = [
-                l[coord]
-                for coord in [
-                    (1 + offset, 1 + offset),
-                    (0 + offset, 2 + offset),
-                    (2 + offset, 0 + offset),
-                    (2 + offset, 2 + offset),
-                    (4 + offset, 0 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 2 + offset),
-                    (6 + offset, 2 + offset),
-                    (3 + offset, 3 + offset),
-                    (5 + offset, 3 + offset),
-                    (2 + offset, 4 + offset),
-                    (0 + offset, 4 + offset),
-                    (2 + offset, 6 + offset),
-                    (3 + offset, 5 + offset),
-                    (4 + offset, 6 + offset),
-                    (4 + offset, 4 + offset),
-                    (5 + offset, 5 + offset),
-                    (6 + offset, 4 + offset),
-                ]
-            ]
-            yield model.cnot(cnots_2) + model.idle(set(qubits) - set(cnots_2))
-            yield model.tick()
-            # Step 3
-            cnots_3 = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (3 + offset, 1 + offset),
-                    (4 + offset, 0 + offset),
-                    (4 + offset, 2 + offset),
-                    (5 + offset, 1 + offset),
-                    (6 + offset, 2 + offset),
-                    (1 + offset, 3 + offset),
-                    (0 + offset, 2 + offset),
-                    (5 + offset, 3 + offset),
-                    (6 + offset, 4 + offset),
-                    (1 + offset, 5 + offset),
-                    (0 + offset, 4 + offset),
-                    (2 + offset, 6 + offset),
-                    (2 + offset, 4 + offset),
-                    (4 + offset, 6 + offset),
-                    (3 + offset, 5 + offset),
-                ]
-            ]
-            yield model.cnot(cnots_3) + model.idle(set(qubits) - set(cnots_3))
-            yield model.tick()
-            # Step 4
-            cnots_4 = [
-                l[coord]
-                for coord in [
-                    (2 + offset, 0 + offset),
-                    (1 + offset, 1 + offset),
-                    (4 + offset, 0 + offset),
-                    (5 + offset, 1 + offset),
-                    (1 + offset, 3 + offset),
-                    (0 + offset, 4 + offset),
-                    (5 + offset, 3 + offset),
-                    (6 + offset, 2 + offset),
-                    (2 + offset, 6 + offset),
-                    (1 + offset, 5 + offset),
-                    (4 + offset, 6 + offset),
-                    (5 + offset, 5 + offset),
-                ]
-            ]
-            yield model.cnot(cnots_4) + model.idle(set(qubits) - set(cnots_4))
-            yield model.tick()
-    # grow code to maximum size
-    for d in range(4, layout.distance, 2):
-        yield from _grow_code_iterator(
-            model=model, layout=layout, curr_distance=d, primitive_gates=primitive_gates
-        )
-
-
-def _grow_code_iterator(
-    model: Model,
-    layout: Layout,
-    curr_distance: int,
-    primitive_gates: str,
-) -> Generator[Circuit]:
+        
+def _map_coordinates_to_qubits(layout: Layout, gates_coord_list: list[list[tuple[int, int]]]) -> list[list[str]]:
     """
-    Yields stim circuit blocks which as a whole correspond to an circuit growing
+    Convert a list of lists of coordinates to a list of lists of qubits corresponding to the coordinates
+    that was defined in the log_gates when setting up the layout.
+
+    Parameters
+    ----------
+    layout
+        Code layout.
+    gates_coord_list
+        List of lists of coordinates corresponding to the gates to be applied at each step.
+
+    Notes
+    -----
+    """
+    l: dict[tuple[int, int], str] = {}
+    for qubit in layout.data_qubits:
+        glabel = layout.param(f"encoding_{layout.logical_qubits[0]}", qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"encoding_{layout.logical_qubits[0]} gate on qubit {qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = qubit
+    
+    gates_list = []
+    for gates_coord in gates_coord_list:
+        gates_list.append([l[coord] for coord in gates_coord])
+    return gates_list
+
+def _grow_code_coordinates(
+    layout: Layout,
+    cur_d: int,
+    primitive_gates: str,
+) -> list[list[tuple[int, int]]]:
+    """
+    Yields list of lists of gates in the coordinate form which as a whole correspond to a circuit that grows
     a distance ``d`` unrotated surface code to a ``d+2`` one of the given model
     without the detectors. Note that this circuit is not fault tolerant.
 
     Parameters
     ----------
-    model
-        Noise model for the gates.
     layout
         Code layout.
     physical_reset_op
@@ -1134,335 +385,86 @@ def _grow_code_iterator(
         raise TypeError(
             f"The given layout is not an unrotated surface code, but a {layout.code}."
         )
-    if curr_distance % 2 != layout.distance % 2:
+    if cur_d % 2 != layout.distance % 2:
         raise TypeError(
-            f"'curr_distance' and 'layout_distance' must have the same parity, but curr_distance:{curr_distance}, layout.distance:{layout.distance} were given."
+            f"'current distance' and 'layout_distance' must have the same parity, but current distance:{cur_d}, layout.distance:{layout.distance} were given."
         )
-    if curr_distance >= layout.distance:
+    if cur_d >= layout.distance:
         raise TypeError(
-            f"'curr_distance' ({curr_distance}) must be strictly smaller than "
+            f"'current distance' ({cur_d}) must be strictly smaller than "
             f"the code distance ({layout.distance})."
         )
     if primitive_gates not in ["cnot", "cz"]:
         raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
-    gate_label = f"encoding_{layout.logical_qubits[0]}"
+    gates_list = []
+    h_gates_coord = []
+    for i in range(1-cur_d, cur_d +1, 2):
+        h_gates_coord += [(i, -cur_d-1)]  # top
+        h_gates_coord += [(i, cur_d+1)]  # bottom
+    for i in range(-cur_d, cur_d+2, 2):
+        h_gates_coord += [(-cur_d, i)]  # left
+        h_gates_coord += [(cur_d, i)]  # right
+    gates_list.append(h_gates_coord)
+    # step 1, two qubit gates at 4 corner
+    tq_gates_1_coord = [
+            (-cur_d, -cur_d),
+            (-cur_d-1, -cur_d-1),
+            (cur_d, -cur_d),
+            (cur_d+1, -cur_d-1),
+            (-cur_d, cur_d),
+            (-cur_d-1, cur_d+1),
+            (cur_d, cur_d),
+            (cur_d+1,cur_d+1)]
+    # two qubit gates at outer line
+    for i in range(1-cur_d, cur_d+1, 2):
+        tq_gates_1_coord += [(1-cur_d, i), (-cur_d-1, i)]  # left
+        tq_gates_1_coord += [(cur_d-1, i),(cur_d+1, i)]  # right
+    # two qubit gates at inner corner
+    for i in range(2-cur_d, cur_d, 2):
+        tq_gates_1_coord += [(2-cur_d, i),(-cur_d, i)]  # left
+        tq_gates_1_coord += [(cur_d-2, i),(cur_d, i)]  # right
+    gates_list.append(tq_gates_1_coord)
+    # step 2, two qubit gates at 4 corner
+    tq_gates_2_coord = [
+            (-cur_d, -cur_d),
+            (-cur_d-1, -cur_d+1),
+            (cur_d, -cur_d),
+            (cur_d+1, 1-cur_d),
+            (-cur_d, cur_d),
+            (-cur_d-1, cur_d-1),
+            (cur_d, cur_d),
+            (cur_d+1, cur_d-1),
+        ]
+    # two qubit gates at outer line
+    for i in range(1-cur_d, cur_d+1, 2):
+        tq_gates_2_coord += [(i, -cur_d-1),(i, 1-cur_d)]  # top
+        tq_gates_2_coord += [(i, cur_d+1),(i, cur_d-1)]  # bottom
+    # two qubit gates at inner corner
+    for i in range(2-cur_d, cur_d, 2):
+        tq_gates_2_coord += [(i, -cur_d),(i, 2-cur_d)]  # top
+        tq_gates_2_coord += [(i, cur_d),(i, cur_d-2)]  # bottom
+    gates_list.append(tq_gates_2_coord)
+    # step 3
+    tq_gates_3_coord = []
+    for i in range(1-cur_d, cur_d+1, 2):
+        tq_gates_3_coord += [(i, -cur_d-1), (i + 1, -cur_d)]  # top
+        tq_gates_3_coord += [(i, cur_d+1),(i - 1, cur_d)]  # bottom
+    for i in range(2-cur_d, cur_d, 2):
+        tq_gates_3_coord += [(-cur_d, i),(-cur_d-1, i - 1)]  # left
+        tq_gates_3_coord += [(cur_d, i),(cur_d+1, i + 1)]  # right
+    gates_list.append(tq_gates_3_coord)
+    # step 4
+    tq_gates_4_coord = []
+    for i in range(1-cur_d, cur_d+1, 2):
+        tq_gates_4_coord += [(i, -cur_d-1),(i - 1, -cur_d)]  # top
+        tq_gates_4_coord += [(i, cur_d+1),(i + 1, cur_d)]  # bottom
+    for i in range(2-cur_d, cur_d, 2):
+        tq_gates_4_coord += [(-cur_d, i),(-cur_d-1, i + 1)]  # left
+        tq_gates_4_coord += [(cur_d, i),(cur_d+1, i - 1)]  # right
+    gates_list.append(tq_gates_4_coord)
 
-    # maps from coordinates to qubit labels
-    l: dict[tuple[int, int], str] = {}
-    for qubit in layout.data_qubits:
-        glabel = layout.param(gate_label, qubit)["label"]
-        if glabel is None:
-            raise ValueError(
-                "The layout does not have the information to run "
-                f"{gate_label} gate on qubit {qubit}. "
-                "Use the 'log_gates' module to set it up."
-            )
-        l[glabel] = qubit
-    # l: dict[tuple[int, int], str] = {}
-    # for qubit, coord in layout.qubit_coords.items():
-    #     l[(int(coord[0]), int(coord[1]))] = qubit
-
-    d = layout.distance
-    target_d = curr_distance + 2
-    offset = d - target_d
-    qubits = set(layout.qubits)
-
-    if primitive_gates == "cz":
-        # initial |+> state + decompose CNOT into H CZ H
-        # h at 4 corners
-        h_gates = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (1 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-            ]
-        ]
-        for i in range(2, 2 * target_d - 2, 2):
-            h_gates += [l[(i + offset, offset)]]  # top
-            h_gates += [l[(i + offset, 2 * target_d - 2 + offset)]]  # bottom
-        for i in range(0, 2 * target_d, 2):
-            h_gates += [l[(0 + offset, i + offset)]]  # left
-            h_gates += [l[(2 * target_d - 2 + offset, i + offset)]]  # right
-        yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
-        yield model.tick()
-        # first time step
-        # czs at 4 corner
-        czs_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (offset, offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (2 * target_d - 2 + offset, offset),
-                (1 + offset, 2 * target_d - 3 + offset),
-                (offset, 2 * target_d - 2 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 2 + offset),
-            ]
-        ]
-        # czs at outer line
-        for i in range(2, 2 * target_d - 2, 2):
-            czs_1 += [l[(2 + offset, i + offset)], l[(offset, i + offset)]]  # left
-            czs_1 += [
-                l[(2 * target_d - 4 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i + offset)],
-            ]  # right
-        # czs at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            czs_1 += [l[(3 + offset, i + offset)], l[(1 + offset, i + offset)]]  # left
-            czs_1 += [
-                l[(2 * target_d - 5 + offset, i + offset)],
-                l[(2 * target_d - 3 + offset, i + offset)],
-            ]  # right
-        # h at 4 corner
-        h_1 = [
-            l[coord]
-            for coord in [
-                (0 + offset, 0 + offset),
-                (2 * target_d - 2 + offset, offset),
-                (offset, 2 * target_d - 2 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 2 + offset),
-            ]
-        ]
-        # h at outer line
-        for i in range(2, 2 * target_d - 2, 2):
-            h_1 += [l[(i + offset, 2 + offset)]]  # top
-            h_1 += [l[(i + offset, 2 * target_d - 4 + offset)]]  # bottom
-        # h at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            h_1 += [l[(i + offset, 3 + offset)]]  # top
-            h_1 += [l[(i + offset, 2 * target_d - 5 + offset)]]  # bottom
-            h_1 += [l[(1 + offset, i + offset)]]  # left
-            h_1 += [l[(2 * target_d - 3 + offset, i + offset)]]  # right
-        yield model.cz(czs_1) + model.idle(set(qubits) - set(czs_1))
-        yield model.tick()
-        yield model.h_gate(h_1) + model.idle(set(qubits) - set(h_1))
-        yield model.tick()
-        # second time step
-        # cnots at 4 corner
-        czs_2 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (offset, 2 + offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (2 * target_d - 2 + offset, offset + 2),
-                (1 + offset, 2 * target_d - 3 + offset),
-                (offset, 2 * target_d - 4 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 4 + offset),
-            ]
-        ]
-        # cnots at outer line
-        for i in range(2, 2 * target_d - 2, 2):
-            czs_2 += [l[(i + offset, offset)], l[(i + offset, 2 + offset)]]  # top cnot
-            czs_2 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i + offset, 2 * target_d - 4 + offset)],
-            ]  # bottom cnot
-        # cnots at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            czs_2 += [
-                l[(i + offset, 1 + offset)],
-                l[(i + offset, 3 + offset)],
-            ]  # top cnot
-            czs_2 += [
-                l[(i + offset, 2 * target_d - 3 + offset)],
-                l[(i + offset, 2 * target_d - 5 + offset)],
-            ]  # bottom cnot
-        # h at outer line
-        h_2 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            h_2 += [l[(i + offset, 2 + offset)]]  # top
-            h_2 += [l[(i + offset, 2 * target_d - 4 + offset)]]  # bottom
-            h_2 += [l[(i + 1 + offset, 1 + offset)]]  # top, next step
-            h_2 += [l[(i - 1 + offset, 2 * target_d - 3 + offset)]]  # bottom, next step
-        # h at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            h_2 += [l[(i + offset, 3 + offset)]]  # top
-            h_2 += [l[(i + offset, 2 * target_d - 5 + offset)]]  # bottom
-        yield model.cz(czs_2) + model.idle(set(qubits) - set(czs_2))
-        yield model.tick()
-        yield model.h_gate(h_2) + model.idle(set(qubits) - set(h_2))
-        yield model.tick()
-        # third time step
-        czs_3 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            czs_3 += [l[(i + offset, offset)], l[(i + 1 + offset, 1 + offset)]]  # top
-            czs_3 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i - 1 + offset, 2 * target_d - 3 + offset)],
-            ]  # bottom
-        for i in range(3, 2 * target_d - 3, 2):
-            czs_3 += [l[(1 + offset, i + offset)], l[(offset, i - 1 + offset)]]  # left
-            czs_3 += [
-                l[(2 * target_d - 3 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i + 1 + offset)],
-            ]  # right
-        # h 6 corners
-        h_3 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (0 + offset, 2 + offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 4 + offset),
-                (1 + offset, 2 * target_d - 3 + offset),
-            ]
-        ]
-        yield model.cz(czs_3) + model.idle(set(qubits) - set(czs_3))
-        yield model.tick()
-        yield model.h_gate(h_3) + model.idle(set(qubits) - set(h_3))
-        yield model.tick()
-        # fourth time step
-        czs_4 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            czs_4 += [l[(i + offset, offset)], l[(i - 1 + offset, 1 + offset)]]  # top
-            czs_4 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i + 1 + offset, 2 * target_d - 3 + offset)],
-            ]  # bottom
-        for i in range(3, 2 * target_d - 3, 2):
-            czs_4 += [l[(1 + offset, i + offset)], l[(offset, i + 1 + offset)]]  # left
-            czs_4 += [
-                l[(2 * target_d - 3 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i - 1 + offset)],
-            ]  # right
-        h_4 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            h_4 += [l[(i - 1 + offset, 1 + offset)]]  # top
-            h_4 += [l[(i + 1 + offset, 2 * target_d - 3 + offset)]]  # bottom
-        for i in range(3, 2 * target_d - 3, 2):
-            h_4 += [l[(offset, i + 1 + offset)]]  # left
-            h_4 += [l[(2 * target_d - 2 + offset, i - 1 + offset)]]  # right
-        yield model.cz(czs_4) + model.idle(set(qubits) - set(czs_4))
-        yield model.tick()
-        yield model.h_gate(h_4) + model.idle(set(qubits) - set(h_4))
-        yield model.tick()
-    else:
-        h_gates = []
-        for i in range(2, 2 * target_d - 2, 2):
-            h_gates += [l[(i + offset, offset)]]  # top
-            h_gates += [l[(i + offset, 2 * target_d - 2 + offset)]]  # bottom
-        for i in range(1, 2 * target_d - 1, 2):
-            h_gates += [l[(1 + offset, i + offset)]]  # left
-            h_gates += [l[(2 * target_d - 3 + offset, i + offset)]]  # right
-        yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
-        yield model.tick()
-        # first time step
-        # cnots at 4 corner
-        cnots_1 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (offset, offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (2 * target_d - 2 + offset, offset),
-                (1 + offset, 2 * target_d - 3 + offset),
-                (offset, 2 * target_d - 2 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 2 + offset),
-            ]
-        ]
-        # cnots at outer line
-        for i in range(2, 2 * target_d - 2, 2):
-            cnots_1 += [l[(2 + offset, i + offset)], l[(offset, i + offset)]]  # left
-            cnots_1 += [
-                l[(2 * target_d - 4 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i + offset)],
-            ]  # right
-        # cnots at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            cnots_1 += [
-                l[(3 + offset, i + offset)],
-                l[(1 + offset, i + offset)],
-            ]  # left
-            cnots_1 += [
-                l[(2 * target_d - 5 + offset, i + offset)],
-                l[(2 * target_d - 3 + offset, i + offset)],
-            ]  # right
-        yield model.cnot(cnots_1) + model.idle(set(qubits) - set(cnots_1))
-        yield model.tick()
-        # second time step
-        # cnots at 4 corner
-        cnots_2 = [
-            l[coord]
-            for coord in [
-                (1 + offset, 1 + offset),
-                (offset, 2 + offset),
-                (2 * target_d - 3 + offset, 1 + offset),
-                (2 * target_d - 2 + offset, offset + 2),
-                (1 + offset, 2 * target_d - 3 + offset),
-                (offset, 2 * target_d - 4 + offset),
-                (2 * target_d - 3 + offset, 2 * target_d - 3 + offset),
-                (2 * target_d - 2 + offset, 2 * target_d - 4 + offset),
-            ]
-        ]
-        # cnots at outer line
-        for i in range(2, 2 * target_d - 2, 2):
-            cnots_2 += [
-                l[(i + offset, offset)],
-                l[(i + offset, 2 + offset)],
-            ]  # top cnot
-            cnots_2 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i + offset, 2 * target_d - 4 + offset)],
-            ]  # bottom cnot
-        # cnots at inner corner
-        for i in range(3, 2 * target_d - 3, 2):
-            cnots_2 += [
-                l[(i + offset, 1 + offset)],
-                l[(i + offset, 3 + offset)],
-            ]  # top cnot
-            cnots_2 += [
-                l[(i + offset, 2 * target_d - 3 + offset)],
-                l[(i + offset, 2 * target_d - 5 + offset)],
-            ]  # bottom cnot
-        yield model.cnot(cnots_2) + model.idle(set(qubits) - set(cnots_2))
-        yield model.tick()
-        # third time step
-        cnots_3 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            cnots_3 += [l[(i + offset, offset)], l[(i + 1 + offset, 1 + offset)]]  # top
-            cnots_3 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i - 1 + offset, 2 * target_d - 3 + offset)],
-            ]  # bottom
-        for i in range(3, 2 * target_d - 3, 2):
-            cnots_3 += [
-                l[(1 + offset, i + offset)],
-                l[(offset, i - 1 + offset)],
-            ]  # left
-            cnots_3 += [
-                l[(2 * target_d - 3 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i + 1 + offset)],
-            ]  # right
-        yield model.cnot(cnots_3) + model.idle(set(qubits) - set(cnots_3))
-        yield model.tick()
-        # fourth time step
-        cnots_4 = []
-        for i in range(2, 2 * target_d - 2, 2):
-            cnots_4 += [l[(i + offset, offset)], l[(i - 1 + offset, 1 + offset)]]  # top
-            cnots_4 += [
-                l[(i + offset, 2 * target_d - 2 + offset)],
-                l[(i + 1 + offset, 2 * target_d - 3 + offset)],
-            ]  # bottom
-        for i in range(3, 2 * target_d - 3, 2):
-            cnots_4 += [
-                l[(1 + offset, i + offset)],
-                l[(offset, i + 1 + offset)],
-            ]  # left
-            cnots_4 += [
-                l[(2 * target_d - 3 + offset, i + offset)],
-                l[(2 * target_d - 2 + offset, i - 1 + offset)],
-            ]  # right
-        yield model.cnot(cnots_4) + model.idle(set(qubits) - set(cnots_4))
-        yield model.tick()
-
+    return gates_list
 
 def encoding_qubits_iterator(
     model: Model,
@@ -1486,7 +488,7 @@ def encoding_qubits_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1553,7 +555,7 @@ def encoding_qubits_y0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1587,7 +589,7 @@ def encoding_qubits_z0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1624,7 +626,7 @@ def encoding_qubits_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1657,7 +659,7 @@ def encoding_qubits_x0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1687,7 +689,7 @@ def encoding_qubits_y0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1717,7 +719,7 @@ def encoding_qubits_z0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2, 9 from:
+    The implementation follows Figure 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -1768,3 +770,26 @@ gate_to_iterator_cnots = {
     "Z_ERROR": log_z_error_iterator,
     "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
+encoding_distance_2_gates_coord = [
+    [(1,-1), (-1,1)],
+    [(0,0),(-1,-1),(1,-1),(1,1)],
+    [(-1,1),(-1,-1),(0,0),(1,1)],
+    [(-1,1), (0,0)],
+    [(1,-1), (0,0)],
+    ]
+encoding_distance_3_gates_coord = [
+    [(0,-2),(1,1),(1,-1),(-1,1),(-1,-1),(0,2)],
+    [(-1,-1),(-2,-2),(1,-1),(2,-2),(0,0),(-2,0),(-1,1),(-2,2),(1,1),(2,2)],
+    [(0,0),(2,0),(-1,-1),(-2,0)],
+    [(0,-2),(0,0),(-1,1),(-2,0),(1,-1),(2,0)],
+    [(0,2),(0,0),(1,1),(2,0),(0,-2),(-1,-1)],
+    [(0,-2),(1,-1),(0,2),(-1, 1)],
+    [(0,2),(1,1)],
+    ]
+encoding_distance_4_gates_coord = [
+    [(-1,-3),(1,-3),(-2,-2),(2,-2),(-2,0),(2,0),(-2,2),(2,2),(-1,3),(1,3)],
+    [(-2,-2),(-3,-3),(2,-2),(3,-3),(-1,-1),(-3,-1),(0,-2),(1,-1),(0,0),(-2,0),(0,2),(-1,1),(1,1),(3,1),(-2,2),(-3,3),(2,2),(3,3)],
+    [(-2,-2),(-3,-1),(-1,-3),(-1,-1),(1,-3),(0,-2),(1,-1),(3,-1),(0,0),(2,0),(-1,1),(-3,1),(-1,3),(0,2),(1,3),(1,1),(2,2),(3,1)],
+    [(-1,-3),(0,-2),(1,-3),(1,-1),(2,-2),(3,-1),(-2,0),(-3,-1),(2,0),(3,1),(-2,2),(-3,1),(-1,3),(-1,1),(1,3),(0,2)],
+    [(-1,-3),(-2,-2),(1,-3),(2,-2),(-2,0),(-3,1),(2,0),(3,-1),(-1,3),(-2,2),(1,3),(2,2)],
+]
