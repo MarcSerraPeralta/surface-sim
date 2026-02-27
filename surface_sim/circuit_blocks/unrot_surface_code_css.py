@@ -1,4 +1,4 @@
-from collections.abc import Collection, Generator
+from collections.abc import Collection, Generator, Sequence
 
 from stim import Circuit
 
@@ -229,7 +229,7 @@ def _encoding_qubits_iterator(
         to a unrotated surface code.
     primitive_gates
         Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses RZ, and CNOT gates, and
+        (1) ``"cnot"``, which uses RZ, RX, and CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
         Note that the ``physical_reset_op`` will not be decomposed into primitive
         gates.
@@ -249,35 +249,62 @@ def _encoding_qubits_iterator(
     if primitive_gates not in ["cnot", "cz"]:
         raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
-    circ = model.reset(layout.qubits)
-    centre_qubit = _map_coords_to_qubits(layout, [[(0, 0)]])[0]
-    circ += model.__getattribute__(physical_reset_op)(centre_qubit)
-    yield circ
-    yield model.tick()
-
     if layout.distance % 2 == 1:
-        encoding_d_3_gates = _map_coords_to_qubits(layout, encoding_d_3_gates_coord)
-        yield from _circuit_builder_iterator(
-            encoding_d_3_gates, model, layout, primitive_gates
-        )
+        reset_x = [(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)]
+        reset_z = [(2, 2), (2, -2), (-2, 2), (-2, -2)]
+        cnot_gates = [
+            [(-1, -1), (-2, -2), (1, -1), (2, -2), (0, 0), (-2, 0), (-1, 1), (-2, 2), (1, 1), (2, 2)], 
+            [(0, 0), (2, 0), (-1, -1), (-2, 0)],
+            [(0, -2), (0, 0), (-1, 1), (-2, 0), (1, -1), (2, 0)],
+            [(0, 2), (0, 0), (1, 1), (2, 0), (0, -2), (-1, -1)],
+            [(0, -2), (1, -1), (0, 2), (-1, 1)],
+            [(0, 2), (1, 1)],
+        ]  # fmt: skip
+        yield from _grow_code_iterator(
+            model, layout, reset_x, reset_z, cnot_gates, physical_reset_op, primitive_gates
+        )  # fmt: skip
     else:
-        encoding_d_2_gates = _map_coords_to_qubits(layout, encoding_d_2_gates_coord)
-        yield from _circuit_builder_iterator(
-            encoding_d_2_gates, model, layout, primitive_gates
-        )
+        reset_x = [(1, -1), (-1, 1)]
+        reset_z = [(1, 1), (-1, -1)]
+        cnot_gates = [
+            [(0, 0), (-1, -1), (1, -1), (1, 1)],
+            [(-1, 1), (-1, -1), (0, 0), (1, 1)],
+            [(-1, 1), (0, 0)],
+            [(1, -1), (0, 0)],
+        ]
+        yield from _grow_code_iterator(
+            model, layout, reset_x, reset_z, cnot_gates, physical_reset_op, primitive_gates
+        )  # fmt: skip
+
+        # growing circuit from d=2 to 4 is different than the rest, see Fig 9(c).
         if layout.distance >= 4:
-            encoding_d_4_gates = _map_coords_to_qubits(layout, encoding_d_4_gates_coord)
-            yield from _circuit_builder_iterator(
-                encoding_d_4_gates, model, layout, primitive_gates
+            reset_x = [(-1, -3), (1, -3), (-2, -2), (2, -2), (-2, 0), (2, 0), (-2, 2), (2, 2), (-1, 3), (1, 3)]  # fmt: skip
+            reset_z = [(3, 3), (-3, 3), (3, -3), (-3, -3), (3, 1), (-3, 1), (3, -1), (-3, -1), (0, 2), (0, -2)]  # fmt: skip
+            cnot_gates = [
+                [(-2, -2), (-3, -3), (2, -2), (3, -3), (-1, -1), (-3, -1), (0, -2), (1, -1), (0, 0), (-2, 0), (0, 2), (-1, 1), (1, 1), (3, 1), (-2, 2), (-3, 3), (2, 2), (3, 3)],
+                [(-2, -2), (-3, -1), (-1, -3), (-1, -1), (1, -3), (0, -2), (1, -1), (3, -1), (0, 0), (2, 0), (-1, 1), (-3, 1), (-1, 3), (0, 2), (1, 3), (1, 1), (2, 2), (3, 1)],
+                [(-1, -3), (0, -2), (1, -3), (1, -1), (2, -2), (3, -1), (-2, 0), (-3, -1), (2, 0), (3, 1), (-2, 2), (-3, 1), (-1, 3), (-1, 1), (1, 3), (0, 2)],
+                [(-1, -3), (-2, -2), (1, -3), (2, -2), (-2, 0), (-3, 1), (2, 0), (3, -1), (-1, 3), (-2, 2), (1, 3), (2, 2)],
+            ]  # fmt: skip
+            yield from _grow_code_iterator(
+                model, layout, reset_x, reset_z, cnot_gates, None, primitive_gates
             )
+
     for d in range(4 - layout.distance % 2, layout.distance, 2):
-        gates_list_coords = _grow_code_coordinates(layout, d, primitive_gates)
-        gates_list = _map_coords_to_qubits(layout, gates_list_coords)
-        yield from _circuit_builder_iterator(gates_list, model, layout, primitive_gates)
+        reset_x, reset_z, cnot_gates = _grow_code_coordinates(d)
+        yield from _grow_code_iterator(
+            model, layout, reset_x, reset_z, cnot_gates, None, primitive_gates
+        )
 
 
-def _circuit_builder_iterator(
-    gates_list: list[list[str]], model: Model, layout: Layout, primitive_gates: str
+def _grow_code_iterator(
+    model: Model,
+    layout: Layout,
+    reset_x_coords: Collection[tuple[int, int]],
+    reset_z_coords: Collection[tuple[int, int]],
+    cnot_layers_coords: Sequence[Sequence[tuple[int, int]]],
+    physical_reset_op: str | None,
+    primitive_gates: str,
 ):
     """
     Take the primative gate and a list of lists of two qubit gates to be applied at each step
@@ -286,118 +313,25 @@ def _circuit_builder_iterator(
 
     Parameters
     ----------
-    gates_list
-        List of lists of gates to be applied at each step.
-        The first list corresponds to the Hadamard gates, the rest corresponds to two qubit gates.
     model
         Noise model for the gates.
     layout
         Code layout.
-    primitive_gates
-        Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses CNOT gates, and
-        (2) ``"cz"``, which uses H, and CZ gates.
-        Note that the ``physical_reset_op`` will not be decomposed into primitive
-        gates.
-
-    Notes
-    -----
-    The implementation follows Figure 2 and 9 from:
-
-        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
-        Quantum 5, 517 (2021).
-
-    """
-    if primitive_gates not in ["cnot", "cz"]:
-        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
-    qubits = layout.qubits
-    h_gates = gates_list[0]
-    tq_gates_list = gates_list[1:]
-    # if the primitive gate is cz, then the h gates will be applied to the target qubits of the cz gates,
-    # which are the second qubits in the two qubit gates.
-    # take symmetric difference between the target qubits of the current two qubit gates and the next two qubit gates
-    if primitive_gates == "cz":
-        h_0 = tq_gates_list[0][1::2]
-        yield model.h_gate(h_gates + h_0) + model.idle(set(qubits) - set(h_gates + h_0))
-    else:
-        yield model.h_gate(h_gates) + model.idle(set(qubits) - set(h_gates))
-    yield model.tick()
-
-    for i in range(len(tq_gates_list)):
-        if primitive_gates == "cz":
-            yield model.cz(tq_gates_list[i]) + model.idle(
-                set(qubits) - set(tq_gates_list[i])
-            )
-        else:
-            yield model.cnot(tq_gates_list[i]) + model.idle(
-                set(qubits) - set(tq_gates_list[i])
-            )
-        yield model.tick()
-        if primitive_gates == "cz":
-            h_1 = set(tq_gates_list[i][1::2])
-            if i != len(tq_gates_list) - 1:
-                h_1 = h_1 ^ set(tq_gates_list[i + 1][1::2])
-            yield model.h_gate(h_1) + model.idle(set(qubits) - set(h_1))
-            yield model.tick()
-
-
-def _map_coords_to_qubits(
-    layout: Layout, gates_coord_list: list[list[tuple[int, int]]]
-) -> list[list[str]]:
-    """
-    Convert a list of lists of coordinates to a list of lists of qubits corresponding to the coordinates
-    that was defined in the log_gates when setting up the layout.
-
-    Parameters
-    ----------
-    layout
-        Code layout.
-    gates_coord_list
-        List of lists of coordinates corresponding to the gates to be applied at each step.
-
-    Notes
-    -----
-    """
-    l: dict[tuple[int, int], str] = {}
-    for qubit in layout.data_qubits:
-        glabel = layout.param(f"encoding_{layout.logical_qubits[0]}", qubit)["label"]
-        if glabel is None:
-            raise ValueError(
-                "The layout does not have the information to run "
-                f"encoding_{layout.logical_qubits[0]} gate on qubit {qubit}. "
-                "Use the 'log_gates' module to set it up."
-            )
-        l[glabel] = qubit
-
-    gates_list = []
-    for gates_coord in gates_coord_list:
-        gates_list.append([l[coord] for coord in gates_coord])
-    return gates_list
-
-
-def _grow_code_coordinates(
-    layout: Layout,
-    cur_d: int,
-    primitive_gates: str,
-) -> list[list[tuple[int, int]]]:
-    """
-    Yields list of lists of gates in the coordinate form which as a whole correspond to a circuit that grows
-    a distance ``d`` unrotated surface code to a ``d+2`` one of the given model
-    without the detectors. Note that this circuit is not fault tolerant.
-
-    Parameters
-    ----------
-    layout
-        Code layout.
+    reset_x_coords
+        Generalized coordinates for the data qubits that need to be reset in the X basis.
+    reset_z_coords
+        Generalized coordinates for the data qubits that need to be reset in the Z basis.
+    cnot_layers_coords
+        List of CNOT layers that need to be applied at each step of the encoding
+        circuit. The data qubits are specified by the generalized coordinates.
     physical_reset_op
         Reset operation to be applied to the physical qubit that will grow
-        to an unrotated surface code.
+        to a unrotated surface code.
+        If ``None``, this circuit grows an already existing code to one of higher distance.
     primitive_gates
         Set of primitive gates to use. The available options are:
-        (1) ``"cnot"``, which uses CNOT gates, and
-        (2) ``"cz"``, which uses H, and CZ gates.
-        Note that the ``physical_reset_op`` will not be decomposed into primitive
-        gates.
+        (1) ``"cnot"``, which uses RZ, RX, CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
 
     Notes
     -----
@@ -407,95 +341,152 @@ def _grow_code_coordinates(
         Quantum 5, 517 (2021).
 
     """
-    if layout.code != "unrotated_surface_code":
-        raise TypeError(
-            f"The given layout is not an unrotated surface code, but a {layout.code}."
-        )
-    if cur_d % 2 != layout.distance % 2:
-        raise TypeError(
-            f"'current distance' and 'layout_distance' must have the same parity, but current distance:{cur_d}, layout.distance:{layout.distance} were given."
-        )
-    if cur_d >= layout.distance:
-        raise TypeError(
-            f"'current distance' ({cur_d}) must be strictly smaller than "
-            f"the code distance ({layout.distance})."
-        )
-    if primitive_gates not in ["cnot", "cz"]:
-        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
 
-    gates_list = []
-    h_gates_coord = []
-    for i in range(1 - cur_d, cur_d + 1, 2):
-        h_gates_coord += [(i, -cur_d - 1)]  # top
-        h_gates_coord += [(i, cur_d + 1)]  # bottom
-    for i in range(-cur_d, cur_d + 2, 2):
-        h_gates_coord += [(-cur_d, i)]  # left
-        h_gates_coord += [(cur_d, i)]  # right
-    gates_list.append(h_gates_coord)
+    l: dict[tuple[int, int], str] = {}
+    for data_qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, data_qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"an encoding circuit on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = data_qubit
 
-    # step 1, two qubit gates at 4 corner
-    tq_gates_1_coord = [
-        (-cur_d, -cur_d),
-        (-cur_d - 1, -cur_d - 1),
-        (cur_d, -cur_d),
-        (cur_d + 1, -cur_d - 1),
-        (-cur_d, cur_d),
-        (-cur_d - 1, cur_d + 1),
-        (cur_d, cur_d),
-        (cur_d + 1, cur_d + 1),
-    ]
-    # two qubit gates at outer line
-    for i in range(1 - cur_d, cur_d + 1, 2):
-        tq_gates_1_coord += [(1 - cur_d, i), (-cur_d - 1, i)]  # left
-        tq_gates_1_coord += [(cur_d - 1, i), (cur_d + 1, i)]  # right
-    # two qubit gates at inner corner
-    for i in range(2 - cur_d, cur_d, 2):
-        tq_gates_1_coord += [(2 - cur_d, i), (-cur_d, i)]  # left
-        tq_gates_1_coord += [(cur_d - 2, i), (cur_d, i)]  # right
-    gates_list.append(tq_gates_1_coord)
+    qubits = set(layout.qubits)
 
-    # step 2, two qubit gates at 4 corner
-    tq_gates_2_coord = [
-        (-cur_d, -cur_d),
-        (-cur_d - 1, -cur_d + 1),
-        (cur_d, -cur_d),
-        (cur_d + 1, 1 - cur_d),
-        (-cur_d, cur_d),
-        (-cur_d - 1, cur_d - 1),
-        (cur_d, cur_d),
-        (cur_d + 1, cur_d - 1),
-    ]
-    # two qubit gates at outer line
-    for i in range(1 - cur_d, cur_d + 1, 2):
-        tq_gates_2_coord += [(i, -cur_d - 1), (i, 1 - cur_d)]  # top
-        tq_gates_2_coord += [(i, cur_d + 1), (i, cur_d - 1)]  # bottom
-    # two qubit gates at inner corner
-    for i in range(2 - cur_d, cur_d, 2):
-        tq_gates_2_coord += [(i, -cur_d), (i, 2 - cur_d)]  # top
-        tq_gates_2_coord += [(i, cur_d), (i, cur_d - 2)]  # bottom
-    gates_list.append(tq_gates_2_coord)
+    # step 1: resets
+    circ = Circuit()
+    reset_x = [l[c] for c in reset_x_coords]
+    reset_z = [l[c] for c in reset_z_coords]
+    hadamards_prev = hadamards_curr = set(reset_x)
+    if primitive_gates == "cnot":
+        circ += model.reset_x(reset_x) + model.reset_z(reset_z)
+    elif primitive_gates == "cz":
+        circ += model.reset_z(reset_z + reset_x)
+    exec_qubits = reset_x + reset_z
+    if physical_reset_op is not None:
+        circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
+        exec_qubits.append(l[(0, 0)])
+    yield circ + model.idle(qubits - set(exec_qubits))
+    yield model.tick()
+
+    # steps 2, 3, ...: cnot gates
+    for cnot_pairs_coords in cnot_layers_coords:
+        cnot_pairs = [l[c] for c in cnot_pairs_coords]
+        hadamards_curr = set(cnot_pairs[1::2])
+
+        # apply hadamards between step prev and curr
+        if primitive_gates == "cz":
+            hadamards = hadamards_prev.symmetric_difference(hadamards_curr)
+            yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+            yield model.tick()
+        hadamards_prev = hadamards_curr
+
+        circ = Circuit()
+        if primitive_gates == "cnot":
+            circ += model.cnot(cnot_pairs)
+        elif primitive_gates == "cz":
+            circ += model.cphase(cnot_pairs)
+        circ += model.idle(qubits - set(cnot_pairs))
+        yield circ
+        yield model.tick()
+
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_curr) + model.idle(qubits - hadamards_curr)
+        yield model.tick()
+
+
+def _grow_code_coordinates(
+    d: int,
+) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[list[tuple[int, int]]]]:
+    """
+    Yields the reset and CNOT information to grow a distance ``d`` unrotated
+    surface code to a ``d+2`` one. Note that this circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    d
+        Distance of the current unrotated surface code.
+
+    Returns
+    -------
+    reset_x_coords
+        Generalized coordinates for the data qubits that need to be reset in the X basis.
+    reset_z_coords
+        Generalized coordinates for the data qubits that need to be reset in the Z basis.
+    cnot_layers_coords
+        List of CNOT layers that need to be applied at each step of the encoding
+        circuit. The data qubits are specified by the generalized coordinates.
+
+    Notes
+    -----
+    The implementation follows Figure 2 from:
+
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
+
+    """
+    reset_x_coords = []
+    for i in range(-d + 1, d + 1, 2):
+        reset_x_coords += [(i, -d - 1)]  # top
+        reset_x_coords += [(i, d + 1)]  # bottom
+    for i in range(-d, d + 2, 2):
+        reset_x_coords += [(-d, i)]  # left
+        reset_x_coords += [(d, i)]  # right
+
+    reset_z_coords = []
+    for i in range(-d + 2, d, 2):
+        reset_z_coords += [(i, -d)]  # top
+        reset_z_coords += [(i, d)]  # bottom
+    for i in range(-d - 1, d + 3, 2):
+        reset_z_coords += [(-d - 1, i)]  # left
+        reset_z_coords += [(d + 1, i)]  # right
+
+    cnot_layers_coords = []
+
+    # step 1
+    step1 = [(-d, -d), (-d - 1, -d - 1), (d, -d), (d + 1, -d - 1), (-d, d), (-d - 1, d + 1), (d, d), (d + 1, d + 1)]  # fmt: skip
+    for i in range(1 - d, d + 1, 2):
+        step1 += [(1 - d, i), (-d - 1, i)]  # left
+        step1 += [(d - 1, i), (d + 1, i)]  # right
+    for i in range(2 - d, d, 2):
+        step1 += [(2 - d, i), (-d, i)]  # left
+        step1 += [(d - 2, i), (d, i)]  # right
+    cnot_layers_coords.append(step1)
+
+    # step 2
+    step2 = [(-d, -d), (-d - 1, -d + 1), (d, -d), (d + 1, 1 - d), (-d, d), (-d - 1, d - 1), (d, d), (d + 1, d - 1)]  # fmt: skip
+    for i in range(1 - d, d + 1, 2):
+        step2 += [(i, -d - 1), (i, 1 - d)]  # top
+        step2 += [(i, d + 1), (i, d - 1)]  # bottom
+    for i in range(2 - d, d, 2):
+        step2 += [(i, -d), (i, 2 - d)]  # top
+        step2 += [(i, d), (i, d - 2)]  # bottom
+    cnot_layers_coords.append(step2)
 
     # step 3
-    tq_gates_3_coord = []
-    for i in range(1 - cur_d, cur_d + 1, 2):
-        tq_gates_3_coord += [(i, -cur_d - 1), (i + 1, -cur_d)]  # top
-        tq_gates_3_coord += [(i, cur_d + 1), (i - 1, cur_d)]  # bottom
-    for i in range(2 - cur_d, cur_d, 2):
-        tq_gates_3_coord += [(-cur_d, i), (-cur_d - 1, i - 1)]  # left
-        tq_gates_3_coord += [(cur_d, i), (cur_d + 1, i + 1)]  # right
-    gates_list.append(tq_gates_3_coord)
+    step3 = []
+    for i in range(1 - d, d + 1, 2):
+        step3 += [(i, -d - 1), (i + 1, -d)]  # top
+        step3 += [(i, d + 1), (i - 1, d)]  # bottom
+    for i in range(2 - d, d, 2):
+        step3 += [(-d, i), (-d - 1, i - 1)]  # left
+        step3 += [(d, i), (d + 1, i + 1)]  # right
+    cnot_layers_coords.append(step3)
 
     # step 4
-    tq_gates_4_coord = []
-    for i in range(1 - cur_d, cur_d + 1, 2):
-        tq_gates_4_coord += [(i, -cur_d - 1), (i - 1, -cur_d)]  # top
-        tq_gates_4_coord += [(i, cur_d + 1), (i + 1, cur_d)]  # bottom
-    for i in range(2 - cur_d, cur_d, 2):
-        tq_gates_4_coord += [(-cur_d, i), (-cur_d - 1, i + 1)]  # left
-        tq_gates_4_coord += [(cur_d, i), (cur_d + 1, i - 1)]  # right
-    gates_list.append(tq_gates_4_coord)
+    step4 = []
+    for i in range(1 - d, d + 1, 2):
+        step4 += [(i, -d - 1), (i - 1, -d)]  # top
+        step4 += [(i, d + 1), (i + 1, d)]  # bottom
+    for i in range(2 - d, d, 2):
+        step4 += [(-d, i), (-d - 1, i + 1)]  # left
+        step4 += [(d, i), (d + 1, i - 1)]  # right
+    cnot_layers_coords.append(step4)
 
-    return gates_list
+    return reset_x_coords, reset_z_coords, cnot_layers_coords
 
 
 def encoding_qubits_iterator(
@@ -802,116 +793,3 @@ gate_to_iterator_cnots = {
     "Z_ERROR": log_z_error_iterator,
     "DEPOLARIZE1": log_depolarize1_error_iterator,
 }
-encoding_d_2_gates_coord = [
-    [(1, -1), (-1, 1)],
-    [(0, 0), (-1, -1), (1, -1), (1, 1)],
-    [(-1, 1), (-1, -1), (0, 0), (1, 1)],
-    [(-1, 1), (0, 0)],
-    [(1, -1), (0, 0)],
-]
-encoding_d_3_gates_coord = [
-    [(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)],
-    [
-        (-1, -1),
-        (-2, -2),
-        (1, -1),
-        (2, -2),
-        (0, 0),
-        (-2, 0),
-        (-1, 1),
-        (-2, 2),
-        (1, 1),
-        (2, 2),
-    ],
-    [(0, 0), (2, 0), (-1, -1), (-2, 0)],
-    [(0, -2), (0, 0), (-1, 1), (-2, 0), (1, -1), (2, 0)],
-    [(0, 2), (0, 0), (1, 1), (2, 0), (0, -2), (-1, -1)],
-    [(0, -2), (1, -1), (0, 2), (-1, 1)],
-    [(0, 2), (1, 1)],
-]
-encoding_d_4_gates_coord = [
-    [
-        (-1, -3),
-        (1, -3),
-        (-2, -2),
-        (2, -2),
-        (-2, 0),
-        (2, 0),
-        (-2, 2),
-        (2, 2),
-        (-1, 3),
-        (1, 3),
-    ],
-    [
-        (-2, -2),
-        (-3, -3),
-        (2, -2),
-        (3, -3),
-        (-1, -1),
-        (-3, -1),
-        (0, -2),
-        (1, -1),
-        (0, 0),
-        (-2, 0),
-        (0, 2),
-        (-1, 1),
-        (1, 1),
-        (3, 1),
-        (-2, 2),
-        (-3, 3),
-        (2, 2),
-        (3, 3),
-    ],
-    [
-        (-2, -2),
-        (-3, -1),
-        (-1, -3),
-        (-1, -1),
-        (1, -3),
-        (0, -2),
-        (1, -1),
-        (3, -1),
-        (0, 0),
-        (2, 0),
-        (-1, 1),
-        (-3, 1),
-        (-1, 3),
-        (0, 2),
-        (1, 3),
-        (1, 1),
-        (2, 2),
-        (3, 1),
-    ],
-    [
-        (-1, -3),
-        (0, -2),
-        (1, -3),
-        (1, -1),
-        (2, -2),
-        (3, -1),
-        (-2, 0),
-        (-3, -1),
-        (2, 0),
-        (3, 1),
-        (-2, 2),
-        (-3, 1),
-        (-1, 3),
-        (-1, 1),
-        (1, 3),
-        (0, 2),
-    ],
-    [
-        (-1, -3),
-        (-2, -2),
-        (1, -3),
-        (2, -2),
-        (-2, 0),
-        (-3, 1),
-        (2, 0),
-        (3, -1),
-        (-1, 3),
-        (-2, 2),
-        (1, 3),
-        (2, 2),
-    ],
-]
