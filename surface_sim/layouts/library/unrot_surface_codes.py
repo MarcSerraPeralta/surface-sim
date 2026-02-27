@@ -4,6 +4,7 @@ from functools import partial
 from itertools import count
 
 from ...log_gates.unrot_surface_code_css import (
+    set_encoding,
     set_fold_trans_h,
     set_fold_trans_s,
     set_idle,
@@ -358,6 +359,7 @@ def unrot_surface_codes(num_layouts: int, distance: int) -> list[Layout]:
         set_x(layout)
         set_z(layout)
         set_idle(layout)
+        set_encoding(layout)
         for other_layout in layouts:
             if layout == other_layout:
                 continue

@@ -13,6 +13,7 @@ __all__ = [
     "set_fold_trans_s",
     "set_fold_trans_h",
     "set_trans_cnot",
+    "set_encoding",
 ]
 
 
@@ -270,5 +271,86 @@ def set_fold_trans_h(layout: Layout, data_qubit: str) -> None:
                 "new_stab_gen_inv": anc_to_new_stab[anc_qubit],
             },
         )
+
+    return
+
+
+def set_encoding(layout: Layout) -> None:
+    """
+    Adds the required attributes (in place) for the layout to run the encoding
+    circuits for the unrotated surface code.
+
+    This implementation assumes that the qubits are placed in a square 2D grid,
+    and that the (spatial) separation between qubits is more than ``1e-6``.
+
+    Parameters
+    ----------
+    layout
+        The (square) layout in which to add the attributes.
+
+    Notes
+    -----
+    The implementation follows Figure 2 and 9 from:
+
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
+
+    The information about the encoding circuit is stored in the layout
+    as the parameter ``"encoding_{log_qubit_label}"`` for each of the data qubits.
+    """
+    if layout.code != "unrotated_surface_code":
+        raise ValueError(
+            "This function is for rotated surface codes, "
+            f"but a layout for the code {layout.code} was given."
+        )
+    if layout.distance_x != layout.distance_z:
+        raise ValueError(
+            "This function is for square surface codes, "
+            f"but d_x={layout.distance_x} and d_z={layout.distance_z} were given."
+        )
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    # identify data qubits in the 4 corners of the surface code
+    corners: list[str] = []
+    for data_qubit in layout.data_qubits:
+        if len(layout.get_neighbors([data_qubit])) != 2:
+            continue
+        corners.append(data_qubit)
+
+    # orient the surface code so that logical X is the horizontal direction
+    # and logical Z is the vertical direction.
+    # the unrot surface code is symmetrical along the fold so it does not
+    # matter which corner is picked to orient it.
+    top_left_coord = np.array(layout.get_coords([corners[0]])[0])
+    z_anc = layout.get_neighbors([corners[0]], stab_type="z_type")[0]
+    z_anc_coord = np.array(layout.get_coords([z_anc])[0])
+    x_anc = layout.get_neighbors([corners[0]], stab_type="x_type")[0]
+    x_anc_coord = np.array(layout.get_coords([x_anc])[0])
+    dir_x = z_anc_coord - top_left_coord
+    dir_y = x_anc_coord - top_left_coord
+
+    # maps from coordinates to qubit labels.
+    # ancilla qubits are also included for ease in the next double 'for' loop.
+    coords_to_label_dict: dict[tuple[float, float], str] = {}
+    for qubit, coords in layout.qubit_coords.items():
+        coords = np.round(coords, decimals=5)  # to avoid numerical issues
+        coords_to_label_dict[tuple(coords)] = qubit
+
+    # get the generalized labels for each qubit.
+    # note that in the unrot surface code, data qubits are not placed in a square 2D grid.
+    glabels: dict[str, tuple[int, int]] = {}
+    for x in range(2 * layout.distance - 1):
+        for y in range(2 * layout.distance - 1):
+            coords = top_left_coord + x * dir_x + y * dir_y
+            coords = np.round(coords, decimals=5)  # to avoid numerical issues
+            qubit = coords_to_label_dict[tuple(coords)]
+
+            # (0, 0) = data qubit in the middle of the surface code
+            glabels[qubit] = (x - layout.distance + 1, y - layout.distance + 1)
+
+    # store generalized labels
+    for data_qubit in layout.data_qubits:
+        layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
 
     return

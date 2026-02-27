@@ -1,6 +1,7 @@
 from surface_sim.detectors import get_new_stab_dict_from_layout
 from surface_sim.layouts import unrot_surface_code
 from surface_sim.log_gates.unrot_surface_code_css import (
+    set_encoding,
     set_fold_trans_h,
     set_fold_trans_s,
 )
@@ -117,5 +118,65 @@ def test_set_fold_trans_h():
     assert new_stabs == new_stabs_inv
     for s in z_stabs + x_stabs:
         assert len(new_stabs[s]) == 1
+
+    return
+
+
+def test_set_encoding():
+    layout = unrot_surface_code(4)
+    set_encoding(layout)
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    data_qubits = layout.data_qubits
+    labels = sorted([layout.param(gate_label, d)["label"] for d in data_qubits])
+    assert labels == [
+        (-3, -3),
+        (-3, -1),
+        (-3, 1),
+        (-3, 3),
+        (-2, -2),
+        (-2, 0),
+        (-2, 2),
+        (-1, -3),
+        (-1, -1),
+        (-1, 1),
+        (-1, 3),
+        (0, -2),
+        (0, 0),
+        (0, 2),
+        (1, -3),
+        (1, -1),
+        (1, 1),
+        (1, 3),
+        (2, -2),
+        (2, 0),
+        (2, 2),
+        (3, -3),
+        (3, -1),
+        (3, 1),
+        (3, 3),
+    ]
+
+    layout = unrot_surface_code(3)
+    set_encoding(layout)
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    data_qubits = layout.data_qubits
+    labels = sorted([layout.param(gate_label, d)["label"] for d in data_qubits])
+    assert labels == [
+        (-2, -2),
+        (-2, 0),
+        (-2, 2),
+        (-1, -1),
+        (-1, 1),
+        (0, -2),
+        (0, 0),
+        (0, 2),
+        (1, -1),
+        (1, 1),
+        (2, -2),
+        (2, 0),
+        (2, 2),
+    ]
 
     return
