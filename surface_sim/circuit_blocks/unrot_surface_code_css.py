@@ -236,7 +236,7 @@ def _encoding_qubits_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -307,9 +307,8 @@ def _grow_code_iterator(
     primitive_gates: str,
 ):
     """
-    Take the primative gate and a list of lists of two qubit gates to be applied at each step
-    and yields the corresponding iterator for the circuit.
-    Note that this encoding circuit is not fault tolerant.
+    Yields stim blocks corresponding to the growth of the code following
+    the given RX, RZ, and CNOT operatons.
 
     Parameters
     ----------
@@ -402,7 +401,7 @@ def _grow_code_coordinates(
     d: int,
 ) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[list[tuple[int, int]]]]:
     """
-    Yields the reset and CNOT information to grow a distance ``d`` unrotated
+    Returns the reset and CNOT information to grow a distance ``d > 4`` unrotated
     surface code to a ``d+2`` one. Note that this circuit is not fault tolerant.
 
     Parameters
@@ -511,7 +510,7 @@ def encoding_qubits_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -578,7 +577,7 @@ def encoding_qubits_y0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -612,7 +611,7 @@ def encoding_qubits_z0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -649,7 +648,7 @@ def encoding_qubits_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -682,7 +681,7 @@ def encoding_qubits_x0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -712,7 +711,7 @@ def encoding_qubits_y0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
@@ -742,7 +741,7 @@ def encoding_qubits_z0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 2 and 9 from:
+    The implementation follows Figures 2 and 9 from:
 
         Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
         Quantum 5, 517 (2021).
