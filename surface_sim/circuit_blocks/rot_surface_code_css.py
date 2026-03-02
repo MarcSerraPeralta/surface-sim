@@ -623,7 +623,7 @@ def encoding_qubits_x0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -658,7 +658,7 @@ def encoding_qubits_y0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -693,7 +693,7 @@ def encoding_qubits_z0_iterator(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -728,7 +728,7 @@ def encoding_qubits_x0_iterator_single_layer_resets(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -765,7 +765,7 @@ def encoding_qubits_y0_iterator_single_layer_resets(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -802,7 +802,7 @@ def encoding_qubits_z0_iterator_single_layer_resets(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -839,7 +839,7 @@ def encoding_qubits_x0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -872,7 +872,7 @@ def encoding_qubits_y0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
@@ -893,7 +893,7 @@ def encoding_qubits_z0_iterator_cnots(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +X eigenstate of the given rotated surface code and model
+    for the +Z eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -905,7 +905,7 @@ def encoding_qubits_z0_iterator_cnots(
 
     Notes
     -----
-    The implementation follows Figure 1 from:
+    The implementation follows Figures 1 and 2 from:
 
         Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
         arXiv preprint arXiv:2509.09779 (2025).
