@@ -1,4 +1,4 @@
-from collections.abc import Collection, Generator
+from collections.abc import Collection, Generator, Sequence
 from itertools import chain
 
 from stim import Circuit
@@ -1576,3 +1576,118 @@ def log_depolarize1_error_iterator(
         + " ".join([f"Z{i}" for i in log_z_inds])
     )
     yield circuit
+
+
+def general_grow_code_iterator(
+    model: Model,
+    layout: Layout,
+    reset_x_coords: Collection[tuple[int, int]],
+    reset_z_coords: Collection[tuple[int, int]],
+    cnot_layers_coords: Sequence[Sequence[tuple[int, int]]],
+    physical_reset_op: str | None,
+    primitive_gates: str,
+    block: str = "whole",
+):
+    """
+    Yields stim blocks corresponding to the growth of the code following
+    the given RX, RZ, and CNOT operatons.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+    reset_x_coords
+        Generalized coordinates for the data qubits that need to be reset in the X basis.
+    reset_z_coords
+        Generalized coordinates for the data qubits that need to be reset in the Z basis.
+    cnot_layers_coords
+        List of CNOT layers that need to be applied at each step of the encoding
+        circuit. The data qubits are specified by the generalized coordinates.
+    physical_reset_op
+        Reset operation to be applied to the physical qubit that will grow
+        to a unrotated surface code.
+        If ``None``, this circuit grows an already existing code to one of higher distance.
+    primitive_gates
+        Set of primitive gates to use. The available options are:
+        (1) ``"cnot"``, which uses RZ, RX, CNOT gates, and
+        (2) ``"cz"``, which uses RZ, H, and CZ gates.
+    block
+        Block to add. The available options are:
+        (1) ``"whole"`` (default) add the whole growth circuit,
+        (2) ``"resets"`` only adds the resets, and
+        (3) ``"unitary"`` only add unitary gates.
+    """
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
+    if block not in ["whole", "resets", "unitary"]:
+        raise ValueError(f"'{block}' is not available as 'block'.")
+
+    gate_label = f"encoding_{layout.logical_qubits[0]}"
+
+    l: dict[tuple[int, int], str] = {}
+    for data_qubit in layout.data_qubits:
+        glabel = layout.param(gate_label, data_qubit)["label"]
+        if glabel is None:
+            raise ValueError(
+                "The layout does not have the information to run "
+                f"an encoding circuit on qubit {data_qubit}. "
+                "Use the 'log_gates' module to set it up."
+            )
+        l[glabel] = data_qubit
+
+    qubits = set(layout.qubits)
+    reversed = layout.param(gate_label, l[(0, 0)]).get("reversed", False)
+
+    # step 1: resets
+    circ = Circuit()
+    reset_x = [l[c] for c in reset_x_coords]
+    reset_z = [l[c] for c in reset_z_coords]
+    if reversed:
+        reset_x, reset_z = reset_z, reset_x
+    hadamards_prev = hadamards_curr = set(reset_x)
+    if block in ("whole", "resets"):
+        if primitive_gates == "cnot":
+            circ += model.reset_x(reset_x) + model.reset_z(reset_z)
+        elif primitive_gates == "cz":
+            circ += model.reset_z(reset_z + reset_x)
+        exec_qubits = reset_x + reset_z
+        if physical_reset_op is not None:
+            circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
+            exec_qubits.append(l[(0, 0)])
+        yield circ + model.idle(qubits - set(exec_qubits))
+        yield model.tick()
+    if block == "resets":
+        return
+
+    # steps 2, 3, ...: cnot gates
+    for cnot_pairs_coords in cnot_layers_coords:
+        cnot_pairs = [l[c] for c in cnot_pairs_coords]
+        if reversed:
+            cnot_pairs = list(
+                chain.from_iterable(
+                    (j, i) for i, j in zip(cnot_pairs[::2], cnot_pairs[1::2])
+                )
+            )
+        hadamards_curr = set(cnot_pairs[1::2])
+
+        # apply hadamards between step prev and curr
+        if primitive_gates == "cz":
+            hadamards = hadamards_prev.symmetric_difference(hadamards_curr)
+            yield model.hadamard(hadamards) + model.idle(qubits - hadamards)
+            yield model.tick()
+        hadamards_prev = hadamards_curr
+
+        circ = Circuit()
+        if primitive_gates == "cnot":
+            circ += model.cnot(cnot_pairs)
+        elif primitive_gates == "cz":
+            circ += model.cphase(cnot_pairs)
+        circ += model.idle(qubits - set(cnot_pairs))
+        yield circ
+        yield model.tick()
+
+    if primitive_gates == "cz":
+        yield model.hadamard(hadamards_curr) + model.idle(qubits - hadamards_curr)
+        yield model.tick()

@@ -376,6 +376,18 @@ def set_encoding(layout: Layout) -> None:
 
     # store generalized labels
     for data_qubit in layout.data_qubits:
-        layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
+        glabel = glabels[data_qubit]
+        if glabel != (0, 0):
+            layout.set_param(gate_label, data_qubit, {"label": glabels[data_qubit]})
+
+        # in an even distance rotated surface code,
+        # the CNOTs and resets depend wether the weight-2 stabilizers are Z-type or X-type.
+        z_anc = layout.get_neighbors([data_qubit], stab_type="z_type")[0]
+        reversed = len(layout.get_neighbors([z_anc])) != 2
+        reversed = reversed if layout.distance % 2 == 0 else False
+
+        layout.set_param(
+            gate_label, data_qubit, {"label": glabels[data_qubit], "reversed": reversed}
+        )
 
     return
