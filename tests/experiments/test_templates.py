@@ -197,6 +197,32 @@ def test_memory_experiments_encoding():
             lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
                 *args,
                 gate_to_iterator={
+                    **cb.rot_surface_code_css.gate_to_iterator,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_single_layer_resets,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            rot_surface_codes(1, 5)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.rot_surface_code_css.gate_to_iterator,
+                    "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_single_layer_resets,
+                    "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                    "R": cb.rot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            rot_surface_codes(1, 6)[0],
+            lambda *args, **kargs: exp.rot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
                     **cb.rot_surface_code_css.gate_to_iterator_cnots,
                     "RX": cb.rot_surface_code_css.encoding_qubits_x0_iterator_cnots,
                     "RZ": cb.rot_surface_code_css.encoding_qubits_z0_iterator_cnots,
@@ -240,6 +266,32 @@ def test_memory_experiments_encoding():
                     "RX": cb.unrot_surface_code_css.encoding_qubits_x0_iterator,
                     "RZ": cb.unrot_surface_code_css.encoding_qubits_z0_iterator,
                     "R": cb.unrot_surface_code_css.encoding_qubits_z0_iterator,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            unrot_surface_codes(1, 6)[0],
+            lambda *args, **kargs: exp.unrot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.unrot_surface_code_css.gate_to_iterator,
+                    "RX": cb.unrot_surface_code_css.encoding_qubits_x0_iterator_single_layer_resets,
+                    "RZ": cb.unrot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                    "R": cb.unrot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                },
+                **kargs,
+            ),
+        ),
+        (
+            unrot_surface_codes(1, 5)[0],
+            lambda *args, **kargs: exp.unrot_surface_code_css.memory_experiment(
+                *args,
+                gate_to_iterator={
+                    **cb.unrot_surface_code_css.gate_to_iterator,
+                    "RX": cb.unrot_surface_code_css.encoding_qubits_x0_iterator_single_layer_resets,
+                    "RZ": cb.unrot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
+                    "R": cb.unrot_surface_code_css.encoding_qubits_z0_iterator_single_layer_resets,
                 },
                 **kargs,
             ),

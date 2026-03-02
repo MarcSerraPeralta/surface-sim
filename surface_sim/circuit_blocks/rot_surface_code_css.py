@@ -72,6 +72,9 @@ __all__ = [
     "encoding_qubits_x0_iterator",
     "encoding_qubits_y0_iterator",
     "encoding_qubits_z0_iterator",
+    "encoding_qubits_x0_iterator_single_layer_resets",
+    "encoding_qubits_y0_iterator_single_layer_resets",
+    "encoding_qubits_z0_iterator_single_layer_resets",
     "encoding_qubits_x0_iterator_cnots",
     "encoding_qubits_y0_iterator_cnots",
     "encoding_qubits_z0_iterator_cnots",
@@ -334,6 +337,7 @@ def encoding_qubits_iterator(
     layout: Layout,
     physical_reset_op: str,
     primitive_gates: str,
+    single_layer_resets: bool = False,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
@@ -353,8 +357,10 @@ def encoding_qubits_iterator(
         Set of primitive gates to use. The available options are:
         (1) ``"cnot"``, which uses Rx, RZ, and CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
-        Note that the ``physical_reset_op`` will not be decomposed into primitive
-        gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive gates.
+    single_layer_resets
+        Flag to put all resets in a single operation layer at the beginning of
+        the encoding circuit. By default ``False``.
 
     Notes
     -----
@@ -369,42 +375,74 @@ def encoding_qubits_iterator(
             f"The given layout is not a rotated surface code, but a {layout.code}."
         )
 
+    resets_x, resets_z, cnot_layers = [], [], []
+
     if layout.distance % 2 == 1:
-        reset_x = [(1, 1), (1, 7), (1, 3), (1, 5)]
-        reset_z = [(1, 0), (1, 2), (1, 6), (1, 4)]
-        gate_layers_cnot = [
-            [(1, 1), (1, 2), (1, 3), (0, 0), (1, 5), (1, 6)],
-            [(1, 7), (1, 0), (0, 0), (1, 1), (1, 3), (1, 4)],
-            [(1, 0), (1, 1), (1, 7), (0, 0), (1, 3), (1, 2)],
-            [(1, 7), (1, 6), (0, 0), (1, 5)],
-        ]
-        yield from general_grow_code_iterator(
-            model, layout, reset_x, reset_z, gate_layers_cnot, physical_reset_op, primitive_gates
-        )  # fmt: skip
-
-        # grow code to maximum size
+        resets_x.append([(1, 1), (1, 7), (1, 3), (1, 5)])
+        resets_z.append([(1, 0), (1, 2), (1, 6), (1, 4)])
+        cnot_layers.append(
+            [
+                [(1, 1), (1, 2), (1, 3), (0, 0), (1, 5), (1, 6)],
+                [(1, 7), (1, 0), (0, 0), (1, 1), (1, 3), (1, 4)],
+                [(1, 0), (1, 1), (1, 7), (0, 0), (1, 3), (1, 2)],
+                [(1, 7), (1, 6), (0, 0), (1, 5)],
+            ]
+        )
         for d in range(3, layout.distance, 2):
-            reset_x, reset_z, gate_layers_cnot = _get_grow_code_odd_d_coords(d)
-            yield from general_grow_code_iterator(
-                model, layout, reset_x, reset_z, gate_layers_cnot, None, primitive_gates
-            )
+            reset_x, reset_z, cnots = _get_grow_code_odd_d_coords(d)
+            resets_x.append(reset_x)
+            resets_z.append(reset_z)
+            cnot_layers.append(cnots)
     else:
-        reset_z, reset_x = [(0, 2), (0, 3)], [(0, 1)]
-        gate_layers_cnot = [
-            [(0, 0), (0, 3), (0, 1), (0, 2)],
-            [(0, 1), (0, 0), (0, 2), (0, 3)],
-        ]
-
-        yield from general_grow_code_iterator(
-            model, layout, reset_x, reset_z, gate_layers_cnot, physical_reset_op, primitive_gates
-        )  # fmt: skip
-
-        # grow code to maximum size
+        resets_x.append([(0, 1)])
+        resets_z.append([(0, 2), (0, 3)])
+        cnot_layers.append(
+            [
+                [(0, 0), (0, 3), (0, 1), (0, 2)],
+                [(0, 1), (0, 0), (0, 2), (0, 3)],
+            ]
+        )
         for d in range(2, layout.distance, 2):
-            reset_x, reset_z, gate_layers_cnot = _get_grow_code_even_d_coords(d)
-            yield from general_grow_code_iterator(
-                model, layout, reset_x, reset_z, gate_layers_cnot, None, primitive_gates
-            )
+            reset_x, reset_z, cnots = _get_grow_code_even_d_coords(d)
+            resets_x.append(reset_x)
+            resets_z.append(reset_z)
+            cnot_layers.append(cnots)
+
+    if single_layer_resets:
+        reset_x = list(chain(*resets_x))
+        reset_z = list(chain(*resets_z))
+        yield from general_grow_code_iterator(
+            model,
+            layout,
+            reset_x,
+            reset_z,
+            [],
+            physical_reset_op,
+            primitive_gates,
+            block="resets",
+        )
+
+    yield from general_grow_code_iterator(
+        model,
+        layout,
+        resets_x[0],
+        resets_z[0],
+        cnot_layers[0],
+        physical_reset_op,
+        primitive_gates,
+        block="unitary" if single_layer_resets else "whole",
+    )
+    for reset_x, reset_z, cnots in zip(resets_x[1:], resets_z[1:], cnot_layers[1:]):
+        yield from general_grow_code_iterator(
+            model,
+            layout,
+            reset_x,
+            reset_z,
+            cnots,
+            None,
+            primitive_gates,
+            block="unitary" if single_layer_resets else "whole",
+        )
 
 
 def _get_grow_code_even_d_coords(
@@ -573,7 +611,7 @@ def encoding_qubits_x0_iterator(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +X eigenstate to a distance-3 rotated surface code of the given model
+    for the +X eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -581,7 +619,7 @@ def encoding_qubits_x0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -608,7 +646,7 @@ def encoding_qubits_y0_iterator(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +Y eigenstate to a distance-3 rotated surface code of the given model
+    for the +Y eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -616,7 +654,7 @@ def encoding_qubits_y0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -643,7 +681,7 @@ def encoding_qubits_z0_iterator(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +Z eigenstate to a distance-3 rotated surface code of the given model
+    for the +Z eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -651,7 +689,7 @@ def encoding_qubits_z0_iterator(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -672,13 +710,13 @@ def encoding_qubits_z0_iterator(
 
 
 @qubit_encoding
-def encoding_qubits_x0_iterator_cnots(
+def encoding_qubits_x0_iterator_single_layer_resets(
     model: Model,
     layout: Layout,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +X eigenstate to a distance-3 rotated surface code of the given model
+    for the +X eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -686,7 +724,118 @@ def encoding_qubits_x0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``, and the resets are placed as a single layer at
+    the beginning of the circuit.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_x",
+        primitive_gates="cz",
+        single_layer_resets=True,
+    )
+
+
+@qubit_encoding
+def encoding_qubits_y0_iterator_single_layer_resets(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Y eigenstate of the given rotated surface code and model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``, and the resets are placed as a single layer at
+    the beginning of the circuit.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_y",
+        primitive_gates="cz",
+        single_layer_resets=True,
+    )
+
+
+@qubit_encoding
+def encoding_qubits_z0_iterator_single_layer_resets(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Z eigenstate of the given rotated surface code and model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figure 1 from:
+
+        Claes, Jahan. "Lower-depth local encoding circuits for the surface code."
+        arXiv preprint arXiv:2509.09779 (2025).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``, and the resets are placed as a single layer at
+    the beginning of the circuit.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_z",
+        primitive_gates="cz",
+        single_layer_resets=True,
+    )
+
+
+@qubit_encoding
+def encoding_qubits_x0_iterator_cnots(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +X eigenstate of the given rotated surface code and model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
 
     Notes
     -----
@@ -711,7 +860,7 @@ def encoding_qubits_y0_iterator_cnots(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +Y eigenstate to a distance-3 rotated surface code of the given model
+    for the +Y eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -719,7 +868,7 @@ def encoding_qubits_y0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
 
     Notes
     -----
@@ -744,7 +893,7 @@ def encoding_qubits_z0_iterator_cnots(
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
-    for the +Z eigenstate to a distance-3 rotated surface code of the given model
+    for the +X eigenstate of the given rotated surface code and model
     without the detectors. Note that this encoding circuit is not fault tolerant.
 
     Parameters
@@ -752,7 +901,7 @@ def encoding_qubits_z0_iterator_cnots(
     model
         Noise model for the gates.
     layout
-        Code layout. Must correspond to a distance-3 rotated surface code.
+        Code layout.
 
     Notes
     -----

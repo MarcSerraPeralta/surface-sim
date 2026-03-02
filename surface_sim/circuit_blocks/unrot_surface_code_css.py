@@ -1,4 +1,5 @@
 from collections.abc import Collection, Generator
+from itertools import chain
 
 from stim import Circuit
 
@@ -71,6 +72,9 @@ __all__ = [
     "encoding_qubits_x0_iterator",
     "encoding_qubits_y0_iterator",
     "encoding_qubits_z0_iterator",
+    "encoding_qubits_x0_iterator_single_layer_resets",
+    "encoding_qubits_y0_iterator_single_layer_resets",
+    "encoding_qubits_z0_iterator_single_layer_resets",
     "encoding_qubits_x0_iterator_cnots",
     "encoding_qubits_y0_iterator_cnots",
     "encoding_qubits_z0_iterator_cnots",
@@ -212,6 +216,7 @@ def encoding_qubits_iterator(
     layout: Layout,
     physical_reset_op: str,
     primitive_gates: str,
+    single_layer_resets: bool = False,
 ) -> Generator[Circuit]:
     """
     Yields stim circuit blocks which as a whole correspond to an encoding circuit
@@ -231,8 +236,10 @@ def encoding_qubits_iterator(
         Set of primitive gates to use. The available options are:
         (1) ``"cnot"``, which uses RZ, RX, and CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
-        Note that the ``physical_reset_op`` will not be decomposed into primitive
-        gates.
+        Note that the ``physical_reset_op`` will not be decomposed into primitive gates.
+    single_layer_resets
+        Flag to put all resets in a single operation layer at the beginning of
+        the encoding circuit. By default ``False``.
 
     Notes
     -----
@@ -247,51 +254,77 @@ def encoding_qubits_iterator(
             f"The given layout is not an unrotated surface code, but a {layout.code}."
         )
 
+    resets_x, resets_z, cnot_layers = [], [], []
+
     if layout.distance % 2 == 1:
-        reset_x = [(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)]
-        reset_z = [(2, 2), (2, -2), (-2, 2), (-2, -2)]
-        cnot_gates = [
+        resets_x.append([(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)])
+        resets_z.append([(2, 2), (2, -2), (-2, 2), (-2, -2)])
+        cnot_layers.append([
             [(-1, -1), (-2, -2), (1, -1), (2, -2), (0, 0), (-2, 0), (-1, 1), (-2, 2), (1, 1), (2, 2)], 
             [(0, 0), (2, 0), (-1, -1), (-2, 0)],
             [(0, -2), (0, 0), (-1, 1), (-2, 0), (1, -1), (2, 0)],
             [(0, 2), (0, 0), (1, 1), (2, 0), (0, -2), (-1, -1)],
             [(0, -2), (1, -1), (0, 2), (-1, 1)],
             [(0, 2), (1, 1)],
-        ]  # fmt: skip
-        yield from general_grow_code_iterator(
-            model, layout, reset_x, reset_z, cnot_gates, physical_reset_op, primitive_gates
-        )  # fmt: skip
+        ])  # fmt: skip
     else:
-        reset_x = [(1, -1), (-1, 1)]
-        reset_z = [(1, 1), (-1, -1)]
-        cnot_gates = [
+        resets_x.append([(1, -1), (-1, 1)])
+        resets_z.append([(1, 1), (-1, -1)])
+        cnot_layers.append([
             [(0, 0), (-1, -1), (1, -1), (1, 1)],
             [(-1, 1), (-1, -1), (0, 0), (1, 1)],
             [(-1, 1), (0, 0)],
             [(1, -1), (0, 0)],
-        ]
-        yield from general_grow_code_iterator(
-            model, layout, reset_x, reset_z, cnot_gates, physical_reset_op, primitive_gates
-        )  # fmt: skip
-
-        # growing circuit from d=2 to 4 is different than the rest, see Fig 9(c).
+        ])  # fmt: skip
         if layout.distance >= 4:
-            reset_x = [(-1, -3), (1, -3), (-2, -2), (2, -2), (-2, 0), (2, 0), (-2, 2), (2, 2), (-1, 3), (1, 3)]  # fmt: skip
-            reset_z = [(3, 3), (-3, 3), (3, -3), (-3, -3), (3, 1), (-3, 1), (3, -1), (-3, -1), (0, 2), (0, -2)]  # fmt: skip
-            cnot_gates = [
+            resets_x.append([(-1, -3), (1, -3), (-2, -2), (2, -2), (-2, 0), (2, 0), (-2, 2), (2, 2), (-1, 3), (1, 3)])  # fmt: skip
+            resets_z.append([(3, 3), (-3, 3), (3, -3), (-3, -3), (3, 1), (-3, 1), (3, -1), (-3, -1), (0, 2), (0, -2)])  # fmt: skip
+            cnot_layers.append([
                 [(-2, -2), (-3, -3), (2, -2), (3, -3), (-1, -1), (-3, -1), (0, -2), (1, -1), (0, 0), (-2, 0), (0, 2), (-1, 1), (1, 1), (3, 1), (-2, 2), (-3, 3), (2, 2), (3, 3)],
                 [(-2, -2), (-3, -1), (-1, -3), (-1, -1), (1, -3), (0, -2), (1, -1), (3, -1), (0, 0), (2, 0), (-1, 1), (-3, 1), (-1, 3), (0, 2), (1, 3), (1, 1), (2, 2), (3, 1)],
                 [(-1, -3), (0, -2), (1, -3), (1, -1), (2, -2), (3, -1), (-2, 0), (-3, -1), (2, 0), (3, 1), (-2, 2), (-3, 1), (-1, 3), (-1, 1), (1, 3), (0, 2)],
                 [(-1, -3), (-2, -2), (1, -3), (2, -2), (-2, 0), (-3, 1), (2, 0), (3, -1), (-1, 3), (-2, 2), (1, 3), (2, 2)],
-            ]  # fmt: skip
-            yield from general_grow_code_iterator(
-                model, layout, reset_x, reset_z, cnot_gates, None, primitive_gates
-            )
-
+            ])  # fmt: skip
     for d in range(4 - layout.distance % 2, layout.distance, 2):
-        reset_x, reset_z, cnot_gates = _get_grow_code_coordinates(d)
+        reset_x, reset_z, cnots = _get_grow_code_coordinates(d)
+        resets_x.append(reset_x)
+        resets_z.append(reset_z)
+        cnot_layers.append(cnots)
+
+    if single_layer_resets:
+        reset_x = list(chain(*resets_x))
+        reset_z = list(chain(*resets_z))
         yield from general_grow_code_iterator(
-            model, layout, reset_x, reset_z, cnot_gates, None, primitive_gates
+            model,
+            layout,
+            reset_x,
+            reset_z,
+            [],
+            physical_reset_op,
+            primitive_gates,
+            block="resets",
+        )
+
+    yield from general_grow_code_iterator(
+        model,
+        layout,
+        resets_x[0],
+        resets_z[0],
+        cnot_layers[0],
+        physical_reset_op,
+        primitive_gates,
+        block="unitary" if single_layer_resets else "whole",
+    )
+    for reset_x, reset_z, cnots in zip(resets_x[1:], resets_z[1:], cnot_layers[1:]):
+        yield from general_grow_code_iterator(
+            model,
+            layout,
+            reset_x,
+            reset_z,
+            cnots,
+            None,
+            primitive_gates,
+            block="unitary" if single_layer_resets else "whole",
         )
 
 
@@ -488,6 +521,114 @@ def encoding_qubits_z0_iterator(
         layout=layout,
         physical_reset_op="reset_z",
         primitive_gates="cz",
+    )
+
+
+@qubit_encoding
+def encoding_qubits_x0_iterator_single_layer_resets(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +X eigenstate to an unrotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figure 9 from:
+
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_x",
+        primitive_gates="cz",
+        single_layer_resets=True,
+    )
+
+
+@qubit_encoding
+def encoding_qubits_y0_iterator_single_layer_resets(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Y eigenstate to an unrotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figures 2 and 9 from:
+
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_y",
+        primitive_gates="cz",
+        single_layer_resets=True,
+    )
+
+
+@qubit_encoding
+def encoding_qubits_z0_iterator_single_layer_resets(
+    model: Model,
+    layout: Layout,
+) -> Generator[Circuit]:
+    """
+    Yields stim circuit blocks which as a whole correspond to an encoding circuit
+    for the +Z eigenstate to an unrotated surface code of the given model
+    without the detectors. Note that this encoding circuit is not fault tolerant.
+
+    Parameters
+    ----------
+    model
+        Noise model for the gates.
+    layout
+        Code layout.
+
+    Notes
+    -----
+    The implementation follows Figures 2 and 9 from:
+
+        Higgott, Oscar. "Optimal local unitary encoding circuits for the surface code."
+        Quantum 5, 517 (2021).
+
+    but uses RZ, H, and CZ operations as primitive operations, except for the
+    ``physical_reset_op``.
+    """
+    yield from encoding_qubits_iterator(
+        model=model,
+        layout=layout,
+        physical_reset_op="reset_z",
+        primitive_gates="cz",
+        single_layer_resets=True,
     )
 
 

@@ -1586,6 +1586,7 @@ def general_grow_code_iterator(
     cnot_layers_coords: Sequence[Sequence[tuple[int, int]]],
     physical_reset_op: str | None,
     primitive_gates: str,
+    block: str = "whole",
 ):
     """
     Yields stim blocks corresponding to the growth of the code following
@@ -1612,9 +1613,16 @@ def general_grow_code_iterator(
         Set of primitive gates to use. The available options are:
         (1) ``"cnot"``, which uses RZ, RX, CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
+    block
+        Block to add. The available options are:
+        (1) ``"whole"`` (default) add the whole growth circuit,
+        (2) ``"resets"`` only adds the resets, and
+        (3) ``"unitary"`` only add unitary gates.
     """
     if primitive_gates not in ["cnot", "cz"]:
         raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
+    if block not in ["whole", "resets", "unitary"]:
+        raise ValueError(f"'{block}' is not available as 'block'.")
 
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
@@ -1639,16 +1647,19 @@ def general_grow_code_iterator(
     if reversed:
         reset_x, reset_z = reset_z, reset_x
     hadamards_prev = hadamards_curr = set(reset_x)
-    if primitive_gates == "cnot":
-        circ += model.reset_x(reset_x) + model.reset_z(reset_z)
-    elif primitive_gates == "cz":
-        circ += model.reset_z(reset_z + reset_x)
-    exec_qubits = reset_x + reset_z
-    if physical_reset_op is not None:
-        circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
-        exec_qubits.append(l[(0, 0)])
-    yield circ + model.idle(qubits - set(exec_qubits))
-    yield model.tick()
+    if block in ("whole", "resets"):
+        if primitive_gates == "cnot":
+            circ += model.reset_x(reset_x) + model.reset_z(reset_z)
+        elif primitive_gates == "cz":
+            circ += model.reset_z(reset_z + reset_x)
+        exec_qubits = reset_x + reset_z
+        if physical_reset_op is not None:
+            circ += model.__getattribute__(physical_reset_op)([l[(0, 0)]])
+            exec_qubits.append(l[(0, 0)])
+        yield circ + model.idle(qubits - set(exec_qubits))
+        yield model.tick()
+    if block == "resets":
+        return
 
     # steps 2, 3, ...: cnot gates
     for cnot_pairs_coords in cnot_layers_coords:
