@@ -384,7 +384,7 @@ def encoding_qubits_iterator(
 
         # grow code to maximum size
         for d in range(3, layout.distance, 2):
-            reset_x, reset_z, gate_layers_cnot = _grow_code_odd_d_coords(d)
+            reset_x, reset_z, gate_layers_cnot = _get_grow_code_odd_d_coords(d)
             yield from general_grow_code_iterator(
                 model, layout, reset_x, reset_z, gate_layers_cnot, None, primitive_gates
             )
@@ -401,17 +401,17 @@ def encoding_qubits_iterator(
 
         # grow code to maximum size
         for d in range(2, layout.distance, 2):
-            reset_x, reset_z, gate_layers_cnot = _grow_code_even_d_coords(d)
+            reset_x, reset_z, gate_layers_cnot = _get_grow_code_even_d_coords(d)
             yield from general_grow_code_iterator(
                 model, layout, reset_x, reset_z, gate_layers_cnot, None, primitive_gates
             )
 
 
-def _grow_code_even_d_coords(
+def _get_grow_code_even_d_coords(
     init_distance: int,
 ) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[list[tuple[int, int]]]]:
     """
-    Returns the RX, RZ and CNOT operations required to run a growing circuit from
+    Returns the RX, RZ and CNOT information required to run a growing circuit from
     an even-distance ``d`` rotated surface code to a ``d+2`` one.
     Note that this circuit is not fault tolerant.
 
@@ -497,11 +497,11 @@ def _grow_code_even_d_coords(
     return reset_x, reset_z, gate_layers_cnots
 
 
-def _grow_code_odd_d_coords(
+def _get_grow_code_odd_d_coords(
     init_distance: int,
 ) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[list[tuple[int, int]]]]:
     """
-    Returns the RX, RZ and CNOT operations required to run a growing circuit from
+    Returns the RX, RZ and CNOT information required to run a growing circuit from
     an odd-distance ``d`` rotated surface code to a ``d+2`` one.
     Note that this circuit is not fault tolerant.
 

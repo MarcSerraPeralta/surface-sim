@@ -289,17 +289,17 @@ def encoding_qubits_iterator(
             )
 
     for d in range(4 - layout.distance % 2, layout.distance, 2):
-        reset_x, reset_z, cnot_gates = _grow_code_coordinates(d)
+        reset_x, reset_z, cnot_gates = _get_grow_code_coordinates(d)
         yield from general_grow_code_iterator(
             model, layout, reset_x, reset_z, cnot_gates, None, primitive_gates
         )
 
 
-def _grow_code_coordinates(
+def _get_grow_code_coordinates(
     d: int,
 ) -> tuple[list[tuple[int, int]], list[tuple[int, int]], list[list[tuple[int, int]]]]:
     """
-    Returns the reset and CNOT information to grow a distance ``d > 4`` unrotated
+    Returns the RX, RZ, and CNOT information to grow a distance ``d > 4`` unrotated
     surface code to a ``d+2`` one. Note that this circuit is not fault tolerant.
 
     Parameters
