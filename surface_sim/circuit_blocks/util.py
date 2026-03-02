@@ -1613,6 +1613,9 @@ def general_grow_code_iterator(
         (1) ``"cnot"``, which uses RZ, RX, CNOT gates, and
         (2) ``"cz"``, which uses RZ, H, and CZ gates.
     """
+    if primitive_gates not in ["cnot", "cz"]:
+        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
+
     gate_label = f"encoding_{layout.logical_qubits[0]}"
 
     l: dict[tuple[int, int], str] = {}
@@ -1627,11 +1630,14 @@ def general_grow_code_iterator(
         l[glabel] = data_qubit
 
     qubits = set(layout.qubits)
+    reversed = layout.param(gate_label, l[(0, 0)]).get("reversed", False)
 
     # step 1: resets
     circ = Circuit()
     reset_x = [l[c] for c in reset_x_coords]
     reset_z = [l[c] for c in reset_z_coords]
+    if reversed:
+        reset_x, reset_z = reset_z, reset_x
     hadamards_prev = hadamards_curr = set(reset_x)
     if primitive_gates == "cnot":
         circ += model.reset_x(reset_x) + model.reset_z(reset_z)
@@ -1647,6 +1653,12 @@ def general_grow_code_iterator(
     # steps 2, 3, ...: cnot gates
     for cnot_pairs_coords in cnot_layers_coords:
         cnot_pairs = [l[c] for c in cnot_pairs_coords]
+        if reversed:
+            cnot_pairs = list(
+                chain.from_iterable(
+                    (j, i) for i, j in zip(cnot_pairs[::2], cnot_pairs[1::2])
+                )
+            )
         hadamards_curr = set(cnot_pairs[1::2])
 
         # apply hadamards between step prev and curr

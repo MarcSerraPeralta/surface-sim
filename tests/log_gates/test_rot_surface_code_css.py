@@ -186,5 +186,6 @@ def test_set_encoding():
         (1, 5),
         (1, 6),
     ]
+    assert "reversed" in layout.param(gate_label, data_qubits[4])
 
     return

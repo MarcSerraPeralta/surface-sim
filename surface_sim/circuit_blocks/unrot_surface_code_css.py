@@ -246,8 +246,6 @@ def encoding_qubits_iterator(
         raise TypeError(
             f"The given layout is not an unrotated surface code, but a {layout.code}."
         )
-    if primitive_gates not in ["cnot", "cz"]:
-        raise ValueError(f"'{primitive_gates}' is not available as primitive gate set.")
 
     if layout.distance % 2 == 1:
         reset_x = [(0, -2), (1, 1), (1, -1), (-1, 1), (-1, -1), (0, 2)]
