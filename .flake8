@@ -1,2 +1,0 @@
-[flake8]
-select = T201, T203, T204, F401
