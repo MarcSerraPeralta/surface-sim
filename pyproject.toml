@@ -44,5 +44,5 @@ dev = ["pip-tools>=7.5.3", # older versions are incompatible with newer pip vers
        "sphinx", "sphinx-rtd-theme", "numpydoc", "pydata_sphinx_theme", "sphinx_design"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "T201", "T203"]
 ignore = ["E741", "E731", "E501"]
