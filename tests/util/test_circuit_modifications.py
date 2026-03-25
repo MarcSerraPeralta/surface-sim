@@ -4,6 +4,7 @@ from surface_sim.models import CircuitNoiseModel
 from surface_sim.util import (
     add_missing_idling_to_circuit,
     add_noise_to_circuit,
+    add_ticks_to_circuit,
     remove_idling_from_circuit,
 )
 
@@ -140,5 +141,57 @@ def test_add_missing_idling_to_circuit():
     output_circuit = add_missing_idling_to_circuit(circuit + stim.Circuit("TICK"))
 
     assert output_circuit == expected_circuit + stim.Circuit("TICK")
+
+    return
+
+
+def test_add_ticks_to_circuit():
+    circuit = stim.Circuit(
+        """
+        R 0 1 2
+        I 1
+        CNOT 1 3
+        CNOT 0 2
+        CNOT 0 1 2 3
+        M 0
+        M 1
+        DETECTOR rec[-1]
+        MX 2
+        OBSERVABLE_INCLUDE(0) rec[-2]
+        X 0 1 2 3
+        X 1
+        TICK
+        X 2
+        """
+    )
+
+    output_circuit = add_ticks_to_circuit(circuit)
+
+    expected_circuit = stim.Circuit(
+        """
+        R 0 1 2
+        TICK
+        I 1
+        TICK
+        CNOT 1 3
+        CNOT 0 2
+        TICK
+        CNOT 0 1 2 3
+        TICK
+        M 0
+        M 1
+        DETECTOR rec[-1]
+        MX 2
+        OBSERVABLE_INCLUDE(0) rec[-2]
+        TICK
+        X 0 1 2 3
+        TICK
+        X 1
+        TICK
+        X 2
+        """
+    )
+
+    assert output_circuit == expected_circuit
 
     return

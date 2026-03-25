@@ -1,6 +1,7 @@
 from .circuit_modifications import (
     add_missing_idling_to_circuit,
     add_noise_to_circuit,
+    add_ticks_to_circuit,
     remove_idling_from_circuit,
 )
 from .circuit_operations import (
@@ -20,6 +21,7 @@ __all__ = [
     "merge_operation_layers",
     "add_noise_to_circuit",
     "add_missing_idling_to_circuit",
+    "add_ticks_to_circuit",
     "remove_nondeterministic_observables",
     "move_observables_to_end",
     "remove_idling_from_circuit",
