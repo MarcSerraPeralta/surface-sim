@@ -139,3 +139,75 @@ def add_missing_idling_to_circuit(circuit: stim.Circuit) -> stim.Circuit:
             )
 
     return new_circuit
+
+
+def add_ticks_to_circuit(circuit: stim.Circuit) -> stim.Circuit:
+    """Adds (missing) ``TICK``s to circuit so that each qubit only performs
+    a single operation between ``TICK``s."""
+    if not isinstance(circuit, stim.Circuit):
+        raise TypeError(
+            f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
+        )
+
+    new_circuit = stim.Circuit()
+    curr_block_qubits = []
+    curr_block_instrs = stim.Circuit()
+    for instr in circuit.flattened():
+        if instr.name == "TICK":
+            new_circuit += curr_block_instrs
+            new_circuit += stim.Circuit("TICK")
+            curr_block_qubits = []
+            curr_block_instrs = stim.Circuit()
+        elif instr.name in STIM_TO_MODEL:
+            exec_qubits = [t.value for t in instr.targets_copy()]
+            if len(exec_qubits) != len(set(exec_qubits)):
+                # one qubit is participating twice in the same operation.
+                # this can happen because stim merges same operations from consecutive lines.
+                groups = _split_targets(exec_qubits)
+                new_circuit += curr_block_instrs
+                if set(groups[0]).intersection(curr_block_qubits):
+                    new_circuit += stim.Circuit("TICK")
+
+                for group in groups[:-1]:
+                    targets = [stim.GateTarget(t) for t in group]
+                    new_circuit.append(
+                        stim.CircuitInstruction(instr.name, targets=targets)
+                    )
+                    new_circuit += stim.Circuit("TICK")
+
+                targets = [stim.GateTarget(t) for t in groups[-1]]
+                curr_block_instrs = stim.Circuit()
+                curr_block_instrs.append(
+                    stim.CircuitInstruction(instr.name, targets=targets)
+                )
+                curr_block_qubits = groups[-1]
+                continue
+
+            if set(exec_qubits).intersection(curr_block_qubits):
+                new_circuit += curr_block_instrs
+                new_circuit += stim.Circuit("TICK")
+                curr_block_qubits = []
+                curr_block_instrs = stim.Circuit()
+
+            curr_block_qubits += exec_qubits
+            curr_block_instrs.append(instr)
+        else:
+            curr_block_instrs.append(instr)
+
+    # flush remaining operations
+    new_circuit += curr_block_instrs
+
+    return new_circuit
+
+
+def _split_targets(targets: list[int]) -> list[list[int]]:
+    groups: list[list[int]] = []
+    curr_block = []
+    for target in targets:
+        if target in curr_block:
+            groups.append(curr_block)
+            curr_block = [target]
+        else:
+            curr_block.append(target)
+    groups.append(curr_block)
+    return groups
