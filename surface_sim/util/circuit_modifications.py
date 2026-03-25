@@ -33,7 +33,8 @@ def add_noise_to_circuit(
     Parameters
     ----------
     noiseless_circuit
-        Noiseless Stim circuit.
+        Noiseless Stim circuit. To correctly add idling noise, the idling
+        gates must be present in the circuit, see ``add_missing_idling_to_circuit``.
     noise_model
         Noise model instance to be used.
 
@@ -91,5 +92,50 @@ def remove_idling_from_circuit(circuit: stim.Circuit) -> stim.Circuit:
         if instr.name in set(["I", "II"]):
             continue
         new_circuit.append(instr)
+
+    return new_circuit
+
+
+def add_missing_idling_to_circuit(circuit: stim.Circuit) -> stim.Circuit:
+    """Adds missing idling channels to the circuit to ensure that all qubits
+    are performing a gate or idling between ``TICK``s."""
+    if not isinstance(circuit, stim.Circuit):
+        raise TypeError(
+            f"'circuit' must be a stim.Circuit, but {type(circuit)} was given."
+        )
+    if len(circuit.flattened()) == 0:
+        return circuit.flattened()
+
+    qubits = set(range(circuit.num_qubits))
+    new_circuit = stim.Circuit()
+    curr_block_qubits = []
+    for instr in circuit.flattened():
+        if instr.name == "TICK":
+            missing_qubits = qubits - set(curr_block_qubits)
+            if missing_qubits:
+                new_circuit.append(
+                    stim.CircuitInstruction("I", targets=list(missing_qubits))
+                )
+            new_circuit.append(instr)
+            curr_block_qubits = []
+        elif instr.name in STIM_TO_MODEL:
+            exec_qubits = [t.value for t in instr.targets_copy()]
+            if set(exec_qubits).intersection(curr_block_qubits):
+                raise ValueError(
+                    f"At least one of qubits {exec_qubits} is performing two "
+                    "(or more) operations between TICKs."
+                )
+            curr_block_qubits += exec_qubits
+            new_circuit.append(instr)
+        else:
+            new_circuit.append(instr)
+
+    # flush missing idling at the end (if last instruction is not a TICK)
+    if instr.name != "TICK":
+        missing_qubits = qubits - set(curr_block_qubits)
+        if missing_qubits:
+            new_circuit.append(
+                stim.CircuitInstruction("I", targets=list(missing_qubits))
+            )
 
     return new_circuit
