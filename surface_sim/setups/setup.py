@@ -23,6 +23,26 @@ SQ_GATES = {
     "h_gate": "H",
     "s_gate": "S",
     "s_dag_gate": "S_DAG",
+    "c_nxyz_gate": "C_NXYZ",
+    "c_nzyx_gate": "C_NZYX",
+    "c_xnyz_gate": "C_XNYZ",
+    "c_xynz_gate": "C_XYNZ",
+    "c_xyz_gate": "C_XYZ",
+    "c_znyx_gate": "C_ZNYX",
+    "c_zynx_gate": "C_ZYNX",
+    "c_zyx_gate": "C_ZYX",
+    "h_nxy_gate": "H_NXY",
+    "h_nxz_gate": "H_NXZ",
+    "h_nyz_gate": "H_NYZ",
+    "h_xy_gate": "H_XY",
+    "h_xz_gate": "H",  # stim changes the name
+    "h_yz_gate": "H_YZ",
+    "sqrt_x_gate": "SQRT_X",
+    "sqrt_x_dag_gate": "SQRT_X_DAG",
+    "sqrt_y_gate": "SQRT_Y",
+    "sqrt_y_dag_gate": "SQRT_Y_DAG",
+    "sqrt_z_gate": "S",  # stim changes the name
+    "sqrt_z_dag_gate": "S_DAG",  # stim changes the name
 }
 TQ_GATES = {
     "cnot": "CX",  # stim changes the name

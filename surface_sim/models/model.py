@@ -224,6 +224,66 @@ class Model:
     def s_dag_gate(self, qubits: Collection[str]) -> Circuit:
         raise NotImplementedError
 
+    def c_nxyz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_nzyx_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_xnyz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_xynz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_xyz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_znyx_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_zynx_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def c_zyx_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_nxy_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_nxz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_nyz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_xy_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_xz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def h_yz_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_x_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_x_dag_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_y_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_y_dag_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_z_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
+    def sqrt_z_dag_gate(self, qubits: Collection[str]) -> Circuit:
+        raise NotImplementedError
+
     def cnot(self, qubits: Sequence[str]) -> Circuit:
         raise NotImplementedError
 

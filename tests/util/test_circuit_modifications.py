@@ -15,6 +15,7 @@ def test_add_noise_to_circuit():
         X 1
         M(0.1) 0
         M 0
+        SQRT_X 1
         DETECTOR rec[-2]
         RY 0 1
         I 0 
@@ -43,6 +44,8 @@ def test_add_noise_to_circuit():
         DEPOLARIZE1(0.6) 1
         X_ERROR(0.6) 0 0
         M 0 0
+        SQRT_X 1
+        DEPOLARIZE1(0.6) 1
         DETECTOR rec[-2]
         RY 0 1
         X_ERROR(0.6) 0 1
