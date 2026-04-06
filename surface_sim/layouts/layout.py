@@ -154,16 +154,19 @@ class Layout:
 
         # precompute specific attributes
         # make then tuples so that they areunmutable
-        self.qubits: tuple[str, ...] = tuple(self.get_qubits())
-        self.data_qubits: tuple[str, ...] = tuple(self.get_qubits(role="data"))
+        self.data_qubits: tuple[str, ...] = tuple(
+            sorted(self.get_qubits(role="data"), key=label_order)
+        )
         # sort ancilla qubits based on stabilizer type because this order
         # is used (by default) for the detector ordering. Note that it is possible
         # that the ancilla qubits do not have the parameter 'stab_type'.
         _x_anc_qubits = set(self.get_qubits(role="anc", stab_type="x_type"))
         _anc_qubits = set(self.get_qubits(role="anc"))
         self.anc_qubits: tuple[str, ...] = tuple(
-            _x_anc_qubits | (_anc_qubits - _x_anc_qubits)
+            sorted(_x_anc_qubits, key=label_order)
+            + sorted(_anc_qubits - _x_anc_qubits, key=label_order)
         )
+        self.qubits: tuple[str, ...] = self.data_qubits + self.anc_qubits
         self.logical_qubits: tuple[str, ...] = tuple(self._log_qubits)
         self.observables: tuple[str, ...] = tuple(self._observables)
 
@@ -852,3 +855,11 @@ def index_coords(
 
     indicies = tuple(mapping[coord] for coord in coords)
     return indicies, num_unique_vals
+
+
+def label_order(label: str) -> int | str:
+    """Function for sorting the qubit labels to avoid
+    e.g. ``"D12"`` appearing before ``"D2"``."""
+    if label[1:].isdigit():
+        return int(label[1:])
+    return label

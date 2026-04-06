@@ -1,6 +1,7 @@
 import xarray as xr
 
 from surface_sim import Layout
+from surface_sim.layouts.library import rot_surface_code
 
 LAYOUT_DICT = {
     "name": "Rotated dx-1 dz-2 surface code layout.",
@@ -160,5 +161,28 @@ def test_layout_matrices():
         dims=["anc_qubit", "channel", "row", "col"],
     )
     assert (layout.expansion_matrix() == expected_matrix).all()
+
+    return
+
+
+def test_layout_qubit_ordering():
+    layout = rot_surface_code(distance=11)
+
+    anc_qubits = layout.anc_qubits
+
+    expected_anc_qubits = [f"X{i}" for i in range(1, (11**2 - 1) // 2 + 1)]
+    expected_anc_qubits += [f"Z{i}" for i in range(1, (11**2 - 1) // 2 + 1)]
+
+    assert anc_qubits == tuple(expected_anc_qubits)
+
+    data_qubits = layout.data_qubits
+
+    expected_data_qubits = [f"D{i}" for i in range(1, 11**2 + 1)]
+
+    assert data_qubits == tuple(expected_data_qubits)
+
+    qubits = layout.qubits
+
+    assert qubits == tuple(expected_data_qubits + expected_anc_qubits)
 
     return
