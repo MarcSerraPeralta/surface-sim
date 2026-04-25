@@ -1,3 +1,4 @@
+from . import random
 from .library import (
     NLR,
     SD6,
@@ -14,6 +15,7 @@ from .library import (
 from .setup import SQ_GATES, SQ_MEASUREMENTS, SQ_RESETS, TQ_GATES, Setup
 
 __all__ = [
+    "random",
     "SQ_GATES",
     "SQ_RESETS",
     "SQ_MEASUREMENTS",
