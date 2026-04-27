@@ -36,7 +36,7 @@ class RandomSetupDict(dict):
         return value
 
 
-def normal(mu: float, sigma: float, seed: int | None) -> Callable[[], float]:
+def normal(mu: float, sigma: float, seed: int | None = None) -> Callable[[], float]:
     rng = random.Random(seed)
 
     def sampler() -> float:
@@ -45,7 +45,7 @@ def normal(mu: float, sigma: float, seed: int | None) -> Callable[[], float]:
     return sampler
 
 
-def lognormal(mu: float, sigma: float, seed: int | None) -> Callable[[], float]:
+def lognormal(mu: float, sigma: float, seed: int | None = None) -> Callable[[], float]:
     rng = random.Random(seed)
 
     def sampler() -> float:
@@ -54,7 +54,7 @@ def lognormal(mu: float, sigma: float, seed: int | None) -> Callable[[], float]:
     return sampler
 
 
-def gamma(alpha: float, beta: float, seed: int | None) -> Callable[[], float]:
+def gamma(alpha: float, beta: float, seed: int | None = None) -> Callable[[], float]:
     rng = random.Random(seed)
 
     def sampler() -> float:
@@ -63,7 +63,7 @@ def gamma(alpha: float, beta: float, seed: int | None) -> Callable[[], float]:
     return sampler
 
 
-def weibull(alpha: float, beta: float, seed: int | None) -> Callable[[], float]:
+def weibull(alpha: float, beta: float, seed: int | None = None) -> Callable[[], float]:
     rng = random.Random(seed)
 
     def sampler() -> float:
@@ -72,7 +72,7 @@ def weibull(alpha: float, beta: float, seed: int | None) -> Callable[[], float]:
     return sampler
 
 
-def uniform(a: float, b: float, seed: int | None) -> Callable[[], float]:
+def uniform(a: float, b: float, seed: int | None = None) -> Callable[[], float]:
     rng = random.Random(seed)
 
     def sampler() -> float:
