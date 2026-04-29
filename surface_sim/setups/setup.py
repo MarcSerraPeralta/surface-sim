@@ -100,14 +100,18 @@ TQ_PARENTS = {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES} | {
 }
 PARENTS = SQ_PARENTS | TQ_PARENTS
 
-SQ_PARAMS = set(SQ_PARENTS) | set(SQ_PARENTS.values())
+SQ_PARAMS = (
+    set(SQ_PARENTS)
+    | set(SQ_PARENTS.values())
+    | {"assign_error_flag", "assign_error_prob"}
+)
 TQ_PARAMS = set(TQ_PARENTS) | set(TQ_PARENTS.values())
 
 
 class Setup:
     PARENTS: dict[str, str] = PARENTS.copy()
 
-    def __init__(self, setup: SetupDict) -> None:
+    def __init__(self, setup: SetupDict = dict(setup=[{}])) -> None:
         """Initialises the ``Setup`` class.
 
         Parameters
@@ -453,8 +457,9 @@ class Setup:
                 raise ValueError("In 'random' mode, 'qubits' must be specified.")
             params = self._qubit_params[qubits]
             if param in params:
-                # parameter's value has already been evaluated
-                return params[param]
+                # parameter may need to be still evaluated if it has been
+                # fixed by the user.
+                return _eval_param_val(params[param], self._var_params)
 
         # if none of the previous works, try loading from 'parent' parameter
         if param in self.PARENTS:

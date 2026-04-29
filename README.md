@@ -101,4 +101,38 @@ experiment = experiment_from_circuit(
 )
 ```
 
+### Noise models with random physical error probabilities
+
+```
+import stim
+
+from surface_sim.models import CircuitNoiseModel
+from surface_sim import Detectors
+from surface_sim.experiments import experiment_from_circuit
+from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
+from surface_sim.layouts import unrot_surface_codes
+from surface_sim.setups.random import lognormal
+
+circuit = stim.Circuit(
+    """
+    R 0
+    TICK
+    TICK
+    TICK
+    M 0
+    OBSERVABLE_INCLUDE(0) rec[-1]
+    """
+)
+
+layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
+model = CircuitNoiseModel.from_layouts(*layouts)
+detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
+
+model.setup.convert_to_random(prob=lognormal(-3, 1e-4, seed=123))
+
+experiment = experiment_from_circuit(
+    circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
+)
+```
+
 For more information and examples about `surface-sim`, please read [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
