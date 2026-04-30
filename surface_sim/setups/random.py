@@ -79,3 +79,15 @@ def uniform(a: float, b: float, seed: int | None = None) -> Callable[[], float]:
         return rng.uniform(a, b)
 
     return sampler
+
+
+def get_random_params(setup_dict: RandomSetupDict) -> dict[str, list[Param]]:
+    params: dict[str, list[Param]] = {}
+    for qubits, _params in setup_dict.items():
+        if len(qubits) == 0:
+            continue
+        for param, value in _params.items():
+            if param not in params:
+                params[param] = []
+            params[param].append(value)
+    return params
