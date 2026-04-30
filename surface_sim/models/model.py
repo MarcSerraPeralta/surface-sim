@@ -49,7 +49,7 @@ class Model:
     For more information, read the comments in issue #232.
     """
 
-    DEFAULT_SETUP: Setup | None = None
+    DEFAULT_SETUP: type[Setup] | None = None
 
     def __init__(self, qubit_inds: dict[str, int], setup: Setup | None = None) -> None:
         self._setup: Setup = setup if setup is not None else self._get_default_setup()
@@ -72,7 +72,7 @@ class Model:
             raise ValueError(
                 "This model does not have a default setup, so it must be specified."
             )
-        return self.DEFAULT_SETUP
+        return self.DEFAULT_SETUP()
 
     @override
     def __getattribute__(self, name: str) -> object:

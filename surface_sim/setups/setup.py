@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from copy import deepcopy
 from pathlib import Path
 from typing import TypedDict
 
 import yaml
+
+from .random import RandomSetupDict
 
 Param = float | int | bool | str | None
 
@@ -88,19 +90,28 @@ SQ_RESETS = {
     "reset_z": "R",  # stim changes the name
 }
 
-PARENTS = (
+SQ_PARENTS = (
     {f"{n}_error_prob": "sq_error_prob" for n in SQ_GATES}
-    | {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES}
-    | {f"{n}_error_prob": "long_range_tq_error_prob" for n in LONG_RANGE_TQ_GATES}
     | {f"{n}_error_prob": "reset_error_prob" for n in SQ_RESETS}
     | {f"{n}_error_prob": "meas_error_prob" for n in SQ_MEASUREMENTS}
 )
+TQ_PARENTS = {f"{n}_error_prob": "tq_error_prob" for n in TQ_GATES} | {
+    f"{n}_error_prob": "long_range_tq_error_prob" for n in LONG_RANGE_TQ_GATES
+}
+PARENTS = SQ_PARENTS | TQ_PARENTS
+
+SQ_PARAMS = (
+    set(SQ_PARENTS)
+    | set(SQ_PARENTS.values())
+    | {"assign_error_flag", "assign_error_prob"}
+)
+TQ_PARAMS = set(TQ_PARENTS) | set(TQ_PARENTS.values())
 
 
 class Setup:
     PARENTS: dict[str, str] = PARENTS.copy()
 
-    def __init__(self, setup: SetupDict) -> None:
+    def __init__(self, setup: SetupDict = dict(setup=[{}])) -> None:
         """Initialises the ``Setup`` class.
 
         Parameters
@@ -112,6 +123,7 @@ class Setup:
             It can also include ``"name"``, ``"description"`` and
             ``"gate_durations"`` keys with the corresponding information.
         """
+        self._mode: str = "standard"
         self._qubit_params: dict[str | tuple[str, ...], dict[str, Param]] = dict()
         self._global_params: dict[str, Param] = dict()
         self._var_params: dict[str, Param] = dict()
@@ -124,6 +136,12 @@ class Setup:
         self._load_setup(_setup)
         if self._qubit_params == {}:
             self.uniform = True
+
+        # random samplers
+        self._free_param_samplers: dict[str, Callable[[], Param]] = {}
+        self._standard_qubit_params: dict[str | tuple[str, ...], dict[str, Param]] = (
+            dict()
+        )
 
         return
 
@@ -158,13 +176,18 @@ class Setup:
 
     @property
     def free_params(self) -> list[str]:
-        """Returns the unset variable parameters."""
+        """Returns the names of the unset variable parameters."""
         return [param for param, val in self._var_params.items() if val is None]
 
     @property
     def var_params(self) -> list[str]:
-        """Returns all variable parameters."""
+        """Returns the names of all variable parameters."""
         return list(self._var_params)
+
+    @property
+    def global_params(self) -> list[str]:
+        """Returns the names of the global parameters."""
+        return list(self._global_params)
 
     @classmethod
     def from_yaml(cls: type[Setup], filename: str | Path) -> Setup:
@@ -225,6 +248,87 @@ class Setup:
             yaml.dump(setup, file, default_flow_style=False)
         return
 
+    def convert_to_random(self, **free_param_samplers: Callable[[], Param]) -> None:
+        """Converts this setup into a random setup, in which the free parameters
+        are randomly sampled for each qubit and qubit pair.
+
+        The free parameters (``Setup.free_params``) are sampled on the fly the
+        first time they are requested and then stored. If a qubit or qubit pair has
+        some parameters already set, their value is not modified, that is: no free
+        parameter is sampled for this qubit or qubit pair.
+        Because the free parameters are sampled on the fly, the setup must be
+        stored **after** generating the wanted circuit. Otherwise, the parameters
+        are not yet sampled nor stored in this setup.
+
+        The qubit-specific parameters that are generated from the randomly sampled
+        values of the free parameter correspond to the global parameters of this
+        setup (``Setup.global_params``).
+
+        Parameters
+        ----------
+        **free_param_samplers
+            Samplers for the free parameters.
+        """
+        if self._mode != "standard":
+            raise ValueError(
+                f"Setup must be in 'standard' mode, but it is in '{self._mode}'."
+            )
+        if set(free_param_samplers) < set(self.free_params):
+            raise ValueError(
+                f"All free parameters ({', '.join(self.free_params)}) must be specified."
+            )
+
+        self._mode = "random"
+        self._free_param_samplers = dict(free_param_samplers)
+        self._standard_qubit_params = dict(self._qubit_params)
+        self._qubit_params = RandomSetupDict(self._standard_qubit_params)
+        self.uniform = False
+
+        global_params_copy = dict(self._global_params)
+        var_params_copy = dict(self._var_params)
+        free_param_samplers_copy = dict(free_param_samplers)
+
+        def sq_noise_sampler() -> dict[str, Param]:
+            free_params = {p: s() for p, s in free_param_samplers_copy.items()}
+            var_params = dict(var_params_copy)
+            var_params.update(free_params)
+
+            qubit_params: dict[str, Param] = {}
+            for name, value in global_params_copy.items():
+                if name not in SQ_PARAMS:
+                    continue
+
+                qubit_params[name] = _eval_param_val(value, var_params)
+            return qubit_params
+
+        def tq_noise_sampler() -> dict[str, Param]:
+            free_params = {p: s() for p, s in free_param_samplers_copy.items()}
+            var_params = dict(var_params_copy)
+            var_params.update(free_params)
+
+            qubit_params: dict[str, Param] = {}
+            for name, value in global_params_copy.items():
+                if name not in TQ_PARAMS:
+                    continue
+
+                qubit_params[name] = _eval_param_val(value, var_params)
+            return qubit_params
+
+        self._qubit_params.sq_noise_sampler = sq_noise_sampler
+        self._qubit_params.tq_noise_sampler = tq_noise_sampler
+
+        return
+
+    def new_randomization(self) -> None:
+        """Restores the original setup without the sampled parameters."""
+        if self._mode != "random":
+            raise ValueError(
+                f"Setup must be in 'random' mode, but it is in '{self._mode}'."
+            )
+
+        self._qubit_params = RandomSetupDict(self._standard_qubit_params)
+        return
+
     def var_param(self, var_param: str) -> Param:
         """Returns the value of the given variable parameter name.
 
@@ -255,6 +359,8 @@ class Setup:
         val
             Value to set to ``var_param``.
         """
+        if self._mode == "random":
+            raise ValueError("Parameters cannot be changed in 'random' mode.")
         if not isinstance(var_param, str):
             raise TypeError(
                 f"'var_param' must be a str, but {type(var_param)} was given."
@@ -281,6 +387,8 @@ class Setup:
         qubits
             Qubit(s) of which to set the parameter.
         """
+        if self._mode == "random":
+            raise ValueError("Parameters cannot be changed in 'random' mode.")
         if not isinstance(param, str):
             raise TypeError(f"'param' must be a str, but {type(param)} was given.")
         if not isinstance(param_val, Param):
@@ -336,52 +444,32 @@ class Setup:
             )
 
         qubits = tuple(qubits)
-        if qubits in self._qubit_params and param in self._qubit_params[qubits]:
-            val = self._qubit_params[qubits][param]
-            return self._eval_param_val(val)
-        if param in self._global_params:
-            val = self._global_params[param]
-            return self._eval_param_val(val)
+
+        if self._mode == "standard":
+            if qubits in self._qubit_params and param in self._qubit_params[qubits]:
+                val = self._qubit_params[qubits][param]
+                return _eval_param_val(val, self._var_params)
+            if param in self._global_params:
+                val = self._global_params[param]
+                return _eval_param_val(val, self._var_params)
+        elif self._mode == "random":
+            if len(qubits) == 0:
+                raise ValueError("In 'random' mode, 'qubits' must be specified.")
+            params = self._qubit_params[qubits]
+            if param in params:
+                # parameter may need to be still evaluated if it has been
+                # fixed by the user.
+                return _eval_param_val(params[param], self._var_params)
 
         # if none of the previous works, try loading from 'parent' parameter
         if param in self.PARENTS:
-            return self.param(self.PARENTS[param])
+            return self.param(self.PARENTS[param], qubits=qubits)
 
         if qubits:
             raise KeyError(
                 f"'{param}' for '{'-'.join(qubits)}' is not a param of this setup."
             )
         raise KeyError(f"Global parameter {param} not defined")
-
-    def _eval_param_val(self, val: Param) -> Param:
-        # Parameter values can refer to another parameter (i.e. a variable parameter)
-        if not isinstance(val, str):
-            return val
-
-        if params := _get_var_params(val):
-            for p in params:
-                if self._var_params[p] is None:
-                    raise ValueError(f"The free param '{p}' has not been specified.")
-
-            # if val = "{parameter}", then no evaluation is needed
-            # this is important if the value of 'parameter' is a string because
-            # we don't want to do 'eval("value_of_parameter") in this case
-            if val == f"{{{params[0]}}}" and isinstance(
-                self._var_params[params[0]], str
-            ):
-                return val.format(**self._var_params)
-
-            val = val.format(**self._var_params)
-
-            # ensure that eval only performs mathematical operations
-            val_check = val.replace("True", "").replace("False", "").replace(" ", "")
-            if set(val_check) > set("0123456789.*/+-^%~|()=<>?"):
-                raise ValueError(
-                    "The strings with variable parameters can only be mathematical expressions."
-                )
-            val = eval(val)
-
-        return val
 
     def gate_duration(self, name: str) -> float:
         """Returns the duration of the specified gate.
@@ -415,3 +503,32 @@ def _get_var_params(string: str) -> list[str]:
         params.append(param)
 
     return params
+
+
+def _eval_param_val(val: Param, var_params: dict[str, Param]) -> Param:
+    # Parameter values can refer to another parameter (i.e. a variable parameter)
+    if not isinstance(val, str):
+        return val
+
+    if params := _get_var_params(val):
+        for p in params:
+            if var_params[p] is None:
+                raise ValueError(f"The free param '{p}' has not been specified.")
+
+        # if val = "{parameter}", then no evaluation is needed
+        # this is important if the value of 'parameter' is a string because
+        # we don't want to do 'eval("value_of_parameter") in this case
+        if val == f"{{{params[0]}}}" and isinstance(var_params[params[0]], str):
+            return val.format(**var_params)
+
+        val = val.format(**var_params)
+
+        # ensure that eval only performs mathematical operations
+        val_check = val.replace("True", "").replace("False", "").replace(" ", "")
+        if set(val_check) > set("0123456789.*/+-^%~|()=<>?"):
+            raise ValueError(
+                "The strings with variable parameters can only be mathematical expressions."
+            )
+        val = eval(val)
+
+    return val

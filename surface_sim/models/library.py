@@ -52,7 +52,7 @@ ALL_OPS = SQ_GATES | ALL_TQ_GATES | SQ_MEASUREMENTS | SQ_RESETS
 
 
 class CircuitNoiseModel(Model):
-    DEFAULT_SETUP: Setup | None = CircuitNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = CircuitNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -91,7 +91,7 @@ class CircuitNoiseModel(Model):
 
 
 class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):
-    DEFAULT_SETUP: Setup | None = CircuitNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = CircuitNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -133,7 +133,7 @@ class SD6NoiseModel(CircuitNoiseModel):
         "reset_z",
     ]
 
-    DEFAULT_SETUP: Setup | None = SD6()
+    DEFAULT_SETUP: type[Setup] | None = SD6
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -183,7 +183,7 @@ class UniformDepolarizingNoiseModel(CircuitNoiseModel):
         "reset_x",
     ]
 
-    DEFAULT_SETUP: Setup | None = UniformDepolarizing()
+    DEFAULT_SETUP: type[Setup] | None = UniformDepolarizing
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -231,7 +231,7 @@ class SI1000NoiseModel(CircuitNoiseModel):
         "reset_z",
     ]
 
-    DEFAULT_SETUP: Setup | None = SI1000()
+    DEFAULT_SETUP: type[Setup] | None = SI1000
 
     @override
     def new_circuit(self) -> None:
@@ -303,7 +303,7 @@ class ExtendedSI1000NoiseModel(CircuitNoiseModel):
         "reset_z",
     ]
 
-    DEFAULT_SETUP: Setup | None = ExtendedSI1000()
+    DEFAULT_SETUP: type[Setup] | None = ExtendedSI1000
 
     @override
     def new_circuit(self) -> None:
@@ -359,7 +359,7 @@ class NLRNoiseModel(SI1000NoiseModel):
     See the documentation for the ``SI1000NoiseModel`` for more information.
     """
 
-    DEFAULT_SETUP: Setup | None = NLR()
+    DEFAULT_SETUP: type[Setup] | None = NLR
 
     def __init__(
         self,
@@ -382,7 +382,7 @@ class NLRNoiseModel(SI1000NoiseModel):
 
 
 class BiasedCircuitNoiseModel(Model):
-    DEFAULT_SETUP: Setup | None = BiasedCircuitNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = BiasedCircuitNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -649,7 +649,7 @@ class T1T2NoiseModel(Model):
 
 
 class NoiselessModel(Model):
-    DEFAULT_SETUP: Setup | None = Setup(dict(setup=[{}]))
+    DEFAULT_SETUP: type[Setup] | None = Setup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -678,7 +678,7 @@ class NoiselessModel(Model):
 
 
 class IncomingNoiseModel(NoiselessModel):
-    DEFAULT_SETUP: Setup | None = IncomingNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = IncomingNoiseSetup
 
     @override
     def incoming_noise(self, qubits: Collection[str]) -> Circuit:
@@ -704,7 +704,7 @@ class IncomingNoiseModel(NoiselessModel):
 
 
 class IncomingDepolNoiseModel(NoiselessModel):
-    DEFAULT_SETUP: Setup | None = IncomingNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = IncomingNoiseSetup
 
     @override
     def incoming_noise(self, qubits: Collection[str]) -> Circuit:
@@ -723,7 +723,7 @@ class IncomingDepolNoiseModel(NoiselessModel):
 
 
 class PhenomenologicalNoiseModel(IncomingNoiseModel):
-    DEFAULT_SETUP: Setup | None = PhenomenologicalNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = PhenomenologicalNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -736,7 +736,7 @@ class PhenomenologicalNoiseModel(IncomingNoiseModel):
 
 
 class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
-    DEFAULT_SETUP: Setup | None = PhenomenologicalNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = PhenomenologicalNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -749,7 +749,7 @@ class PhenomenologicalDepolNoiseModel(IncomingDepolNoiseModel):
 
 
 class IncResMeasNoiseModel(PhenomenologicalNoiseModel):
-    DEFAULT_SETUP: Setup | None = IncResMeasNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = IncResMeasNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
@@ -762,7 +762,7 @@ class IncResMeasNoiseModel(PhenomenologicalNoiseModel):
 
 
 class MeasurementNoiseModel(NoiselessModel):
-    DEFAULT_SETUP: Setup | None = MeasurementNoiseSetup()
+    DEFAULT_SETUP: type[Setup] | None = MeasurementNoiseSetup
 
     @override
     def __getattribute__(self, name: str) -> object:
