@@ -5,6 +5,7 @@ from .library import (
     SI1000,
     BiasedCircuitNoiseSetup,
     CircuitNoiseSetup,
+    CustomCircuitNoiseSetup,
     ExtendedSI1000,
     IncomingNoiseSetup,
     IncResMeasNoiseSetup,
@@ -32,4 +33,5 @@ __all__ = [
     "MeasurementNoiseSetup",
     "IncResMeasNoiseSetup",
     "UniformDepolarizing",
+    "CustomCircuitNoiseSetup",
 ]

@@ -338,3 +338,37 @@ class NLR(Setup):
         )
         super().__init__(setup_dict)
         return
+
+
+class CustomCircuitNoiseSetup(Setup):
+    def __init__(self) -> None:
+        """
+        Initialises a ``Setup`` class for a custom circuit-level noise, where
+        each error probability can be fixed to a custom value.
+
+        It contains the variable parameters:
+        - ``"sq_error_prob"``
+        - ``"tq_error_prob"``
+        - ``"meas_error_prob"``
+        - ``"reset_error_prob"``
+        - ``"idle_error_prob"``
+        - ``"assign_error_prob"``
+        which can be set for different physical error probabilities.
+        """
+        setup_dict = dict(
+            name="Circuit-level noise setup with free parameters for every noise parameter",
+            description="Setup for a circuit-level noise model that can be used for any code and distance.",
+            setup=[
+                dict(
+                    sq_error_prob="{sq_error_prob}",
+                    tq_error_prob="{tq_error_prob}",
+                    meas_error_prob="{meas_error_prob}",
+                    reset_error_prob="{reset_error_prob}",
+                    idle_error_prob="{idle_error_prob}",
+                    assign_error_flag=False,
+                    assign_error_prob="{assign_error_prob}",
+                ),
+            ],
+        )
+        super().__init__(setup_dict)
+        return

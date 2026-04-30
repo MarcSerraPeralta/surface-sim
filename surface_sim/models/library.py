@@ -11,6 +11,7 @@ from ..setups import (
     SI1000,
     BiasedCircuitNoiseSetup,
     CircuitNoiseSetup,
+    CustomCircuitNoiseSetup,
     ExtendedSI1000,
     IncomingNoiseSetup,
     IncResMeasNoiseSetup,
@@ -88,6 +89,10 @@ class CircuitNoiseModel(Model):
     @override
     def incoming_noise(self, qubits: Collection[str]) -> Circuit:
         return Circuit()
+
+
+class CustomCircuitNoiseModel(CircuitNoiseModel):
+    DEFAULT_SETUP: type[Setup] | None = CustomCircuitNoiseSetup
 
 
 class MovableQubitsCircuitNoiseModel(CircuitNoiseModel):

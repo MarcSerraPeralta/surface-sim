@@ -5,6 +5,7 @@ from surface_sim import Setup
 from surface_sim.models import (
     BiasedCircuitNoiseModel,
     CircuitNoiseModel,
+    CustomCircuitNoiseModel,
     ExtendedSI1000NoiseModel,
     IncomingDepolNoiseModel,
     IncomingNoiseModel,
@@ -904,6 +905,69 @@ def test_CircuitNoiseModel():
         assert len(ops) == 2
         assert "DEPOLARIZE2" in ops_names
         assert ops[1].gate_args_copy()[0] == 1e-3
+
+    ops = [o.name for o in model.incoming_noise(["D1"])]
+    assert len(ops) == 0
+
+    return
+
+
+def test_CustomCircuitNoiseModel():
+    model = CustomCircuitNoiseModel(qubit_inds={"D1": 0, "D2": 1})
+    model.setup.set_var_param("sq_error_prob", 1e-3)
+    model.setup.set_var_param("tq_error_prob", 2e-3)
+    model.setup.set_var_param("meas_error_prob", 3e-3)
+    model.setup.set_var_param("reset_error_prob", 4e-3)
+    model.setup.set_var_param("assign_error_prob", 5e-3)
+    model.setup.set_var_param("idle_error_prob", 6e-3)
+
+    for name in SQ_GATES:
+        ops = [o for o in model.__getattribute__(name)(["D1"])]
+        ops_names = [o.name for o in ops]
+        assert SQ_GATES[name] in ops_names
+        assert set(NOISE_GATES + [SQ_GATES[name]]) >= set(ops_names)
+        # noise after the single-qubit gate
+        assert ops_names.index(SQ_GATES[name]) == 0
+        assert len(ops) == 2
+        assert "DEPOLARIZE1" in ops_names
+        if name != "idle":
+            assert ops[1].gate_args_copy()[0] == 1e-3
+        else:
+            assert ops[1].gate_args_copy()[0] == 6e-3
+
+    for name in SQ_RESETS:
+        ops = [o for o in model.__getattribute__(name)(["D1"])]
+        ops_names = [o.name for o in ops]
+        assert SQ_RESETS[name] in ops_names
+        assert set(NOISE_GATES + [SQ_RESETS[name]]) >= set(ops_names)
+        # noise after the reset
+        assert ops_names.index(SQ_RESETS[name]) == 0
+        assert len(ops) == 2
+        assert set(["X_ERROR", "Y_ERROR", "Z_ERROR"]).intersection(ops_names) != set()
+        assert ops[1].gate_args_copy()[0] == 4e-3
+
+    for name in SQ_MEASUREMENTS:
+        ops = [o for o in model.__getattribute__(name)(["D1"])]
+        ops_names = [o.name for o in ops]
+        assert SQ_MEASUREMENTS[name] in ops_names
+        assert set(NOISE_GATES + [SQ_MEASUREMENTS[name]]) >= set(ops_names)
+        # noise before the measurement
+        assert ops_names.index(SQ_MEASUREMENTS[name]) == len(ops) - 1
+        assert len(ops) == 2
+        assert set(["X_ERROR", "Y_ERROR", "Z_ERROR"]).intersection(ops_names) != set()
+        assert ops[0].gate_args_copy()[0] == 3e-3
+        assert ops[1].gate_args_copy() == []
+
+    for name in TQ_GATES:
+        ops = [o for o in model.__getattribute__(name)(["D1", "D2"])]
+        ops_names = [o.name for o in ops]
+        assert TQ_GATES[name] in ops_names
+        assert set(NOISE_GATES + [TQ_GATES[name]]) >= set(ops_names)
+        # noise after the two-qubit gate
+        assert ops_names.index(TQ_GATES[name]) == 0
+        assert len(ops) == 2
+        assert "DEPOLARIZE2" in ops_names
+        assert ops[1].gate_args_copy()[0] == 2e-3
 
     ops = [o.name for o in model.incoming_noise(["D1"])]
     assert len(ops) == 0
