@@ -117,18 +117,16 @@ circuit = stim.Circuit(
     """
     R 0
     TICK
-    TICK
-    TICK
     M 0
     OBSERVABLE_INCLUDE(0) rec[-1]
     """
 )
 
-layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
+layouts = unrot_surface_codes(circuit.num_qubits, distance=11)
 model = CircuitNoiseModel.from_layouts(*layouts)
 detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
-model.setup.convert_to_random(prob=lognormal(-3, 1e-4, seed=123))
+model.setup.convert_to_random(prob=lognormal(-3, 0.1, seed=123))
 
 experiment = experiment_from_circuit(
     circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
