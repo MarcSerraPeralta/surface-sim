@@ -1,3 +1,4 @@
+from surface_sim.setups import Setup
 from surface_sim.setups.random import (
     RandomSetupDict,
     gamma,
@@ -65,17 +66,20 @@ def test_RandomSetupDict():
 
 
 def test_get_random_params():
-    setup = RandomSetupDict({("D1",): {"p": 10}})
+    setup_dict = RandomSetupDict({("D1",): {"p": 10}})
     dist = uniform(0, 1)
-    setup.sq_noise_sampler = lambda: {"p": 1, "q": 5}
-    setup.tq_noise_sampler = lambda: {"t": dist()}
+    setup_dict.sq_noise_sampler = lambda: {"p": 1, "q": 5}
+    setup_dict.tq_noise_sampler = lambda: {"t": dist()}
 
-    new_tq_param1 = setup[("D1", "D2")]["t"]
-    new_tq_param2 = setup[("D3", "D2")]["t"]
-    _ = setup[("D2",)]
-    _ = setup[("D3",)]
+    new_tq_param1 = setup_dict[("D1", "D2")]["t"]
+    new_tq_param2 = setup_dict[("D3", "D2")]["t"]
+    _ = setup_dict[("D2",)]
+    _ = setup_dict[("D3",)]
 
-    random_params = get_random_params(setup)
+    setup = Setup()
+    setup._qubit_params = setup_dict
+
+    random_params = get_random_params(setup.to_dict())
 
     expected_random_params = {
         "p": [1, 1, 10],
