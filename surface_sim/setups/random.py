@@ -81,13 +81,29 @@ def uniform(a: float, b: float, seed: int | None = None) -> Callable[[], float]:
     return sampler
 
 
-def get_random_params(setup_dict: RandomSetupDict) -> dict[str, list[Param]]:
+def get_random_params(
+    setup_dict: dict[str, list[dict[str, Param]]],
+) -> dict[str, list[Param]]:
+    """Returns the a dictionary mapping the error mechanism names to all
+    the values of the given parameter in the setup.
+
+    Parameters
+    ----------
+    setup_dict
+        Dictionary version of the setup, which can be obtained by ``Setup.to_dict()``.
+    """
     params: dict[str, list[Param]] = {}
-    for qubits, _params in setup_dict.items():
-        if len(qubits) == 0:
+    for _params in setup_dict["setup"]:
+        if "qubit" in _params:
+            _params.pop("qubit")
+        elif "qubits" in _params:
+            _params.pop("qubits")
+        else:
             continue
+
         for param, value in _params.items():
             if param not in params:
                 params[param] = []
             params[param].append(value)
+
     return params
