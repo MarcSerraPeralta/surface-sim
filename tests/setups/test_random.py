@@ -1,6 +1,7 @@
 from surface_sim.setups.random import (
     RandomSetupDict,
     gamma,
+    get_random_params,
     lognormal,
     normal,
     uniform,
@@ -59,5 +60,30 @@ def test_RandomSetupDict():
     new_param = setup[("D1", "D2")]
     assert setup[("D1", "D2")] == new_param
     assert setup[("D2", "D3")] != new_param
+
+    return
+
+
+def test_get_random_params():
+    setup = RandomSetupDict({("D1",): {"p": 10}})
+    dist = uniform(0, 1)
+    setup.sq_noise_sampler = lambda: {"p": 1, "q": 5}
+    setup.tq_noise_sampler = lambda: {"t": dist()}
+
+    new_tq_param1 = setup[("D1", "D2")]["t"]
+    new_tq_param2 = setup[("D3", "D2")]["t"]
+    _ = setup[("D2",)]
+    _ = setup[("D3",)]
+
+    random_params = get_random_params(setup)
+
+    expected_random_params = {
+        "p": [1, 1, 10],
+        "q": [5, 5],
+        "t": sorted([new_tq_param1, new_tq_param2]),
+    }
+
+    for k in random_params:
+        assert sorted(random_params[k]) == expected_random_params[k]
 
     return
