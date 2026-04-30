@@ -81,7 +81,7 @@ def test_readme_example_random_noise_models():
     from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
     from surface_sim.experiments import experiment_from_circuit
     from surface_sim.layouts import unrot_surface_codes
-    from surface_sim.models import CircuitNoiseModel
+    from surface_sim.models import SI1000NoiseModel
     from surface_sim.setups.random import lognormal
 
     circuit = stim.Circuit(
@@ -94,7 +94,7 @@ def test_readme_example_random_noise_models():
     )
 
     layouts = unrot_surface_codes(circuit.num_qubits, distance=11)
-    model = CircuitNoiseModel.from_layouts(*layouts)
+    model = SI1000NoiseModel.from_layouts(*layouts)
     detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
     model.setup.convert_to_random(prob=lognormal(-3, 0.1, seed=123))
@@ -111,6 +111,6 @@ def test_readme_example_random_noise_models():
     sq_probs = [params["sq_error_prob"] for params in setup_dict if "qubit" in params]
     average_sq_prob = np.average(sq_probs)
 
-    assert np.isclose(average_sq_prob, np.exp(-3), rtol=1e-2)
+    assert np.isclose(average_sq_prob * 10, np.exp(-3), rtol=1e-2)
 
     return

@@ -103,9 +103,19 @@ PARENTS = SQ_PARENTS | TQ_PARENTS
 SQ_PARAMS = (
     set(SQ_PARENTS)
     | set(SQ_PARENTS.values())
-    | {"assign_error_flag", "assign_error_prob"}
+    | {
+        "assign_error_flag",
+        "assign_error_prob",
+        "extra_idle_meas_or_reset_error_prob",
+        "biased_pauli",
+        "biased_factor",
+    }
 )
-TQ_PARAMS = set(TQ_PARENTS) | set(TQ_PARENTS.values())
+TQ_PARAMS = (
+    set(TQ_PARENTS)
+    | set(TQ_PARENTS.values())
+    | {"long_coupler_distance", "long_range_tq_error_prob"}
+)
 
 
 class Setup:

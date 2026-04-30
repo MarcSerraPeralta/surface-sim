@@ -106,7 +106,7 @@ experiment = experiment_from_circuit(
 ```
 import stim
 
-from surface_sim.models import CircuitNoiseModel
+from surface_sim.models import SI1000NoiseModel
 from surface_sim import Detectors
 from surface_sim.experiments import experiment_from_circuit
 from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
@@ -123,7 +123,7 @@ circuit = stim.Circuit(
 )
 
 layouts = unrot_surface_codes(circuit.num_qubits, distance=11)
-model = CircuitNoiseModel.from_layouts(*layouts)
+model = SI1000NoiseModel.from_layouts(*layouts)
 detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
 model.setup.convert_to_random(prob=lognormal(-3, 0.1, seed=123))
