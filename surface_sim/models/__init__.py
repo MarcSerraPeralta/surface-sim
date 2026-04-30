@@ -1,6 +1,7 @@
 from .library import (
     BiasedCircuitNoiseModel,
     CircuitNoiseModel,
+    CustomCircuitNoiseModel,
     ExtendedSI1000NoiseModel,
     IncomingDepolNoiseModel,
     IncomingNoiseModel,
@@ -36,4 +37,5 @@ __all__ = [
     "MovableQubitsCircuitNoiseModel",
     "SD6NoiseModel",
     "UniformDepolarizingNoiseModel",
+    "CustomCircuitNoiseModel",
 ]
