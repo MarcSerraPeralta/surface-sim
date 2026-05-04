@@ -1,0 +1,104 @@
+# Surface-sim
+
+![example workflow](https://github.com/MarcSerraPeralta/surface-sim/actions/workflows/ci_pipeline.yaml/badge.svg)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Documentation Status](https://readthedocs.org/projects/surface-sim/badge/?version=latest)](https://surface-sim.readthedocs.io/en/latest/?badge=latest)
+![PyPI](https://img.shields.io/pypi/v/surface-sim?label=pypi%20package)
+
+
+This package is a wrapper around Stim to simplify the construction of QEC circuits.
+Given a circuit, it can implement the logical equivalent under different types of noise,
+including circuit-level noise.
+It uses a code layout that helps with qubit labeling, indexing and connectivity. 
+It also defines the detectors automatically for any sequence of logical gates.
+
+For more information see [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
+
+## Installation
+
+This package is available in PyPI, thus it can be installed using
+```
+pip install surface-sim
+```
+
+or alternatively, it can be installed from source using
+```
+git clone git@github.com:MarcSerraPeralta/surface-sim.git
+pip install surface-sim/
+```
+
+## Example
+
+### Pre-built experiment: memory experiment
+
+```
+from surface_sim.layouts import rot_surface_code
+from surface_sim.models import CircuitNoiseModel
+from surface_sim import Detectors
+from surface_sim.experiments.rot_surface_code_css import memory_experiment
+
+# prepare the layout, model, and detectors objects
+layout = rot_surface_code(distance=3)
+model = CircuitNoiseModel(layout.qubit_inds)
+detectors = Detectors.from_layouts(layout)
+
+# create a memory experiment
+NUM_ROUNDS = 10
+DATA_INIT = {q: 0 for q in layout.data_qubits}
+ROT_BASIS = True  # X basis
+MEAS_RESET = True  # reset after ancilla measurements
+PROB = 1e-5
+
+model.setup.set_var_param("prob", PROB)
+stim_circuit = memory_experiment(
+    model,
+    layout,
+    detectors,
+    num_rounds=NUM_ROUNDS,
+    data_init=DATA_INIT,
+    rot_basis=ROT_BASIS,
+    anc_reset=MEAS_RESET,
+)
+```
+
+### Arbitrary logical circuit from a given circuit
+
+```
+import stim
+
+from surface_sim.models import CircuitNoiseModel
+from surface_sim import Detectors
+from surface_sim.experiments import experiment_from_circuit
+from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
+from surface_sim.layouts import unrot_surface_codes
+
+circuit = stim.Circuit(
+    """
+    R 0 1
+    TICK
+    CNOT 0 1
+    TICK
+    S 0
+    I 1
+    TICK
+    S 0
+    H 1
+    TICK
+    M 0
+    MX 1
+    OBSERVABLE_INCLUDE(0) rec[-1] rec[-2]
+    """
+)
+
+layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
+model = CircuitNoiseModel.from_layouts(*layouts)
+detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
+
+model.setup.set_var_param("prob", 1e-3)
+
+experiment = experiment_from_circuit(
+    circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
+)
+```
+
+For more information and examples about `surface-sim`, please read [the documentation](https://surface-sim.readthedocs.io/en/latest/?badge=latest).
