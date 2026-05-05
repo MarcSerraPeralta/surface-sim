@@ -26,6 +26,7 @@ dependencies = [
     "netCDF4",
     "stim >= 1.15.0", # for 'II' gate and 'Circuit.pop'
     "galois",
+    "llvmlite >= 0.47.0", # for python 3.14
 ]
 keywords = ["quantum", "error correction", "surface code", "stabilizer simulation"]
 
@@ -37,8 +38,7 @@ include = ["surface_sim", "surface_sim.*"]  # package names should match these g
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [project.optional-dependencies]
-dev = ["pip-tools>=7.5.3", # older versions are incompatible with newer pip versions
-       "pytest",
+dev = ["pytest",
        "ruff",
        "gprof2dot",
        "sphinx", "sphinx-rtd-theme", "numpydoc", "pydata_sphinx_theme", "sphinx_design"]
