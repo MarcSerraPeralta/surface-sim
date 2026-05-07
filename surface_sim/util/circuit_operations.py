@@ -160,11 +160,11 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
                     merged_circuit.append(instr)
             return merged_circuit
 
-    # if there is a single mergeable block with measurements, we can merge the
+    # if there is at most a single mergeable block with measurements, we can merge the
     # operations layer by layer without having an issue with measruement ordering.
     # In the presence of multiple measurements, this can alter the measurement order, e.g.
     # block1 = ("M", "X") and block2 = ("H", "M")
-    if sum(len(set(MEAS_INSTR).intersection(b)) for b in mergeable_blocks) == 1:
+    if sum(len(set(MEAS_INSTR).intersection(b)) for b in mergeable_blocks) <= 1:
         max_length = len(max(ops_blocks, key=lambda x: len(x)))
         merged_circuit = stim.Circuit()
         for t in range(max_length):
@@ -175,6 +175,7 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
                     # the trick with the indices ensures that the returned object
                     # is a stim.Circuit instead of a stim.CircuitInstruction
                     merged_circuit += block[t : t + 1]
+        return merged_circuit
 
     # avoid problems with measurements
     return sum(operation_layers, start=stim.Circuit())
