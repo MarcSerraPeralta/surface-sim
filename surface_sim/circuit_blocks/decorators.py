@@ -5,6 +5,7 @@ Decorators for functions that
 """
 
 from collections.abc import Callable, Generator
+from copy import deepcopy
 
 import stim
 
@@ -25,14 +26,46 @@ class LogOpCallable:
         self.num_qubits: int | None = None
         self.noiseless: bool = False
         self.name: str = func.__name__
+        self.anc_reset: bool | None = None
         return
 
     def __call__(self, *args, **kargs) -> Generator[stim.Circuit]:
-        return self.func(*args, **kargs)
+        if self.anc_reset is not None:
+            kargs |= {"anc_reset": self.anc_reset}
+        if not self.noiseless:
+            yield from self.func(*args, **kargs)
+        else:
+            for c in self.func(*args, **kargs):
+                yield c.without_noise()
 
     @property
     def __name__(self) -> str:
         return self.name
+
+    def copy(self) -> "LogOpCallable":
+        new_copy = LogOpCallable(deepcopy(self.func))
+        new_copy.log_op_type = deepcopy(self.log_op_type)
+        new_copy.rot_basis = deepcopy(self.rot_basis)
+        new_copy.num_qubits = deepcopy(self.num_qubits)
+        new_copy.noiseless = deepcopy(self.noiseless)
+        new_copy.name = deepcopy(self.name)
+        new_copy.anc_reset = deepcopy(self.anc_reset)
+        return new_copy
+
+    def __str__(self) -> str:
+        string = self.name
+        if self.rot_basis is not None:
+            string += " bX" if self.rot_basis else " bZ"
+        if self.anc_reset is not None:
+            string += f" anc_reset={self.anc_reset}"
+        if self.num_qubits is not None:
+            string += f" n={self.num_qubits}"
+        if self.noiseless is True:
+            string += " noiseless"
+        return f"'{string}'"
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 LogicalOperation = tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, Layout]
@@ -41,107 +74,105 @@ LogicalOperation = tuple[LogOpCallable, Layout] | tuple[LogOpCallable, Layout, L
 def qec_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["qec_round"]
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["qec_round"]
+    return new_func
 
 
 def to_mid_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["to_mid_cycle_circuit"]
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["to_mid_cycle_circuit"]
+    return new_func
 
 
 def to_end_cycle_circuit(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["to_end_cycle_circuit"]
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["to_end_cycle_circuit"]
+    return new_func
 
 
 def sq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["sq_unitary_gate"]
-    func.num_qubits = 1
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["sq_unitary_gate"]
+    new_func.num_qubits = 1
+    return new_func
 
 
 def tq_gate(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["tq_unitary_gate"]
-    func.rot_basis = None
-    func.num_qubits = 2
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["tq_unitary_gate"]
+    new_func.rot_basis = None
+    new_func.num_qubits = 2
+    return new_func
 
 
 def qubit_init_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["qubit_init"]
-    func.rot_basis = False
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["qubit_init"]
+    new_func.rot_basis = False
+    return new_func
 
 
 def qubit_init_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["qubit_init"]
-    func.rot_basis = True
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["qubit_init"]
+    new_func.rot_basis = True
+    return new_func
 
 
 def qubit_encoding(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["qubit_encoding"]
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["qubit_encoding"]
+    return new_func
 
 
 def logical_measurement_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["measurement"]
-    func.rot_basis = False
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["measurement"]
+    new_func.rot_basis = False
+    return new_func
 
 
 def logical_measurement_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["measurement"]
-    func.rot_basis = True
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["measurement"]
+    new_func.rot_basis = True
+    return new_func
 
 
 def logical_noise(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-    func.log_op_type += ["logical_noise"]
-    return func
+    new_func = func.copy()
+    new_func.log_op_type += ["logical_noise"]
+    return new_func
 
 
 def noiseless(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
     """Decorator for removing all noise channels from a ``LogOpCallable``"""
     if not isinstance(func, LogOpCallable):
         func = LogOpCallable(func)
-
-    def noiseless_func(
-        model: Model, layout: Layout, **kargs
-    ) -> Generator[stim.Circuit]:
-        for c in func(model, layout, **kargs):
-            yield c.without_noise()
-
-    noiseless_op = LogOpCallable(noiseless_func)
-
-    noiseless_op.name = func.__name__
-    noiseless_op.log_op_type = func.log_op_type
-    noiseless_op.rot_basis = func.rot_basis
-    noiseless_op.num_qubits = func.num_qubits
-    noiseless_op.noiseless = True
-
-    return noiseless_op
+    new_func = func.copy()
+    new_func.noiseless = True
+    return new_func
 
 
 def copy_from(
@@ -149,16 +180,10 @@ def copy_from(
 ) -> Callable[[LogOpCallable | LogOpFunction], LogOpCallable]:
     """Decorator for copying all the logical operation attributes from a function."""
 
-    def decorator(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
-        if not isinstance(func, LogOpCallable):
-            func = LogOpCallable(func)
-
-        func.log_op_type = other_func.log_op_type
-        func.rot_basis = other_func.rot_basis
-        func.num_qubits = other_func.num_qubits
-        func.noiseless = other_func.noiseless
-        func.name = other_func.__name__
-
-        return func
+    def decorator(
+        func: LogOpCallable | LogOpFunction, other_func=other_func.copy()
+    ) -> LogOpCallable:
+        other_func.func = func
+        return other_func
 
     return decorator

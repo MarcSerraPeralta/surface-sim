@@ -68,6 +68,28 @@ def test_merge_operation_layers():
     expected_circuit = sum(blocks, start=stim.Circuit())
     assert circuit == expected_circuit
 
+    blocks = [
+        stim.Circuit("""
+            X_ERROR(0.01) 2 3
+            M 2 3
+            I 2 3
+            DEPOLARIZE1(0.01) 2 3
+        """),
+        stim.Circuit("""
+            M 0 1
+            I 0 1
+        """),
+    ]
+    circuit = merge_operation_layers(*blocks)
+
+    expected_circuit = stim.Circuit("""
+        X_ERROR(0.01) 2 3
+        M 2 3 0 1
+        I 2 3 0 1
+        DEPOLARIZE1(0.01) 2 3
+        """)
+    assert circuit == expected_circuit
+
     return
 
 
