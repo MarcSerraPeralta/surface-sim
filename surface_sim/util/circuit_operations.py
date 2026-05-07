@@ -6,14 +6,11 @@ import stim
 from ..circuit_blocks.decorators import (
     LogicalOperation,
     LogOpCallable,
-    logical_measurement_x,
-    logical_measurement_z,
-    qec_circuit,
-    to_mid_cycle_circuit,
 )
 from ..detectors import Detectors, get_new_stab_dict_from_layout
 from ..layouts.layout import Layout
 from ..models import Model
+from .circuit_modifications import NOISE_CHANNELS
 
 MEAS_INSTR = [
     "M",
@@ -137,18 +134,51 @@ def merge_operation_layers(*operation_layers: stim.Circuit) -> stim.Circuit:
         else:
             mergeable_blocks[op_block].append(block)
 
-    max_length = len(max(ops_blocks, key=lambda x: len(x)))
-    merged_circuit = stim.Circuit()
-    for t in range(max_length):
-        for mblocks in mergeable_blocks.values():
-            for block in mblocks:
-                if t > len(block):
-                    continue
-                # the trick with the indices ensures that the returned object
-                # is a stim.Circuit instead of a stim.CircuitInstruction
-                merged_circuit += block[t : t + 1]
+    # usually, there is only one op_block.
+    if len(mergeable_blocks) == 1:
+        merged_circuit = stim.Circuit()
+        for instrs in zip(*operation_layers):
+            for instr in instrs:
+                merged_circuit.append(instr)
+        return merged_circuit
 
-    return merged_circuit
+    # another common case is to have two op_blocks which
+    # one is the noiseless version of the other one.
+    if len(mergeable_blocks) == 2:
+        b1, b2 = list(mergeable_blocks)
+        b1, b2 = (b2, b1) if len(b2) > len(b1) else (b1, b2)
+        unique_b1 = len(b1) == len(set(b1))
+        if tuple(n for n in b1 if n not in NOISE_CHANNELS) == b2 and unique_b1:
+            lookup = {n: [] for n in b1}
+            for circ in operation_layers:
+                for instr in circ:
+                    lookup[instr.name].append(instr)
+
+            merged_circuit = stim.Circuit()
+            for n in b1:
+                for instr in lookup[n]:
+                    merged_circuit.append(instr)
+            return merged_circuit
+
+    # if there is at most a single mergeable block with measurements, we can merge the
+    # operations layer by layer without having an issue with measruement ordering.
+    # In the presence of multiple measurements, this can alter the measurement order, e.g.
+    # block1 = ("M", "X") and block2 = ("H", "M")
+    if sum(len(set(MEAS_INSTR).intersection(b)) for b in mergeable_blocks) <= 1:
+        max_length = len(max(ops_blocks, key=lambda x: len(x)))
+        merged_circuit = stim.Circuit()
+        for t in range(max_length):
+            for mblocks in mergeable_blocks.values():
+                for block in mblocks:
+                    if t > len(block):
+                        continue
+                    # the trick with the indices ensures that the returned object
+                    # is a stim.Circuit instead of a stim.CircuitInstruction
+                    merged_circuit += block[t : t + 1]
+        return merged_circuit
+
+    # avoid problems with measurements
+    return sum(operation_layers, start=stim.Circuit())
 
 
 def merge_iterators(
@@ -272,19 +302,24 @@ def merge_logical_operations(
     qec_dets_ops = [
         set(QEC_DETS_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
     ]
+    qec_reset_ops = [
+        set(QEC_RESET_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
+    ]
     if any(qec_dets_ops) and (not all(qec_dets_ops)):
         raise ValueError(
             "All logical qubits must be performing QEC cycles at the same time."
         )
+    if any(qec_reset_ops) and (not all(qec_reset_ops)):
+        raise ValueError(
+            "All logical qubits must be performing QEC cycles at the same time."
+        )
+    if any(qec_reset_ops + qec_dets_ops) and anc_reset is None:
+        if anc_reset is None:
+            raise ValueError("QEC round found but 'anc_reset' is not specified.")
 
     # change QEC round iterators to include 'anc_reset' (if needed)
     # because the 'merge_iterators' only inputs Model and Layout(s), not 'anc_reset'
-    qec_reset_ops = [
-        set(QEC_RESET_OP_TYPES).intersection(op[0].log_op_type) for op in op_iterators
-    ]
     if any(qec_reset_ops):
-        if anc_reset is None:
-            raise ValueError("QEC round found but 'anc_reset' is not specified.")
         if any(len(op[1:]) > 1 for op in op_iterators):
             raise ValueError(
                 "Incorrect schedule format when specifying the QEC round iterators."
@@ -294,26 +329,8 @@ def merge_logical_operations(
             if not reset:
                 continue
             func = op_iterators[k][0]
-
-            if set(func.log_op_type) == set(["qec_round"]):
-                decorator = qec_circuit
-            elif set(func.log_op_type) == set(["qec_round", "measurement"]):
-                if func.rot_basis:
-                    decorator = lambda x: logical_measurement_x(qec_circuit(x))
-                else:
-                    decorator = lambda x: logical_measurement_z(qec_circuit(x))
-            elif set(func.log_op_type) == set(["to_mid_cycle_circuit"]):
-                decorator = to_mid_cycle_circuit
-            else:
-                raise TypeError(
-                    f"Function of type '{func.log_op_type}' not implemented."
-                )
-
-            @decorator
-            def iterator(model: Model, layout: Layout):
-                return func(model, layout, anc_reset=anc_reset)
-
-            op_iterators[k] = (iterator, op_iterators[k][1])
+            func.anc_reset = anc_reset
+            op_iterators[k] = (func, op_iterators[k][1])
 
     circuit = merge_iterators(op_iterators, model)
 
