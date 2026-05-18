@@ -27,11 +27,14 @@ class LogOpCallable:
         self.noiseless: bool = False
         self.name: str = func.__name__
         self.anc_reset: bool | None = None
+        self.log_noise_prob: float | None = None
         return
 
     def __call__(self, *args, **kargs) -> Generator[stim.Circuit]:
         if self.anc_reset is not None:
             kargs |= {"anc_reset": self.anc_reset}
+        if self.log_noise_prob is not None:
+            kargs |= {"prob": self.log_noise_prob}
         if not self.noiseless:
             yield from self.func(*args, **kargs)
         else:
@@ -50,6 +53,7 @@ class LogOpCallable:
         new_copy.noiseless = deepcopy(self.noiseless)
         new_copy.name = deepcopy(self.name)
         new_copy.anc_reset = deepcopy(self.anc_reset)
+        new_copy.log_noise_prob = deepcopy(self.log_noise_prob)
         return new_copy
 
     def __str__(self) -> str:
@@ -60,6 +64,8 @@ class LogOpCallable:
             string += f" anc_reset={self.anc_reset}"
         if self.num_qubits is not None:
             string += f" n={self.num_qubits}"
+        if self.log_noise_prob is not None:
+            string += f" log-noise-prob={self.log_noise_prob}"
         if self.noiseless is True:
             string += " noiseless"
         return f"'{string}'"

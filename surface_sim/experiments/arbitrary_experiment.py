@@ -4,7 +4,7 @@ from typing import TypeVar
 
 import stim
 
-from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable, copy_from
+from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable
 from ..circuit_blocks.util import idle_iterator, qubit_coords
 from ..detectors.detectors import Detectors
 from ..layouts.layout import Layout
@@ -127,29 +127,15 @@ def schedule_from_circuit(
         func_iter = gate_to_iterator[instr.name]
         targets: list[int] = [t.value for t in instr.targets_copy()]
 
+        if set(["logical_noise"]).intersection(func_iter.log_op_type):
+            # copy function to not override the parameter for all instances
+            # of this function
+            func_iter = func_iter.copy()
+            func_iter.log_noise_prob = instr.gate_args_copy()[0]
+
         if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
                 instructions.append((func_iter, layouts[i], layouts[j]))
-        elif set(["logical_noise"]).intersection(func_iter.log_op_type):
-            prob = instr.gate_args_copy()[0]
-
-            # the 'iterator' key is needed because it captures the 'func_iter'
-            # current value. If not, when 'log_op' is called, 'func_iter' corresponds
-            # to the last element in this for-loop. Same for 'prob'.
-            # another strategy is to use functools.partial but it does not work
-            # well with the LogOpCallable object.
-            @copy_from(func_iter)
-            def log_op(
-                model: Model,
-                layout: Layout,
-                iterator: LogOpCallable = func_iter,
-                prob: float = prob,
-                **kargs,
-            ):
-                return iterator(model=model, layout=layout, prob=prob, **kargs)
-
-            for i in targets:
-                instructions.append((log_op, layouts[i]))
         else:
             for i in targets:
                 instructions.append((func_iter, layouts[i]))
@@ -286,6 +272,12 @@ def schedule_from_mid_cycle_circuit(
 
         func_iter = gate_to_iterator[instr.name]
         targets: list[int] = [t.value for t in instr.targets_copy()]
+
+        if set(["logical_noise"]).intersection(func_iter.log_op_type):
+            # copy function to not override the parameter for all instances
+            # of this function
+            func_iter = func_iter.copy()
+            func_iter.log_noise_prob = instr.gate_args_copy()[0]
 
         if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
