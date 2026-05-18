@@ -128,8 +128,7 @@ def schedule_from_circuit(
         targets: list[int] = [t.value for t in instr.targets_copy()]
 
         if set(["logical_noise"]).intersection(func_iter.log_op_type):
-            # copy function to not override the parameter for all instances
-            # of this function
+            # copy to not override the parameter for all instances of this function
             func_iter = func_iter.copy()
             func_iter.log_noise_prob = instr.gate_args_copy()[0]
 
@@ -274,8 +273,7 @@ def schedule_from_mid_cycle_circuit(
         targets: list[int] = [t.value for t in instr.targets_copy()]
 
         if set(["logical_noise"]).intersection(func_iter.log_op_type):
-            # copy function to not override the parameter for all instances
-            # of this function
+            # copy to not override the parameter for all instances of this function
             func_iter = func_iter.copy()
             func_iter.log_noise_prob = instr.gate_args_copy()[0]
 
