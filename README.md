@@ -101,7 +101,7 @@ experiment = experiment_from_circuit(
 )
 ```
 
-Tags can be used to specify noiseless/ideal operations, for example,
+Tags can be used to specify noiseless/ideal operations. For example,
 in the circuit below, the logical reset and measurement are noiseless:
 ```
 R[noiseless] 0
