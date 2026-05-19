@@ -462,4 +462,18 @@ def test_experiment_from_circuit():
         if instr.targets_copy() == [stim.DemTarget("L1")]:
             assert np.isclose(instr.args_copy()[0], 0.004, rtol=5e-3)
 
+    circuit = stim.Circuit(
+        """
+        R[noiseless] 0
+        TICK[noiseless]
+        M[noiseless] 0
+        """
+    )
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator
+    )
+
+    assert experiment == experiment.without_noise()
+
     return

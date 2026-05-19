@@ -101,6 +101,19 @@ experiment = experiment_from_circuit(
 )
 ```
 
+Tags can be used to specify noiseless/ideal operations, for example,
+in the circuit below, the logical reset and measurement are noiseless:
+```
+R[noiseless] 0
+TICK
+TICK
+TICK
+M[noiseless] 0
+```
+For more fine tunning in the presence of multiple code patches,
+see ``surface_sim.experiments.experiment_from_schedule``.
+
+
 ### Noise models with random physical error probabilities
 
 ```

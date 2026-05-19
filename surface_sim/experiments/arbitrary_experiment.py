@@ -4,7 +4,7 @@ from typing import TypeVar
 
 import stim
 
-from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable
+from ..circuit_blocks.decorators import LogicalOperation, LogOpCallable, noiseless
 from ..circuit_blocks.util import idle_iterator, qubit_coords
 from ..detectors.detectors import Detectors
 from ..layouts.layout import Layout
@@ -120,18 +120,21 @@ def schedule_from_circuit(
     for instr in circuit:
         if instr.name == "OBSERVABLE_INCLUDE":
             continue
-        if instr.name == "TICK":
-            instructions.append((gate_to_iterator["TICK"],))
-            continue
-
         func_iter = gate_to_iterator[instr.name]
         targets: list[int] = [t.value for t in instr.targets_copy()]
 
+        # add modifications to iterator
+        if instr.tag == "noiseless":
+            func_iter = noiseless(func_iter)
         if set(["logical_noise"]).intersection(func_iter.log_op_type):
             # copy to not override the parameter for all instances of this function
             func_iter = func_iter.copy()
             func_iter.log_noise_prob = instr.gate_args_copy()[0]
 
+        # add iterator to instructions
+        if instr.name == "TICK":
+            instructions.append((gate_to_iterator["TICK"],))
+            continue
         if set(["tq_unitary_gate"]).intersection(func_iter.log_op_type):
             for i, j in _grouper(targets, 2):
                 instructions.append((func_iter, layouts[i], layouts[j]))
