@@ -8,10 +8,12 @@ from surface_sim.circuit_blocks.unrot_surface_code_css import gate_to_iterator
 from surface_sim.experiments import (
     experiment_from_circuit,
     experiment_from_schedule,
-    redefine_obs_from_circuit,
     schedule_from_circuit,
 )
-from surface_sim.experiments.arbitrary_experiment import schedule_from_instructions
+from surface_sim.experiments.arbitrary_experiment import (
+    schedule_from_instructions,
+    split_observable_definitions,
+)
 from surface_sim.layouts import unrot_surface_codes
 from surface_sim.models import CircuitNoiseModel, NoiselessModel
 
@@ -28,9 +30,10 @@ def test_schedule_from_circuit():
         """
     )
 
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    schedule, meas_to_obs = schedule_from_circuit(circuit, layouts, gate_to_iterator)
 
     assert len(schedule) == 5
+    assert meas_to_obs == {}
 
     expected_schedule = [
         [
@@ -163,9 +166,14 @@ def test_experiment_from_schedule():
     model = NoiselessModel.from_layouts(*layouts)
     detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
 
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    schedule, meas_to_obs = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
-        schedule, model, detectors, anc_reset=True, anc_detectors=None
+        schedule,
+        model,
+        detectors,
+        anc_reset=True,
+        anc_detectors=None,
+        meas_to_obs=meas_to_obs,
     )
 
     assert isinstance(experiment, stim.Circuit)
@@ -209,13 +217,14 @@ def test_experiment_from_schedule_no_gauge_detectors():
         *layouts, frame="pre-gate", include_gauge_dets=False
     )
 
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    schedule, meas_to_obs = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
         schedule,
         model,
         detectors,
         anc_reset=True,
         anc_detectors=None,
+        meas_to_obs=meas_to_obs,
     )
 
     assert isinstance(experiment, stim.Circuit)
@@ -252,13 +261,14 @@ def test_module_2_operations_in_detectors():
         MX 0 1
     """
     )
-    schedule = schedule_from_circuit(circuit, layouts, gate_to_iterator)
+    schedule, meas_to_obs = schedule_from_circuit(circuit, layouts, gate_to_iterator)
     experiment = experiment_from_schedule(
         schedule,
         model,
         detectors,
         anc_reset=True,
         anc_detectors=None,
+        meas_to_obs=meas_to_obs,
     )
     experiment = experiment[:-14]  # remove detectors built from data
 
@@ -335,57 +345,6 @@ def test_noiseless_decorator():
         == noisy_experiment.without_noise().flow_generators()
     )
     assert len(noiseless_experiment) == len(noisy_experiment.without_noise())
-
-    return
-
-
-def test_redefine_obs_from_circuit():
-    unencoded_circuit = stim.Circuit(
-        """
-        R 0 1 2 3 4
-        M 0
-        OBSERVABLE_INCLUDE(1) rec[-1]
-        X 0
-        M 0
-        M 1 2
-        OBSERVABLE_INCLUDE(4) rec[-2] rec[-3]
-        """
-    )
-    encoded_circuit = stim.Circuit(
-        """
-        R 0 1 2 3 4 5 6 7
-        M 0 1 2
-        OBSERVABLE_INCLUDE(0) rec[-1] rec[-2] rec[-3]
-        X 0 1 2 3
-        CNOT 0 1 6 7
-        M 0 1 2
-        OBSERVABLE_INCLUDE(1) rec[-1] rec[-2] rec[-3]
-        M 3 4 5 6 7
-        OBSERVABLE_INCLUDE(2) rec[-5] rec[-4]
-        OBSERVABLE_INCLUDE(3) rec[-1] rec[-2] rec[-3]
-        X 0
-        """
-    )
-
-    new_circuit = redefine_obs_from_circuit(
-        encoded_circuit=encoded_circuit, unencoded_circuit=unencoded_circuit
-    )
-
-    expected_circuit = stim.Circuit(
-        """
-        R 0 1 2 3 4 5 6 7
-        M 0 1 2
-        X 0 1 2 3
-        CNOT 0 1 6 7
-        M 0 1 2
-        M 3 4 5 6 7
-        X 0
-        OBSERVABLE_INCLUDE(1) rec[-11] rec[-10] rec[-9]
-        OBSERVABLE_INCLUDE(4) rec[-8] rec[-7] rec[-6] rec[-5] rec[-4]
-        """
-    )
-
-    assert new_circuit == expected_circuit
 
     return
 
@@ -475,5 +434,36 @@ def test_experiment_from_circuit():
     )
 
     assert experiment == experiment.without_noise()
+
+    return
+
+
+def test_split_observable_definitions():
+    circuit = stim.Circuit(
+        """
+        M 0 1 2
+        OBSERVABLE_INCLUDE(0) rec[-2] Z3
+        X 0
+        OBSERVABLE_INCLUDE(1) rec[-1] rec[-2] rec[-3]
+        DETECTOR rec[-1] rec[-2]
+        """
+    )
+
+    new_circuit = split_observable_definitions(circuit)
+
+    expected_circuit = stim.Circuit(
+        """
+        M 0 1 2
+        OBSERVABLE_INCLUDE(0) rec[-2]
+        OBSERVABLE_INCLUDE(0) Z3
+        X 0
+        OBSERVABLE_INCLUDE(1) rec[-1]
+        OBSERVABLE_INCLUDE(1) rec[-2]
+        OBSERVABLE_INCLUDE(1) rec[-3]
+        DETECTOR rec[-1] rec[-2]
+        """
+    )
+
+    assert new_circuit == expected_circuit
 
     return

@@ -15,6 +15,9 @@ from .util import (
     log_x_error_iterator,
     log_y_error_iterator,
     log_z_error_iterator,
+    pauli_observable_x_iterator,
+    pauli_observable_y_iterator,
+    pauli_observable_z_iterator,
     qubit_coords,
 )
 from .util import init_qubits_x0_xzzx_iterator as init_qubits_x0_iterator
@@ -59,6 +62,9 @@ __all__ = [
     "log_depolarize1_error_iterator",
     "gate_to_iterator",
     "gate_to_iterator_pipelined",
+    "pauli_observable_x_iterator",
+    "pauli_observable_y_iterator",
+    "pauli_observable_z_iterator",
 ]
 
 

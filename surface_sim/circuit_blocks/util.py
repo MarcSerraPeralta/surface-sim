@@ -10,6 +10,9 @@ from .decorators import (
     logical_measurement_x,
     logical_measurement_z,
     logical_noise,
+    pauli_observable_x,
+    pauli_observable_y,
+    pauli_observable_z,
     qec_circuit,
     qubit_init_x,
     qubit_init_z,
@@ -1691,3 +1694,97 @@ def general_grow_code_iterator(
     if primitive_gates == "cz":
         yield model.hadamard(hadamards_curr) + model.idle(qubits - hadamards_curr)
         yield model.tick()
+
+
+@pauli_observable_x
+def pauli_observable_x_iterator(
+    model: Model, layout: Layout, observable_ind: int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a Pauli-X observable definition
+    for the given observable index.
+    """
+    if not isinstance(observable_ind, int):
+        raise TypeError(
+            f"'observable_ind' must be an int, but {type(observable_ind)} was given."
+        )
+    if observable_ind < 0:
+        raise ValueError("'observable_ind' must be a positive integer.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_x_qubits = layout.logical_param("log_x", log_qubit_label)
+    log_x_inds = layout.get_inds(log_x_qubits)
+
+    circuit = Circuit(
+        f"OBSERVABLE_INCLUDE({observable_ind}) "
+        + " ".join([f"X{i}" for i in log_x_inds])
+    )
+    yield circuit
+
+
+@pauli_observable_y
+def pauli_observable_y_iterator(
+    model: Model, layout: Layout, observable_ind: int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a Pauli-Y observable definition
+    for the given observable index.
+    """
+    if not isinstance(observable_ind, int):
+        raise TypeError(
+            f"'observable_ind' must be an int, but {type(observable_ind)} was given."
+        )
+    if observable_ind < 0:
+        raise ValueError("'observable_ind' must be a positive integer.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_x_qubits = layout.logical_param("log_x", log_qubit_label)
+    log_x_inds = layout.get_inds(log_x_qubits)
+    log_z_qubits = layout.logical_param("log_z", log_qubit_label)
+    log_z_inds = layout.get_inds(log_z_qubits)
+
+    circuit = Circuit(
+        f"OBSERVABLE_INCLUDE({observable_ind}) "
+        + " ".join([f"X{i}" for i in log_x_inds])
+        + " "
+        + " ".join([f"Z{i}" for i in log_z_inds])
+    )
+    yield circuit
+
+
+@pauli_observable_z
+def pauli_observable_z_iterator(
+    model: Model, layout: Layout, observable_ind: int = 0
+) -> Generator[Circuit]:
+    """
+    Yields stim circuits corresponding to a Pauli-Z observable definition
+    for the given observable index.
+    """
+    if not isinstance(observable_ind, int):
+        raise TypeError(
+            f"'observable_ind' must be an int, but {type(observable_ind)} was given."
+        )
+    if observable_ind < 0:
+        raise ValueError("'observable_ind' must be a positive integer.")
+    if len(layout.logical_qubits) != 1:
+        raise ValueError(
+            "This function only works for layouts with one logical qubit, "
+            f"but the given layout has {len(layout.logical_qubits)} logical qubits."
+        )
+    log_qubit_label = layout.logical_qubits[0]
+    log_z_qubits = layout.logical_param("log_z", log_qubit_label)
+    log_z_inds = layout.get_inds(log_z_qubits)
+
+    circuit = Circuit(
+        f"OBSERVABLE_INCLUDE({observable_ind}) "
+        + " ".join([f"Z{i}" for i in log_z_inds])
+    )
+    yield circuit

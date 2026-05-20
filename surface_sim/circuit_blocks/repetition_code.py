@@ -29,6 +29,9 @@ from .util import (
     log_z,
     log_z_error_iterator,
     log_z_iterator,
+    pauli_observable_x_iterator,
+    pauli_observable_y_iterator,
+    pauli_observable_z_iterator,
     qubit_coords,
 )
 from .util import qec_round_iterator as qec_round_iterator_sc
@@ -57,6 +60,9 @@ __all__ = [
     "log_z_error_iterator",
     "log_depolarize1_error_iterator",
     "gate_to_iterator",
+    "pauli_observable_x_iterator",
+    "pauli_observable_y_iterator",
+    "pauli_observable_z_iterator",
 ]
 
 

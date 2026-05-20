@@ -28,6 +28,7 @@ class LogOpCallable:
         self.name: str = func.__name__
         self.anc_reset: bool | None = None
         self.log_noise_prob: float | None = None
+        self.pauli_observable_ind: int | None = None
         return
 
     def __call__(self, *args, **kargs) -> Generator[stim.Circuit]:
@@ -35,6 +36,8 @@ class LogOpCallable:
             kargs |= {"anc_reset": self.anc_reset}
         if self.log_noise_prob is not None:
             kargs |= {"prob": self.log_noise_prob}
+        if self.pauli_observable_ind is not None:
+            kargs |= {"observable_ind": self.pauli_observable_ind}
         if not self.noiseless:
             yield from self.func(*args, **kargs)
         else:
@@ -54,10 +57,13 @@ class LogOpCallable:
         new_copy.name = deepcopy(self.name)
         new_copy.anc_reset = deepcopy(self.anc_reset)
         new_copy.log_noise_prob = deepcopy(self.log_noise_prob)
+        new_copy.pauli_observable_ind = deepcopy(self.pauli_observable_ind)
         return new_copy
 
     def __str__(self) -> str:
         string = self.name
+        if self.pauli_observable_ind is not None:
+            string += f"({self.pauli_observable_ind})"
         if self.rot_basis is not None:
             string += " bX" if self.rot_basis else " bZ"
         if self.anc_reset is not None:
@@ -169,6 +175,30 @@ def logical_noise(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
         func = LogOpCallable(func)
     new_func = func.copy()
     new_func.log_op_type += ["logical_noise"]
+    return new_func
+
+
+def pauli_observable_x(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    new_func = func.copy()
+    new_func.log_op_type += ["pauli_observable"]
+    return new_func
+
+
+def pauli_observable_y(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    new_func = func.copy()
+    new_func.log_op_type += ["pauli_observable"]
+    return new_func
+
+
+def pauli_observable_z(func: LogOpCallable | LogOpFunction) -> LogOpCallable:
+    if not isinstance(func, LogOpCallable):
+        func = LogOpCallable(func)
+    new_func = func.copy()
+    new_func.log_op_type += ["pauli_observable"]
     return new_func
 
 
