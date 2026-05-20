@@ -492,7 +492,9 @@ def merge_fake_operations(
 ) -> stim.Circuit:
     """
     Returns the circuit corresponding to merging all the given
-    iterators that do not correspond to logical operations.
+    iterators that do not correspond to 'true' logical operations,
+    in the sense that they do not apply any physcal gates to the qubits
+    (they only include noise, observable definitions...).
 
     Note that it adds only a single ``TICK`` at the end of the circuit.
 
@@ -576,7 +578,7 @@ def group_logical_operations(
         else:
             if log_op_layouts.intersection(log_op[1:]) != set():
                 raise ValueError(
-                    "Layouts must only perform one actual logical operation."
+                    "Layouts must only perform one 'true' logical operation."
                 )
             true_log_ops.append(log_op)
             for layout in log_op[1:]:

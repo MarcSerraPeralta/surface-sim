@@ -67,12 +67,14 @@ def schedule_from_circuit(
     - ``tuple[LogOpCallable, Layout]`` performs a (logical) single-layout operation
     - ``tuple[LogOpCallable, Layout, Layout]`` performs a (logical) two-qubit gate.
 
-    The OBSERVABLE_INCLUDE instructions are only included if they are Pauli target
-    (e.g., ``Z0``).
+    The OBSERVABLE_INCLUDE instructions are only included in ``schedule`` if they
+    are Pauli target (e.g., ``Z0``). The rest (e.g., the ``rec[-k]`` ones) are
+    included in ``meas_to_obs``.
 
     For example, the following circuit
 
     .. code:
+
         R 0 1
         TICK
         M 1
@@ -83,6 +85,7 @@ def schedule_from_circuit(
     is translated to
 
     .. code:
+
         [
             [
                 (reset_z_iterator, layout_0),
@@ -530,13 +533,13 @@ def experiment_from_schedule(
     meas_to_obs
         Dictionary with keys corresponding to the logical measurement indices and values
         corresponding to the observable indices that the measurement has support on.
+        This information is used to build the observables in the circuit.
         By default, it defines an observable for every logical measurement.
 
     Returns
     -------
     experiment
-        Stim circuit corresponding to the logical equivalent of the
-        given schedule.
+        Stim circuit corresponding to the logical equivalent of the given schedule.
 
     Notes
     -----
