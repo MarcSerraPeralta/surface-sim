@@ -10,6 +10,7 @@ from surface_sim.circuit_blocks.unrot_surface_code_css import (
     log_x_error_iterator,
     log_x_iterator,
     log_z_error_iterator,
+    pauli_observable_x_iterator,
     qec_round_iterator,
 )
 from surface_sim.layouts.library.unrot_surface_codes import unrot_surface_codes
@@ -17,7 +18,7 @@ from surface_sim.models import NoiselessModel
 from surface_sim.util.circuit_operations import (
     group_logical_operations,
     merge_circuits,
-    merge_logical_noise,
+    merge_fake_operations,
     merge_logical_operations,
     merge_operation_layers,
 )
@@ -181,7 +182,7 @@ def test_merge_logical_measurements():
         [(log_meas_z_iterator, layout), (log_meas_x_iterator, other_layout)],
         model,
         detectors,
-        init_log_obs_ind=1,
+        num_prev_meas=1,
         anc_reset=True,
     )
 
@@ -214,7 +215,7 @@ def test_merge_logical_operations():
         ],
         model,
         detectors,
-        init_log_obs_ind=0,
+        num_prev_meas=0,
         anc_reset=True,
         anc_detectors=["X1"],
     )
@@ -229,7 +230,7 @@ def test_merge_logical_operations():
             ],
             model,
             detectors,
-            init_log_obs_ind=0,
+            num_prev_meas=0,
             anc_reset=True,
             anc_detectors=["X1"],
         )
@@ -247,6 +248,7 @@ def test_group_logical_operations():
             (log_depolarize1_error_iterator, other_layout),
             (init_qubits_z0_iterator, other_layout),
             (log_z_error_iterator, layout),
+            (pauli_observable_x_iterator, layout),
         ],
     )
 
@@ -258,16 +260,19 @@ def test_group_logical_operations():
         (init_qubits_z0_iterator, layout),
         (init_qubits_z0_iterator, other_layout),
     ]
-    assert post == [(log_z_error_iterator, layout)]
+    assert post == [
+        (log_z_error_iterator, layout),
+        (pauli_observable_x_iterator, layout),
+    ]
 
     return
 
 
-def test_merge_logical_noise():
+def test_merge_fake_operations():
     layout, other_layout = unrot_surface_codes(2, distance=3)
     model = NoiselessModel.from_layouts(layout, other_layout)
 
-    circuit = merge_logical_noise(
+    circuit = merge_fake_operations(
         [
             (log_x_error_iterator, layout),
             (log_depolarize1_error_iterator, other_layout),

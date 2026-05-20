@@ -33,10 +33,9 @@ QEC_RESET_OP_TYPES = ["qec_round", "to_mid_cycle_circuit"]
 GATE_OP_TYPES = ["sq_unitary_gate", "tq_unitary_gate"]
 MEAS_OP_TYPES = ["measurement"]
 RESET_OP_TYPES = ["qubit_init", "qubit_encoding"]
-NOISE_OP_TYPES = ["logical_noise"]
-VALID_OP_TYPES = (
-    QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES + NOISE_OP_TYPES
-)
+FAKE_OP_TYPES = ["logical_noise", "pauli_observable"]
+TRUE_OP_TYPES = QEC_OP_TYPES + GATE_OP_TYPES + MEAS_OP_TYPES + RESET_OP_TYPES
+VALID_OP_TYPES = TRUE_OP_TYPES + FAKE_OP_TYPES
 
 
 def merge_circuits(*circuits: stim.Circuit) -> stim.Circuit:
@@ -257,9 +256,10 @@ def merge_logical_operations(
     op_iterators: list[LogicalOperation],
     model: Model,
     detectors: Detectors,
-    init_log_obs_ind: int | None = None,
+    num_prev_meas: int | None = None,
     anc_reset: bool | None = None,
     anc_detectors: Collection[str] | None = None,
+    meas_to_obs: dict[int, tuple[int, ...]] | None = None,
 ) -> stim.Circuit:
     """
     Returns a circuit in which the given logical operation iterators have been
@@ -280,16 +280,22 @@ def merge_logical_operations(
         Noise model for the gates.
     detectors
         Detector definitions to use.
-    init_log_obs_ind
-        Integer to determine the index for the first observable to define.
-        If more than one logical measurement is defined or a layout contains
-        more than one logical qubit, it is incremented by 1 so that all observables
-        are different.
+    num_prev_meas
+        Number of logical measurements already included in the circuit.
+        It is used in the definition of the observables.
+        If ``meas_to_obs`` is ``None``, an observable is defined for
+        each measurement with observable index starting from ``num_prev_meas``.
     anc_reset
         If ``True``, ancillas are reset at the beginning of the QEC round.
     anc_detectors
         List of ancilla qubits for which to define the detectors.
         If ``None``, adds all detectors. By default ``None``.
+    meas_to_obs
+        Dictionary with keys corresponding to the logical measurement indices and values
+        corresponding to the observable indices that the measurement has support on.
+        Note that one only needs to specify the logical measurements involved in
+        the given layer of operations.
+        By default, it defines an observable for every logical measurement.
 
     Returns
     -------
@@ -314,8 +320,7 @@ def merge_logical_operations(
             "All logical qubits must be performing QEC cycles at the same time."
         )
     if any(qec_reset_ops + qec_dets_ops) and anc_reset is None:
-        if anc_reset is None:
-            raise ValueError("QEC round found but 'anc_reset' is not specified.")
+        raise ValueError("QEC round found but 'anc_reset' is not specified.")
 
     # change QEC round iterators to include 'anc_reset' (if needed)
     # because the 'merge_iterators' only inputs Model and Layout(s), not 'anc_reset'
@@ -381,13 +386,13 @@ def merge_logical_operations(
             raise ValueError(
                 "Logical measurement found but 'anc_reset' is not specified."
             )
-        if init_log_obs_ind is None:
+        if num_prev_meas is None:
             raise ValueError(
-                "Logical measurement found but 'init_log_obs_ind' is not specified."
+                "Logical measurement found but 'num_prev_meas' is not specified."
             )
-        if not isinstance(init_log_obs_ind, int):
+        if not isinstance(num_prev_meas, int):
             raise TypeError(
-                f"'init_log_obs_ind' must be an int, but {type(init_log_obs_ind)} was given."
+                f"'num_prev_meas' must be an int, but {type(num_prev_meas)} was given."
             )
 
         layouts = [op_iterators[k][1] for k in meas_ops]
@@ -418,13 +423,17 @@ def merge_logical_operations(
                     log_op, log_qubit_label
                 )
                 targets = [model.meas_target(qubit, -1) for qubit in log_data_qubits]
-                instr = stim.CircuitInstruction(
-                    name="OBSERVABLE_INCLUDE",
-                    targets=targets,
-                    gate_args=[init_log_obs_ind],
-                )
-                circuit.append(instr)
-                init_log_obs_ind += 1
+                obs_inds = [num_prev_meas]
+                if meas_to_obs is not None:
+                    obs_inds = meas_to_obs[num_prev_meas]
+                for obs_ind in obs_inds:
+                    instr = stim.CircuitInstruction(
+                        name="OBSERVABLE_INCLUDE",
+                        targets=targets,
+                        gate_args=[obs_ind],
+                    )
+                    circuit.append(instr)
+                num_prev_meas += 1
 
         # deactivate (ancilla-qubit) detectors from the logical measurement.
         for k in meas_ops:
@@ -478,19 +487,19 @@ def merge_ticks(blocks: Collection[stim.Circuit]) -> stim.Circuit:
     return circuit
 
 
-def merge_logical_noise(
+def merge_fake_operations(
     log_ops: Sequence[LogicalOperation], model: Model
 ) -> stim.Circuit:
     """
-    Returns the circuit corresponding to merging all the given logical
-    noise operations.
+    Returns the circuit corresponding to merging all the given
+    iterators that do not correspond to logical operations.
 
     Note that it adds only a single ``TICK`` at the end of the circuit.
 
     Parameters
     ----------
     log_ops
-        Logical noise channels to merge.
+        Iterators to merge.
     model
         Noise model to use.
         Note that it is only used to get the indicies of the qubits.
@@ -515,9 +524,9 @@ def group_logical_operations(
     log_ops: Sequence[LogicalOperation],
 ) -> tuple[list[LogicalOperation], list[LogicalOperation], list[LogicalOperation]]:
     """
-    Splits the given list of logical operations into (1) the logical noise that is
+    Splits the given list of logical operations into (1) the iterators that are
     applied before the actual logical operations, (2) the actual logical operations,
-    and (3) the logical noise that is applied after the actual logical operations.
+    and (3) the iterators that are applied after the actual logical operations.
 
     Parameters
     ----------
@@ -528,12 +537,12 @@ def group_logical_operations(
 
     Returns
     -------
-    pre_log_noise
-        Logical noise operations that appear before the actual logical operations.
+    pre_fake_operations
+        Iterators that appear before the actual logical operations.
     true_log_ops
         Actual logical operations.
-    post_log_noise
-        Logical noise operations that appear after the actual logical operations.
+    post_fake_operations
+        Iterators that appear after the actual logical operations.
     """
     if not isinstance(log_ops, Sequence):
         raise TypeError(f"'log_ops' must be a Sequence, but {type(log_ops)} was given.")
@@ -542,37 +551,35 @@ def group_logical_operations(
             "The first element for each entry in 'log_ops' must be LogOpCallable."
         )
 
-    pre_log_noise: list[LogicalOperation] = []
+    pre_fake_operations: list[LogicalOperation] = []
     true_log_ops: list[LogicalOperation] = []
-    post_log_noise: list[LogicalOperation] = []
+    post_fake_operations: list[LogicalOperation] = []
     log_op_layouts: set[Layout] = set()
 
     for log_op in log_ops:
         op_types = log_op[0].log_op_type
-        if set(NOISE_OP_TYPES).intersection(op_types) != set():
-            if set(NOISE_OP_TYPES).intersection(op_types) != set(op_types):
+        if set(FAKE_OP_TYPES).intersection(op_types) != set():
+            if len(op_types) != 1:
                 raise TypeError(
-                    "A logical operation cannot be both a logical noise channel "
-                    f"and a logical operation: {op_types}."
+                    f"'Fake' operations can only be of a single type, but '{op_types}' were found."
                 )
             if len(log_op[1:]) != 1:
                 raise ValueError(
-                    "Only single-qubit logical noise channels are supported: {log_op[1:]}."
+                    f"Only single-logical-qubit 'fake' operations are supported: {log_op[1:]}."
                 )
             layout = log_op[1]
 
             if layout not in log_op_layouts:
-                pre_log_noise.append(log_op)
+                pre_fake_operations.append(log_op)
             else:
-                post_log_noise.append(log_op)
+                post_fake_operations.append(log_op)
         else:
             if log_op_layouts.intersection(log_op[1:]) != set():
                 raise ValueError(
-                    "Layouts must only perform an actual logical operation."
+                    "Layouts must only perform one actual logical operation."
                 )
-            else:
-                true_log_ops.append(log_op)
-                for layout in log_op[1:]:
-                    log_op_layouts.add(layout)
+            true_log_ops.append(log_op)
+            for layout in log_op[1:]:
+                log_op_layouts.add(layout)
 
-    return pre_log_noise, true_log_ops, post_log_noise
+    return pre_fake_operations, true_log_ops, post_fake_operations

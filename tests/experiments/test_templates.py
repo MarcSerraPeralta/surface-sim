@@ -98,6 +98,9 @@ def test_memory_experiments():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == (
+                1 if "stellated" not in layout.name else 8
+            )
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -129,6 +132,7 @@ def test_memory_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == 3 * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -153,6 +157,7 @@ def test_memory_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == 3 * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -341,6 +346,7 @@ def test_memory_experiments_encoding():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == 1
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -371,6 +377,7 @@ def test_memory_experiments_encoding():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == 3 * num_anc + num_anc_x
+        assert circuit.num_observables == 1
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -394,6 +401,7 @@ def test_memory_experiments_encoding():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == 3 * num_anc + num_anc_x
+        assert circuit.num_observables == 1
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -449,6 +457,9 @@ def test_repeated_s_experiments():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == (
+                1 if "stellated" not in layout.name else 8
+            )
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -482,6 +493,7 @@ def test_repeated_s_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -508,6 +520,7 @@ def test_repeated_s_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -551,6 +564,9 @@ def test_repeated_h_experiments():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == (
+                1 if "stellated" not in layout.name else 8
+            )
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -584,6 +600,7 @@ def test_repeated_h_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -610,6 +627,7 @@ def test_repeated_h_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == (1 if "stellated" not in layout.name else 8)
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -665,6 +683,7 @@ def test_repeated_swap_experiments():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == 8
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -698,6 +717,7 @@ def test_repeated_swap_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == 8
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -724,6 +744,7 @@ def test_repeated_swap_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_x = len(layout.get_qubits(role="anc", stab_type="x_type"))
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == 8
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -775,6 +796,7 @@ def test_repeated_cnot_experiments():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == 2
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -816,6 +838,7 @@ def test_repeated_cnot_experiments():
             layout_t.get_qubits(role="anc", stab_type="x_type")
         )
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == 2
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -845,6 +868,7 @@ def test_repeated_cnot_experiments():
             layout_t.get_qubits(role="anc", stab_type="x_type")
         )
         assert circuit.num_detectors == (1 + 4 * 2) * num_anc + num_anc_x
+        assert circuit.num_observables == 2
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -898,6 +922,7 @@ def test_repeated_s_injection_experiment():
             )
 
             assert isinstance(circuit, stim.Circuit)
+            assert circuit.num_observables == 1
 
             # check that the detectors and logicals fulfill their
             # conditions by building the stim diagram
@@ -944,6 +969,7 @@ def test_repeated_s_injection_experiment():
             circuit.num_detectors
             == num_anc + 2 * (4 * num_anc + num_anc_z // 2) + num_anc_x // 2
         )
+        assert circuit.num_observables == 1
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -980,6 +1006,7 @@ def test_repeated_s_injection_experiment():
             circuit.num_detectors
             == num_anc + 2 * (4 * num_anc + num_anc_z // 2) + num_anc_x // 2
         )
+        assert circuit.num_observables == 1
 
         non_zero_dets = []
         for instr in circuit.flattened():
@@ -1058,6 +1085,7 @@ def test_stability_experiments():
         )
 
         assert isinstance(circuit, stim.Circuit)
+        assert circuit.num_observables == 1
 
         # check that the detectors and logicals fulfill their
         # conditions by building the stim diagram
@@ -1116,6 +1144,7 @@ def test_stability_experiments():
         num_anc = len(layout.anc_qubits)
         num_anc_o = len(layout.get_qubits(role="anc", stab_type=other_stab_type))
         assert circuit.num_detectors == 3 * num_anc + num_anc_o
+        assert circuit.num_observables == 1
 
         non_zero_dets = []
         for instr in circuit.flattened():

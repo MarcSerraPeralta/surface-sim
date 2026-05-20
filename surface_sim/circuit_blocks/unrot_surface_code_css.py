@@ -36,6 +36,9 @@ from .util import (
     log_z,
     log_z_error_iterator,
     log_z_iterator,
+    pauli_observable_x_iterator,
+    pauli_observable_y_iterator,
+    pauli_observable_z_iterator,
     qec_round_iterator,
     qec_round_iterator_cnots,
     qubit_coords,
@@ -84,6 +87,9 @@ __all__ = [
     "log_depolarize1_error_iterator",
     "gate_to_iterator",
     "gate_to_iterator_cnots",
+    "pauli_observable_x_iterator",
+    "pauli_observable_y_iterator",
+    "pauli_observable_z_iterator",
 ]
 
 

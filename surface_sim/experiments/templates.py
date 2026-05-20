@@ -11,7 +11,6 @@ from ..circuit_blocks.decorators import (
 from ..detectors import Detectors
 from ..layouts.layout import Layout
 from ..models import Model
-from ..util.observables import remove_nondeterministic_observables
 from .arbitrary_experiment import experiment_from_circuit
 
 
@@ -520,6 +519,14 @@ def repeated_s_injection_experiment(
     for _ in range(num_s_injections):
         unencoded_circuit_str += s_injection_circuit_str
     unencoded_circuit_str += f"\nM{b} 0"
+
+    if rot_basis:
+        unencoded_circuit_str += "\nOBSERVABLE_INCLUDE(0) " + " ".join(
+            f"rec[-{i + 1}]" for i in range(num_s_injections + 1)
+        )
+    else:
+        unencoded_circuit_str += "\nOBSERVABLE_INCLUDE(0) rec[-1]"
+
     unencoded_circuit = Circuit(unencoded_circuit_str)
 
     experiment = experiment_from_circuit(
@@ -531,16 +538,6 @@ def repeated_s_injection_experiment(
         anc_reset=anc_reset,
         anc_detectors=anc_detectors,
     )
-
-    # keep only deterministic observables
-    if rot_basis:
-        experiment = remove_nondeterministic_observables(
-            experiment, [list(range(num_s_injections + 1))]
-        )
-    else:
-        experiment = remove_nondeterministic_observables(
-            experiment, [[num_s_injections]]
-        )
 
     return experiment
 
