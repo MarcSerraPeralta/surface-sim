@@ -114,7 +114,7 @@ For more fine tunning in the presence of multiple code patches,
 see ``surface_sim.experiments.experiment_from_schedule``.
 
 Observables can be defined from Paulis, not just measurement records.
-For example
+For example:
 ```
 RX 0
 R 1
