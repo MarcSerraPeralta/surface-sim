@@ -146,7 +146,8 @@ def schedule_from_circuit(
     for instr in circuit:
         # observable_include operations are different than the rest
         if instr.name == "OBSERVABLE_INCLUDE":
-            target, obs_ind = instr.targets_copy()[0], instr.gate_args_copy()[0]
+            # gate_args_copy() always returns a list[float]
+            target, obs_ind = instr.targets_copy()[0], int(instr.gate_args_copy()[0])
             if target.is_measurement_record_target:
                 meas_to_obs[curr_meas + target.value] += (obs_ind,)
             else:
