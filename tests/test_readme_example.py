@@ -71,6 +71,56 @@ def test_readme_example_arbitrary_circuit():
 
     _ = experiment.detector_error_model()
 
+    circuit = stim.Circuit(
+        """
+        R[noiseless] 0
+        TICK
+        TICK
+        TICK
+        M[noiseless] 0
+        """
+    )
+
+    layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
+
+    model.setup.set_var_param("prob", 1e-3)
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
+    )
+
+    _ = experiment.detector_error_model()
+
+    circuit = stim.Circuit(
+        """
+        RX 0
+        R 1
+        TICK
+        CNOT 0 1
+        TICK
+        TICK
+        TICK
+        TICK[noiseless]
+        OBSERVABLE_INCLUDE(0) Z0 Z1
+        OBSERVABLE_INCLUDE(1) X0 X1
+        """
+    )
+
+    layouts = unrot_surface_codes(circuit.num_qubits, distance=3)
+    model = CircuitNoiseModel.from_layouts(*layouts)
+    detectors = Detectors.from_layouts(*layouts, frame="pre-gate")
+
+    model.setup.set_var_param("prob", 1e-3)
+
+    experiment = experiment_from_circuit(
+        circuit, layouts, model, detectors, gate_to_iterator, anc_reset=True
+    )
+
+    _ = experiment.detector_error_model()
+    assert experiment.num_observables == 2
+
     return
 
 
