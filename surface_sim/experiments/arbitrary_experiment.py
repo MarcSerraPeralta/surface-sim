@@ -20,6 +20,7 @@ from ..util.circuit_operations import (
     MEAS_OP_TYPES,
     QEC_OP_TYPES,
     RESET_OP_TYPES,
+    TRUE_OP_TYPES,
     group_logical_operations,
     merge_fake_operations,
     merge_logical_operations,
@@ -419,15 +420,20 @@ def schedule_from_instructions(instructions: Instructions) -> Schedule:
         curr_block: list[LogicalOperation],
         counter: dict[Layout, int],
     ):
-        # if necessary, add idling.
-        # only add idling if at least one layout is performing an operation.
         # the situation where no layout is performing anything can happen when
         # performing more than one QEC round between logical gates
         if len(curr_block) == 0:
             return blocks, curr_block, counter
-        for l, k in counter.items():
-            if k == 0:
-                curr_block.append((idle_iterator, l))
+
+        # if necessary, add idling.
+        # only add idling if at least one layout is performing a 'true' operation.
+        curr_block_types = set(
+            [t for log_op in curr_block for t in log_op[0].log_op_type]
+        )
+        if set(TRUE_OP_TYPES).intersection(curr_block_types) != set():
+            for l, k in counter.items():
+                if k == 0:
+                    curr_block.append((idle_iterator, l))
 
         # add current block and reset variables
         blocks.append(curr_block)

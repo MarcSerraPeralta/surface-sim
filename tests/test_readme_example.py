@@ -102,6 +102,7 @@ def test_readme_example_arbitrary_circuit():
         TICK
         TICK
         TICK
+        TICK[noiseless]
         OBSERVABLE_INCLUDE(0) Z0 Z1
         OBSERVABLE_INCLUDE(1) X0 X1
         """
@@ -118,6 +119,7 @@ def test_readme_example_arbitrary_circuit():
     )
 
     _ = experiment.detector_error_model()
+    assert experiment.num_observables == 2
 
     return
 
