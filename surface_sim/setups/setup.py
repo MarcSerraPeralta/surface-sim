@@ -136,14 +136,19 @@ class Setup:
         self._mode: str = "standard"
         self._qubit_params: dict[str | tuple[str, ...], dict[str, Param]] = dict()
         self._global_params: dict[str, Param] = dict()
-        self._var_params: dict[str, Param] = dict()
         self.uniform: bool = False
 
         _setup: SetupDict = deepcopy(setup)
         self.name: str | None = _setup.pop("name", None)
         self.description: str | None = _setup.pop("description", None)
         self._gate_durations: dict[str, float | int] = _setup.pop("gate_durations", {})
+
+        # self._load_setup requires self._var_params to be initialized.
+        # load var params after self._load_setup because it sets all of them to 'None'.
+        self._var_params: dict[str, Param] = {}
         self._load_setup(_setup)
+        self._var_params |= _setup.pop("var_params", {})
+
         if self._qubit_params == {}:
             self.uniform = True
 
@@ -183,6 +188,7 @@ class Setup:
                 if isinstance(val, str):
                     for p in _get_var_params(val):
                         self._var_params[p] = None
+        return
 
     @property
     def free_params(self) -> list[str]:
@@ -225,6 +231,9 @@ class Setup:
         setup["name"] = self.name
         setup["description"] = self.description
         setup["gate_durations"] = self._gate_durations
+        setup["var_params"] = {
+            k: v for k, v in self._var_params.items() if v is not None
+        }
 
         qubit_params: list[dict[str, Param]] = []
         if self._global_params:
@@ -356,7 +365,9 @@ class Setup:
             return self.var_param(self.PARENTS[var_param])
 
         if val is None:
-            raise ValueError(f"Variable param {var_param} not in 'Setup.free_params'.")
+            raise ValueError(
+                f"Variable param {var_param} not specified or does not exist."
+            )
         return val
 
     def set_var_param(self, var_param: str, val: Param) -> None:
