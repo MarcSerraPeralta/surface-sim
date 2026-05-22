@@ -34,6 +34,7 @@ SETUP = {
     ],
     "name": "test",
     "description": "test description",
+    "var_params": {},
 }
 
 

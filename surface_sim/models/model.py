@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import pathlib
 from collections.abc import Collection, Sequence
 from copy import deepcopy
 
+import yaml
 from stim import Circuit, CircuitInstruction, GateTarget, target_rec
 from typing_extensions import override
 
@@ -180,6 +182,35 @@ class Model:
         self._last_op: str = ""
         self._new_op: str = ""
         return
+
+    def store_state(self, filename: str | pathlib.Path) -> None:
+        """Stores the current state to the given YAML file.
+        This is useful in a conditioned circuit to not encode the first part
+        of the circuit for every realization."""
+        state = {
+            "meas_order": deepcopy(self._meas_order),
+            "num_meas": deepcopy(self._num_meas),
+            "last_op": deepcopy(self._last_op),
+            "new_op": deepcopy(self._new_op),
+            "setup": deepcopy(self._setup.to_dict()),
+            "qubit_inds": deepcopy(self._qubit_inds),
+        }
+        with open(filename, "w") as file:
+            yaml.dump(state, file)
+        return
+
+    @classmethod
+    def load_state(cls, filename: str | pathlib.Path) -> "Model":
+        """Loads the state inside the given YAML file.
+        See ``Model.store_state`` for more information."""
+        with open(filename, "r") as file:
+            state = yaml.safe_load(file)
+        model = cls(setup=Setup(state["setup"]), qubit_inds=state["qubit_inds"])
+        model._meas_order = state["meas_order"]
+        model._num_meas = state["num_meas"]
+        model._last_op = state["last_op"]
+        model._new_op = state["new_op"]
+        return model
 
     # annotation operations
     def tick(self) -> Circuit:

@@ -349,3 +349,22 @@ def test_detectors_build_from_data_frame_gate_independent():
     assert sorted([-110, -101, -201]) in detector_rec
 
     return
+
+
+def test_store_and_load_state(tmp_path_factory):
+    anc_qubits = ["X1", "Z1"]
+    detectors = Detectors(anc_qubits=anc_qubits, frame="pre-gate")
+    detectors.activate_detectors(anc_qubits, [])
+    new_stabs = {"X1": set(["X1", "Z1"]), "Z1": set(["Z1"])}
+    new_stabs_inv = {"X1": set(["X1", "Z1"]), "Z1": set(["Z1"])}
+    detectors.update(new_stabs, new_stabs_inv)
+
+    path = tmp_path_factory.mktemp("model_states")
+    detectors.store_state(path / "si1000.yaml")
+
+    new_detectors = Detectors.load_state(path / "si1000.yaml")
+
+    assert new_detectors.frame == detectors.frame
+    assert new_detectors.total_num_rounds == detectors.total_num_rounds
+
+    return

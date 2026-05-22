@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import pathlib
 from collections.abc import Callable, Collection, Mapping, Sequence
 from copy import deepcopy
 from typing import TypeVar
 
 import stim
+import yaml
 
 from ..layouts.layout import Layout
 
@@ -115,6 +117,44 @@ class Detectors:
         self.update_dict_list: list[dict[str, set[str]]] = []
         self.gauge_detectors: set[str] = set()
         return
+
+    def store_state(self, filename: str | pathlib.Path) -> None:
+        """Stores the current state to the given YAML file.
+        This is useful in a conditioned circuit to not encode the first part
+        of the circuit for every realization."""
+        state = {
+            "anc_qubit_labels": deepcopy(self.anc_qubit_labels),
+            "frame": deepcopy(self.frame),
+            "anc_coords": deepcopy(self.anc_coords),
+            "include_gauge_dets": deepcopy(self.include_gauge_dets),
+            "detectors": deepcopy(self.detectors),
+            "num_rounds": deepcopy(self.num_rounds),
+            "total_num_rounds": deepcopy(self.total_num_rounds),
+            "update_dict_list": deepcopy(self.update_dict_list),
+            "gauge_detectors": deepcopy(self.gauge_detectors),
+        }
+        with open(filename, "w") as file:
+            yaml.dump(state, file)
+        return
+
+    @classmethod
+    def load_state(cls, filename: str | pathlib.Path) -> "Detectors":
+        """Loads the state inside the given YAML file.
+        See ``Model.store_state`` for more information."""
+        with open(filename, "r") as file:
+            state = yaml.safe_load(file)
+        detectors = cls(
+            anc_qubits=state["anc_qubit_labels"],
+            frame=state["frame"],
+            anc_coords=state["anc_coords"],
+            include_gauge_dets=state["include_gauge_dets"],
+        )
+        detectors.detectors = state["detectors"]
+        detectors.num_rounds = state["num_rounds"]
+        detectors.total_num_rounds = state["total_num_rounds"]
+        detectors.update_dict_list = state["update_dict_list"]
+        detectors.gauge_detectors = state["gauge_detectors"]
+        return detectors
 
     def activate_detectors(
         self, anc_qubits: Collection[str], gauge_dets: Collection[str] | None = None
