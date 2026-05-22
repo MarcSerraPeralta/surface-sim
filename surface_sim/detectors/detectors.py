@@ -122,16 +122,19 @@ class Detectors:
         """Stores the current state to the given YAML file.
         This is useful in a conditioned circuit to not encode the first part
         of the circuit for every realization."""
+        # convert sets to lists for easier storage in YAML file
         state = {
-            "anc_qubit_labels": deepcopy(self.anc_qubit_labels),
+            "anc_qubit_labels": deepcopy(list(self.anc_qubit_labels)),
             "frame": deepcopy(self.frame),
-            "anc_coords": deepcopy(self.anc_coords),
+            "anc_coords": deepcopy({k: list(v) for k, v in self.anc_coords.items()}),
             "include_gauge_dets": deepcopy(self.include_gauge_dets),
-            "detectors": deepcopy(self.detectors),
+            "detectors": deepcopy({k: list(v) for k, v in self.detectors.items()}),
             "num_rounds": deepcopy(self.num_rounds),
             "total_num_rounds": deepcopy(self.total_num_rounds),
-            "update_dict_list": deepcopy(self.update_dict_list),
-            "gauge_detectors": deepcopy(self.gauge_detectors),
+            "update_dict_list": deepcopy(
+                [{k: list(v) for k, v in d.items()} for d in self.update_dict_list]
+            ),
+            "gauge_detectors": deepcopy(list(self.gauge_detectors)),
         }
         with open(filename, "w") as file:
             yaml.dump(state, file)
@@ -149,11 +152,13 @@ class Detectors:
             anc_coords=state["anc_coords"],
             include_gauge_dets=state["include_gauge_dets"],
         )
-        detectors.detectors = state["detectors"]
+        detectors.detectors = {k: set(v) for k, v in state["detectors"].items()}
         detectors.num_rounds = state["num_rounds"]
         detectors.total_num_rounds = state["total_num_rounds"]
-        detectors.update_dict_list = state["update_dict_list"]
-        detectors.gauge_detectors = state["gauge_detectors"]
+        detectors.update_dict_list = [
+            {k: set(v) for k, v in d.items()} for d in state["update_dict_list"]
+        ]
+        detectors.gauge_detectors = set(state["gauge_detectors"])
         return detectors
 
     def activate_detectors(
