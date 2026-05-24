@@ -40,6 +40,9 @@ autosummary_ignore_module_all = False  # create summary for elements in __all__
 autosummary_imported_members = False
 add_module_names = False
 autodoc_inherit_docstrings = True
+autodoc_default_options = {
+    "inherited-members": False,
+}
 
 # avoid source, png, pdf links after every figure
 plot_html_show_source_link = False
