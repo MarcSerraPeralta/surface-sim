@@ -10,10 +10,8 @@ from .circuit_operations import (
     merge_operation_layers,
     merge_ticks,
 )
-from .data_gen import sample_memory_experiment
 
 __all__ = [
-    "sample_memory_experiment",
     "merge_circuits",
     "merge_logical_operations",
     "merge_ticks",
