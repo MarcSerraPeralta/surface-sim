@@ -516,6 +516,8 @@ def experiment_from_schedule(
     anc_reset: bool = True,
     anc_detectors: Collection[str] | None = None,
     meas_to_obs: dict[int, tuple[int, ...]] | None = None,
+    reset_state: bool = True,
+    num_log_meas: int = 0,
 ) -> stim.Circuit:
     """
     Returns a stim circuit corresponding to a logical experiment
@@ -542,6 +544,16 @@ def experiment_from_schedule(
         corresponding to the observable indices that the measurement has support on.
         This information is used to build the observables in the circuit.
         By default, it defines an observable for every logical measurement.
+    reset_state
+        Flag to reset the state of ``model`` and ``detectors``.
+        It is useful when building circuits sequentially in chuncks so that the state
+        is kept. If ``False``, the qubit coordinates are not included in ``experiment``.
+        By default, ``True``.
+    num_log_meas
+        Number of logical measurements in the circuit before processing the
+        operations in the given schedule.
+        It is useful when building circuits sequentially in chuncks so that the state
+        is kept. By default, ``0``.
 
     Returns
     -------
@@ -559,15 +571,18 @@ def experiment_from_schedule(
         raise TypeError(
             f"'detectors' must be a Detectors, but {type(detectors)} was given."
         )
+    if not isinstance(num_log_meas, int):
+        raise TypeError(
+            f"'num_log_meas' must be an int, but {type(num_log_meas)} was given."
+        )
 
     layouts = get_layouts_from_schedule(schedule)
 
     experiment = stim.Circuit()
-    model.new_circuit()
-    detectors.new_circuit()
-    num_log_meas = 0
-
-    experiment += qubit_coords(model, *layouts)
+    if reset_state:
+        model.new_circuit()
+        detectors.new_circuit()
+        experiment += qubit_coords(model, *layouts)
 
     for block in schedule:
         pre_fake_ops, log_ops, post_fake_ops = group_logical_operations(block)
