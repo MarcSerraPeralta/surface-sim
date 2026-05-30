@@ -136,6 +136,7 @@ def test_layout_set_information():
 
     layout.set_logical_param("ind", "L0", "abcdef")
     assert layout.logical_param("ind", "L0") == "abcdef"
+    assert layout.logical_param("ind") == "abcdef"
 
     return
 

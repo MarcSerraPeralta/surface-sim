@@ -617,7 +617,7 @@ class Layout:
     #####################################
     # get information from logical qubits
 
-    def logical_param(self, param: str, logical_qubit: str) -> object:
+    def logical_param(self, param: str, logical_qubit: str | None = None) -> object:
         """Returns the parameter value of a given logical qubit.
 
         Parameters
@@ -626,6 +626,8 @@ class Layout:
             The label of the logical qubit parameter.
         logical_qubit
             The label of the logical qubit that is being queried.
+            If the layout has only a single logical qubit, it does not have to
+            be specified.
 
         Returns
         -------
@@ -633,6 +635,11 @@ class Layout:
             The value of the parameter if specified for the given logical qubit,
             else ``None``.
         """
+        if logical_qubit is None:
+            if self.num_logical_qubits != 1:
+                raise ValueError("Missing 'logical_qubit' argument.")
+            logical_qubit = self.logical_qubits[0]
+
         params = self._log_qubits.get(logical_qubit)
         if params is None:
             return None
