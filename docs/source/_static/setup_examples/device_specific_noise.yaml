@@ -1,0 +1,242 @@
+name: "Noise setup from experimental characterization"
+description: "Setup for a experimental noise model that uses the results from the device characterization."
+gate_durations:
+  CZ: 0.05
+  H: 0.04
+  M: 0.6
+  R: 1.0
+  X: 0.04
+setup:
+- T1: 38
+  T2: 22
+  assign_error_flag: true
+  assign_error_prob: 0.003
+  meas_error_prob: 0.003
+  qubit: D1
+  reset_error_prob: 0.05
+  sq_error_prob: 0.0005
+- T1: 19
+  T2: 20
+  assign_error_flag: true
+  assign_error_prob: 0.019
+  meas_error_prob: 0.019
+  qubit: D2
+  reset_error_prob: 0.05
+  sq_error_prob: 0.001
+- T1: 33
+  T2: 29
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: D3
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 14
+  T2: 17
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: D4
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 16
+  T2: 13
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: D5
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 12
+  T2: 17
+  assign_error_flag: true
+  assign_error_prob: 0.014
+  meas_error_prob: 0.014
+  qubit: D6
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 39
+  T2: 20
+  assign_error_flag: true
+  assign_error_prob: 0.005
+  meas_error_prob: 0.005
+  qubit: D7
+  reset_error_prob: 0.005
+  sq_error_prob: 0.0005
+- T1: 19
+  T2: 16
+  assign_error_flag: true
+  assign_error_prob: 0.009
+  meas_error_prob: 0.009
+  qubit: D8
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 47
+  T2: 26
+  assign_error_flag: true
+  assign_error_prob: 0.005
+  meas_error_prob: 0.005
+  qubit: D9
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 32
+  T2: 24
+  assign_error_flag: true
+  assign_error_prob: 0.005
+  meas_error_prob: 0.005
+  qubit: X1
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 16
+  T2: 8
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: X2
+  reset_error_prob: 0.005
+  sq_error_prob: 0.003
+- T1: 12
+  T2: 8
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: X3
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 34
+  T2: 17
+  assign_error_flag: true
+  assign_error_prob: 0.012
+  meas_error_prob: 0.012
+  qubit: X4
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 16
+  T2: 17
+  assign_error_flag: true
+  assign_error_prob: 0.009
+  meas_error_prob: 0.009
+  qubit: Z1
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 10
+  T2: 17
+  assign_error_flag: true
+  assign_error_prob: 0.015
+  meas_error_prob: 0.015
+  qubit: Z2
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 17
+  T2: 22
+  assign_error_flag: true
+  assign_error_prob: 0.011
+  meas_error_prob: 0.011
+  qubit: Z3
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- T1: 14
+  T2: 18
+  assign_error_flag: true
+  assign_error_prob: 0.028
+  meas_error_prob: 0.028
+  qubit: Z4
+  reset_error_prob: 0.005
+  sq_error_prob: 0.001
+- cz_error_prob: 0.0131
+  qubits:
+  - Z3
+  - D7
+- cz_error_prob: 0.0432
+  qubits:
+  - D7
+  - X3
+- cz_error_prob: 0.0031
+  qubits:
+  - Z3
+  - D4
+- cz_error_prob: 0.0237
+  qubits:
+  - X3
+  - D4
+- cz_error_prob: 0.0254
+  qubits:
+  - X3
+  - D8
+- cz_error_prob: 0.0305
+  qubits:
+  - D8
+  - X4
+- cz_error_prob: 0.0281
+  qubits:
+  - X4
+  - D9
+- cz_error_prob: 0.01
+  qubits:
+  - D8
+  - D4
+- cz_error_prob: 0.0335
+  qubits:
+  - X3
+  - D5
+- cz_error_prob: 0.0082
+  qubits:
+  - Z1
+  - D4
+- cz_error_prob: 0.0351
+  qubits:
+  - Z1
+  - D1
+- cz_error_prob: 0.006
+  qubits:
+  - Z1
+  - D5
+- cz_error_prob: 0.0117
+  qubits:
+  - Z4
+  - D5
+- cz_error_prob: 0.01
+  qubits:
+  - Z4
+  - D9
+- cz_error_prob: 0.0108
+  qubits:
+  - Z4
+  - D6
+- cz_error_prob: 0.0213
+  qubits:
+  - D5
+  - X2
+- cz_error_prob: 0.021
+  qubits:
+  - Z1
+  - D2
+- cz_error_prob: 0.0258
+  qubits:
+  - D1
+  - X1
+- cz_error_prob: 0.1078
+  qubits:
+  - D2
+  - X1
+- cz_error_prob: 0.0566
+  qubits:
+  - X2
+  - D2
+- cz_error_prob: 0.0107
+  qubits:
+  - D6
+  - X2
+- cz_error_prob: 0.0136
+  qubits:
+  - Z2
+  - D6
+- cz_error_prob: 0.0273
+  qubits:
+  - X2
+  - D3
+- cz_error_prob: 0.0152
+  qubits:
+  - Z2
+  - D3
+time_units: us
