@@ -20,6 +20,7 @@ class Detectors:
         frame: str,
         anc_coords: Mapping[str, Sequence[float | int]] | None = None,
         include_gauge_dets: bool = False,
+        include_empty_detectors: bool = True,
     ) -> None:
         """Initalises the ``Detectors`` class.
 
@@ -38,6 +39,13 @@ class Detectors:
         include_gauge_dets
             Flag to include or not the definition of gauge detectors.
             By default, ``False``.
+        include_empty_detectors
+            Flag to include or not the definition of empty detectors, that is
+            detectors that will always be ``0`` because they do not have any
+            measurement associated with it. This can happen in the first QEC
+            cycle after a logical reset, when not defining detectors for all
+            the stabilizers...
+            By default, ``True``.
 
         Notes
         -----
@@ -77,7 +85,8 @@ class Detectors:
         self.anc_qubit_labels: Collection[str] = anc_qubits
         self.frame: str = frame
         self.anc_coords: dict[str, Sequence[float | int]] = anc_coords
-        self.include_gauge_dets: bool = include_gauge_dets
+        self.include_gauge_dets: bool = bool(include_gauge_dets)
+        self.include_empty_detectors: bool = bool(include_empty_detectors)
 
         self.new_circuit()
 
@@ -432,6 +441,10 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
+
+            if detectors_rec == [] and not self.include_empty_detectors:
+                continue
+
             coords = [*self.anc_coords[anc], self.total_num_rounds - 1]
             instr = stim.CircuitInstruction(
                 "DETECTOR", gate_args=coords, targets=detectors_rec
@@ -631,6 +644,10 @@ class Detectors:
             else:
                 # create the detector but make it be always 0
                 detectors_rec = []
+
+            if detectors_rec == [] and not self.include_empty_detectors:
+                continue
+
             coords = [*self.anc_coords[anc], self.total_num_rounds - 0.5]
             instr = stim.CircuitInstruction(
                 "DETECTOR", gate_args=coords, targets=detectors_rec

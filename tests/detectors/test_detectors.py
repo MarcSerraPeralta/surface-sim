@@ -46,6 +46,38 @@ def test_detectors_gauge_dets():
 
     assert len(detectors_stim[0].targets_copy()) != 0
     assert len(detectors_stim[1].targets_copy()) != 0
+
+    return
+
+
+def test_include_empty_detectors():
+    anc_qubits = ["X1", "Z1"]
+    meas_rec = lambda q, t: stim.target_rec(anc_qubits.index(q) - 2 + t * 100)
+    detectors = Detectors(
+        anc_qubits=anc_qubits, frame="pre-gate", include_empty_detectors=False
+    )
+    detectors.activate_detectors(anc_qubits, gauge_dets=["X1", "Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim) == 0
+
+    detectors.deactivate_detectors(anc_qubits)
+    detectors.activate_detectors(anc_qubits, gauge_dets=["Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim) == 1
+
+    detectors = Detectors(
+        anc_qubits=anc_qubits,
+        frame="pre-gate",
+        include_gauge_dets=True,
+        include_empty_detectors=False,
+    )
+    detectors.activate_detectors(anc_qubits, gauge_dets=["X1", "Z1"])
+    detectors_stim = detectors.build_from_anc(meas_rec, anc_reset=True)
+
+    assert len(detectors_stim) == 2
+
     return
 
 
